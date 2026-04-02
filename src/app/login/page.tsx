@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#0a0f1e] border border-white/10 mb-4 shadow-lg shadow-[#1E5F7A]/20 overflow-hidden">
             <Image
-              src="/logo.png"
+              src="/Logo_Solident.png"
               alt="Solident"
               width={72}
               height={72}
