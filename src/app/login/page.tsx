@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0f1e] px-4">
 
       {/* Background glows — brand colors */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -59,27 +59,27 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-white text-xl font-semibold mb-6">Connexion</h2>
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-gray-900 dark:text-white text-xl font-semibold mb-6">Connexion</h2>
 
           <form onSubmit={handleLogin} className="space-y-5">
 
             {/* Email */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1.5">Adresse e-mail</label>
+              <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Adresse e-mail</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="vous@exemple.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
+                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1.5">Mot de passe</label>
+              <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Mot de passe</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -87,7 +87,7 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-16 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
+                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 pr-16 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
                 />
                 <button
                   type="button"

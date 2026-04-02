@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -23,6 +24,7 @@ interface HeaderProps {
 export default function Header({ collapsed, onToggle, fullName, isAdmin }: HeaderProps) {
   const supabase = createClient()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifs, setShowNotifs]       = useState(false)
   const [showProfile, setShowProfile]     = useState(false)
@@ -87,7 +89,7 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin }: Heade
       className={`
         fixed top-0 right-0 z-30 h-16
         flex items-center justify-between px-4
-        bg-[#080d1a]/80 backdrop-blur-xl border-b border-white/5
+        bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5
         transition-all duration-300
         ${collapsed ? 'left-[68px]' : 'left-[220px]'}
       `}
@@ -103,6 +105,14 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin }: Heade
       </button>
 
       <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
+          title="Changer le thème"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
         {/* Bell */}
         <div ref={notifRef} className="relative">

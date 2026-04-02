@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e]">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0f1e]">
       <Sidebar collapsed={collapsed} isAdmin={isAdmin} />
       <Header
         collapsed={collapsed}

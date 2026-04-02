@@ -32,8 +32,8 @@ const priorityColor: Record<string, string> = {
 
 function Widget({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white/5 border border-white/10 rounded-2xl p-5 ${className}`}>
-      <h3 className="text-white font-semibold text-sm mb-4">{title}</h3>
+    <div className={`bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 ${className}`}>
+      <h3 className="text-gray-900 dark:text-white font-semibold text-sm mb-4">{title}</h3>
       {children}
     </div>
   )
@@ -124,11 +124,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
 
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#1E5F7A]/30 to-[#0a0f1e] border border-[#1E5F7A]/30 rounded-2xl p-6 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#1E5F7A]/20 to-gray-50 dark:from-[#1E5F7A]/30 dark:to-[#0a0f1e] border border-[#1E5F7A]/30 rounded-2xl p-6 flex items-center justify-between">
         <div>
-          <p className="text-slate-400 text-sm">Bienvenue,</p>
-          <h1 className="text-white text-2xl font-bold mt-0.5">{profile?.full_name}</h1>
-          <p className="text-slate-500 text-xs mt-1">@{profile?.username}</p>
+          <p className="text-gray-500 dark:text-slate-400 text-sm">Bienvenue,</p>
+          <h1 className="text-gray-900 dark:text-white text-2xl font-bold mt-0.5">{profile?.full_name}</h1>
+          <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">@{profile?.username}</p>
         </div>
         <div className="text-right hidden sm:block">
           {profile?.is_admin && (
@@ -151,9 +151,9 @@ export default function DashboardPage() {
             { label: 'Projets actifs',           value: projects.filter(p => p.status === 'Actif').length, color: 'text-[#5bbcde]' },
             { label: 'Événements à venir',       value: events.length,    color: 'text-green-400' },
           ].map(stat => (
-            <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+            <div key={stat.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-slate-500 text-xs mt-1">{stat.label}</p>
+              <p className="text-gray-500 dark:text-slate-500 text-xs mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -178,12 +178,12 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             {tasks.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-2">Aucune tâche active</p>
+              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucune tâche active</p>
             ) : tasks.map(task => (
-              <div key={task.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+              <div key={task.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
                 <span className={`text-xs mt-0.5 ${priorityColor[task.priority] || 'text-slate-400'}`}>●</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-200 text-sm truncate">{task.title}</p>
+                  <p className="text-gray-800 dark:text-slate-200 text-sm truncate">{task.title}</p>
                   {task.due_date && (
                     <p className="text-slate-600 text-xs mt-0.5">
                       Échéance: {new Date(task.due_date).toLocaleDateString('fr-MA')}
@@ -202,7 +202,7 @@ export default function DashboardPage() {
         <Widget title="📅 Événements à venir" className="break-inside-avoid">
           <div className="space-y-2">
             {events.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-2">Aucun événement prévu</p>
+              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucun événement prévu</p>
             ) : events.map(event => (
               <div key={event.id} className="flex gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
                 <div className="bg-[#1E5F7A]/20 rounded-lg p-2 flex-shrink-0 text-center min-w-[44px]">
@@ -228,19 +228,19 @@ export default function DashboardPage() {
         <Widget title="📁 Mes projets" className="break-inside-avoid">
           <div className="space-y-2">
             {projects.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-2">Aucun projet</p>
+              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucun projet</p>
             ) : projects.map(project => (
-              <div key={project.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+              <div key={project.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
                 <div className="w-8 h-8 rounded-lg bg-[#1E5F7A]/30 flex items-center justify-center text-sm flex-shrink-0">
                   📁
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-200 text-sm truncate">{project.name}</p>
+                  <p className="text-gray-800 dark:text-slate-200 text-sm truncate">{project.name}</p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-lg flex-shrink-0 ${
-                  project.status === 'Actif'    ? 'bg-green-500/20 text-green-400'  :
+                  project.status === 'Actif'    ? 'bg-green-500/20 text-green-400'   :
                   project.status === 'En pause' ? 'bg-yellow-500/20 text-yellow-400' :
-                  project.status === 'Bloqué'   ? 'bg-red-500/20 text-red-400'      :
+                  project.status === 'Bloqué'   ? 'bg-red-500/20 text-red-400'       :
                   'bg-slate-500/20 text-slate-400'
                 }`}>
                   {project.status}
@@ -254,7 +254,7 @@ export default function DashboardPage() {
         <Widget title="🔔 Notifications récentes" className="break-inside-avoid">
           <div className="space-y-2">
             {notifications.length === 0 ? (
-              <p className="text-slate-600 text-sm text-center py-2">Aucune notification</p>
+              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucune notification</p>
             ) : notifications.map(n => (
               <div key={n.id} className="flex gap-2 p-2.5 rounded-xl bg-[#1E5F7A]/10 border border-[#1E5F7A]/20">
                 <span className="text-sm flex-shrink-0">🔔</span>
@@ -269,9 +269,9 @@ export default function DashboardPage() {
           <Widget title="💡 Propositions en attente" className="break-inside-avoid">
             <div className="space-y-2">
               {proposals.length === 0 ? (
-                <p className="text-slate-600 text-sm text-center py-2">Aucune proposition</p>
+                <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucune proposition</p>
               ) : proposals.map(p => (
-                <div key={p.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                <div key={p.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
                   <div className="flex-1 min-w-0">
                     <p className="text-slate-200 text-sm truncate">{p.title}</p>
                     <p className="text-slate-500 text-xs mt-0.5">

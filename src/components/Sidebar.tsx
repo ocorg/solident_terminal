@@ -38,7 +38,7 @@ export default function Sidebar({ collapsed, isAdmin }: SidebarProps) {
           flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
           ${active
             ? 'bg-[#1E5F7A] text-white shadow-lg shadow-[#1E5F7A]/30'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
+            : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
           }
           ${collapsed ? 'justify-center' : ''}
         `}
@@ -55,18 +55,18 @@ export default function Sidebar({ collapsed, isAdmin }: SidebarProps) {
     <aside
       className={`
         fixed top-0 left-0 h-full z-40 flex flex-col
-        bg-[#080d1a] border-r border-white/5
+        bg-white dark:bg-[#080d1a] border-r border-gray-200 dark:border-white/5
         transition-all duration-300 ease-in-out
         ${collapsed ? 'w-[68px]' : 'w-[220px]'}
       `}
     >
       {/* Logo */}
       <div className={`flex items-center h-16 px-3 border-b border-white/5 flex-shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
-        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white flex items-center justify-center flex-shrink-0 overflow-hidden">
           <img src="/Logo_Solident.png" alt="Solident" className="w-7 h-7 object-contain" />
         </div>
         {!collapsed && (
-          <span className="text-white font-semibold text-sm tracking-tight">Solident</span>
+          <span className="text-gray-900 dark:text-white font-semibold text-sm tracking-tight">Solident</span>
         )}
       </div>
 
