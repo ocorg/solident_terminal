@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -34,17 +35,24 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0f1e] px-4">
 
-      {/* Background glow */}
+      {/* Background glows — brand colors */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#2563eb] opacity-10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#1E5F7A] opacity-10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/3 w-[300px] h-[300px] bg-[#F0A500] opacity-5 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-md">
 
-        {/* Logo / Brand */}
+        {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2563eb] mb-4 shadow-lg shadow-blue-500/30">
-            <span className="text-white text-2xl font-bold">S</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#0a0f1e] border border-white/10 mb-4 shadow-lg shadow-[#1E5F7A]/20 overflow-hidden">
+            <Image
+              src="/logo.png"
+              alt="Solident"
+              width={72}
+              height={72}
+              className="object-contain"
+            />
           </div>
           <h1 className="text-white text-2xl font-semibold tracking-tight">Solident</h1>
           <p className="text-slate-400 text-sm mt-1">Solidarité Dentaires — Espace membre</p>
@@ -65,7 +73,7 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="vous@exemple.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
               />
             </div>
 
@@ -79,12 +87,12 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-16 text-white placeholder:text-slate-600 text-sm focus:outline-none focus:border-[#1E5F7A] focus:ring-1 focus:ring-[#1E5F7A] transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition text-xs"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-[#F0A500] transition text-xs font-medium"
                 >
                   {showPass ? 'Cacher' : 'Voir'}
                 </button>
@@ -102,7 +110,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 active:scale-[0.98]"
+              className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-[#1E5F7A]/30 hover:shadow-[#1E5F7A]/50 active:scale-[0.98]"
             >
               {loading ? 'Connexion en cours…' : 'Se connecter'}
             </button>
@@ -110,9 +118,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          Solidarité Dentaires © {new Date().getFullYear()}
-        </p>
+        {/* Accent bottom line */}
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <div className="h-px w-12 bg-[#F0A500]/30" />
+          <p className="text-slate-600 text-xs">Solidarité Dentaires © {new Date().getFullYear()}</p>
+          <div className="h-px w-12 bg-[#F0A500]/30" />
+        </div>
+
       </div>
     </div>
   )
