@@ -124,11 +124,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
 
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#1E5F7A]/20 to-gray-50 dark:from-[#1E5F7A]/30 dark:to-[#0a0f1e] border border-[#1E5F7A]/30 rounded-2xl p-6 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#1E5F7A] to-[#2a7a9a] border border-[#1E5F7A]/30 rounded-2xl p-6 flex items-center justify-between">
         <div>
-          <p className="text-gray-500 dark:text-slate-400 text-sm">Bienvenue,</p>
-          <h1 className="text-gray-900 dark:text-white text-2xl font-bold mt-0.5">{profile?.full_name}</h1>
-          <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">@{profile?.username}</p>
+          <p className="text-white/70 text-sm">Bienvenue,</p>
+          <h1 className="text-white text-2xl font-bold mt-0.5">{profile?.full_name}</h1>
+          <p className="text-white/50 text-xs mt-1">@{profile?.username}</p>
         </div>
         <div className="text-right hidden sm:block">
           {profile?.is_admin && (
