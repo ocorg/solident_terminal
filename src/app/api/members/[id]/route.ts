@@ -10,10 +10,11 @@ async function verifyAdmin() {
   return data?.is_admin ? user : null
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const caller = await verifyAdmin()
   if (!caller) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const { id } = await params
   const body = await req.json()
   const admin = createAdminClient()
 
@@ -23,18 +24,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       username:  body.username,
       is_admin:  body.is_admin,
     })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ status: 'updated' })
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const caller = await verifyAdmin()
   if (!caller) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const { id } = await params
   const admin = createAdminClient()
-  const { error } = await admin.auth.admin.deleteUser(params.id)
+  const { error } = await admin.auth.admin.deleteUser(id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ status: 'deleted' })
 }
