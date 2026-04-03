@@ -138,7 +138,7 @@ export default function MembersPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-2xl text-sm font-medium shadow-2xl transition-all duration-300 ${toast.ok ? 'bg-green-500/20 border border-green-500/30 text-green-400' : 'bg-red-500/20 border border-red-500/30 text-red-400'}`}>
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border animate-in fade-in slide-in-from-top-4 duration-300 ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
       )}

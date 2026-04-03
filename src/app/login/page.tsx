@@ -54,8 +54,8 @@ export default function LoginPage() {
               className="object-contain"
             />
           </div>
-          <h1 className="text-white text-2xl font-semibold tracking-tight">Solident</h1>
-          <p className="text-[#1E5F7A] dark:text-slate-400 text-sm mt-1 font-medium">Solidarité Dentaires — Espace membre</p>
+          <h1 className="text-gray-900 dark:text-white text-2xl font-semibold tracking-tight">Solident</h1>
+          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Solidarité Dentaires — Espace membre</p>
         </div>
 
         {/* Card */}
