@@ -3,30 +3,45 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json()
-  if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
+  try {
+    const body = await req.json()
+    const { email } = body
 
-  // Rate limit: 3 attempts per email per 15 minutes
-  const allowed = rateLimit(`forgot:${email}`, 3, 15 * 60 * 1000)
-  if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans 15 minutes.' }, { status: 429 })
+    if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
 
-  const admin = createAdminClient()
+    // Rate limit: 3 attempts per email per 15 minutes
+    const allowed = rateLimit(`forgot:${email}`, 3, 15 * 60 * 1000)
+    if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans 15 minutes.' }, { status: 429 })
 
-  // Check if user exists with this email
-  const { data: { users } } = await admin.auth.admin.listUsers()
-  const exists = users?.some(u => u.email?.toLowerCase() === email.toLowerCase())
+    const admin = createAdminClient()
 
-  if (!exists) {
-    return NextResponse.json({ error: 'Aucun compte associé à cette adresse email.' }, { status: 404 })
+    // Check user exists — paginated listUsers
+    const { data: usersData, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    if (listError) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+
+    const exists = usersData?.users?.some(
+      u => u.email?.toLowerCase() === email.toLowerCase()
+    )
+
+    if (!exists) {
+      return NextResponse.json({ error: 'Aucun compte associé à cette adresse email.' }, { status: 404 })
+    }
+
+    // Send reset email
+    const { error: resetError } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: {
+        redirectTo: 'https://solident-terminal.vercel.app/reset-password'
+      }
+    })
+
+    if (resetError) return NextResponse.json({ error: resetError.message }, { status: 500 })
+
+    return NextResponse.json({ status: 'sent' })
+
+  } catch (e) {
+    console.error('forgot-password error:', e)
+    return NextResponse.json({ error: 'Erreur serveur inattendue' }, { status: 500 })
   }
-
-  // User exists — send reset email via Supabase
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://solident-terminal.vercel.app'}/reset-password`,
-  })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ status: 'sent' })
 }
