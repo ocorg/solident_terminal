@@ -15,16 +15,34 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
 
-    const res = await fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    const data = await res.json()
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
 
-    setLoading(false)
-    if (!res.ok) { setError(data.error); return }
-    setSent(true)
+      let data: { error?: string; status?: string } = {}
+      try {
+        data = await res.json()
+      } catch {
+        setError('Erreur serveur. Veuillez réessayer.')
+        setLoading(false)
+        return
+      }
+
+      if (!res.ok) {
+        setError(data.error || 'Une erreur est survenue.')
+        setLoading(false)
+        return
+      }
+
+      setSent(true)
+    } catch {
+      setError('Impossible de contacter le serveur. Vérifiez votre connexion.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
