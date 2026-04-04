@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
@@ -63,7 +64,7 @@ export default function Sidebar({ collapsed, isAdmin }: SidebarProps) {
       {/* Logo */}
       <div className={`flex items-center h-16 px-3 border-b border-white/5 flex-shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
         <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <img src="/Logo_Solident.png" alt="Solident" className="w-7 h-7 object-contain" />
+          <Image src="/Logo_Solident.png" alt="Solident" width={28} height={28} className="object-contain" />
         </div>
         {!collapsed && (
           <span className="text-gray-900 dark:text-white font-semibold text-sm tracking-tight">Solident</span>

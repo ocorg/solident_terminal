@@ -31,7 +31,9 @@ export async function GET() {
     cellules = data
   }
 
-  return NextResponse.json(cellules || [])
+  return NextResponse.json(cellules || [], {
+    headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=120' }
+  })
 }
 
 export async function POST(req: NextRequest) {

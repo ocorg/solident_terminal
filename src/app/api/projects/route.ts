@@ -12,6 +12,8 @@ export async function GET() {
 
   let projects
 
+  // Cache for 30 seconds on CDN, revalidate in background
+  const headers = { 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' }
   if (profile?.is_admin) {
     const { data } = await supabase
       .from('projects')
@@ -33,7 +35,7 @@ export async function GET() {
     projects = data
   }
 
-  return NextResponse.json(projects || [])
+  return NextResponse.json(projects || [], { headers })
 }
 
 export async function POST(req: NextRequest) {
