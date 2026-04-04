@@ -61,7 +61,8 @@ export default function TasksPage() {
   const { toast, toastLeaving, showToast } = useToast()
   const [filterStatus, setFilterStatus] = useState('Tous')
   const [search,       setSearch]       = useState('')
-  const [isAdmin,      setIsAdmin]      = useState(false)
+  const [isAdmin,        setIsAdmin]        = useState(false)
+  const [showArchived,   setShowArchived]   = useState(false)
 
   const [form, setForm] = useState({
     title: '', description: '', context_type: 'project',
@@ -73,7 +74,7 @@ export default function TasksPage() {
 
   // ─── Load data ─────────────────────────────────────────────
   async function loadTasks() {
-    const res = await fetch('/api/tasks')
+    const res = await fetch(`/api/tasks?archived=${showArchived}`)
     const data = await res.json()
     if (Array.isArray(data)) setTasks(data)
     setLoading(false)
@@ -104,8 +105,11 @@ export default function TasksPage() {
       if (ctxs.length > 0) setForm(f => ({ ...f, context_id: ctxs[0].id, context_type: ctxs[0].type }))
     }
     init()
-    loadTasks()
   }, [])
+
+  useEffect(() => {
+    loadTasks()
+  }, [showArchived])
 
   // ─── Comments ──────────────────────────────────────────────
   async function loadComments(taskId: string) {
@@ -225,6 +229,11 @@ export default function TasksPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
+          <button
+            onClick={() => setShowArchived(prev => !prev)}
+            className={`px-3 py-2 rounded-xl text-xs font-medium transition border ${showArchived ? 'bg-[#F0A500]/20 text-[#F0A500] border-[#F0A500]/30' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
+            {showArchived ? '📦 Archivées' : '📦 Archivées'}
+          </button>
           <div className="flex bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
             {(['kanban', 'list'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
@@ -362,6 +371,16 @@ export default function TasksPage() {
                 <button onClick={() => setEditForm(editForm ? null : { ...detail })}
                   className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
                   {editForm ? 'Annuler' : 'Modifier'}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Archiver cette tâche ?')) return
+                    await updateTask(detail.id, { archived: true } as any)
+                    setDetail(null)
+                    showToast('Tâche archivée.')
+                  }}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
+                  Archiver
                 </button>
                 <button onClick={() => deleteTask(detail.id)}
                   className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
