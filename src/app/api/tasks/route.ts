@@ -68,5 +68,21 @@ export async function POST(req: NextRequest) {
   // Always assign creator
   await admin.from('task_assignees').upsert({ task_id: task.id, user_id: user.id })
 
+  // Email assignees
+  if (assignee_ids?.length > 0) {
+    const { emailTaskAssigned } = await import('@/lib/email')
+    const { data: assigneeProfiles } = await admin
+      .from('profiles').select('full_name, email:id').in('id', assignee_ids)
+
+    const { data: authUsers } = await admin.auth.admin.listUsers()
+    for (const assigneeId of assignee_ids) {
+      const authUser = authUsers?.users?.find((u: { id: string }) => u.id === assigneeId)
+      const profile  = (assigneeProfiles || []).find((p: { full_name: string }) => p)
+      if (authUser?.email && profile?.full_name) {
+        await emailTaskAssigned(authUser.email, profile.full_name, title, task.id)
+      }
+    }
+  }
+
   return NextResponse.json(task)
 }

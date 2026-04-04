@@ -1,57 +1,100 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
-import { useTheme } from 'next-themes'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 interface Notification {
-  id: string
-  message: string
-  type: string
-  status: string
-  created_at: string
+  id: string; message: string; type: string
+  status: string; created_at: string
 }
 
 interface HeaderProps {
-  collapsed: boolean
-  onToggle: () => void
-  fullName: string
-  isAdmin: boolean
+  collapsed: boolean; onToggle: () => void
+  fullName: string; isAdmin: boolean
 }
 
 export default function Header({ collapsed, onToggle, fullName, isAdmin }: HeaderProps) {
   const supabase = createClient()
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
+  const router   = useRouter()
+
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [showNotifs, setShowNotifs]       = useState(false)
-  const [showProfile, setShowProfile]     = useState(false)
+  const [showNotifs,    setShowNotifs]    = useState(false)
+  const [showProfile,   setShowProfile]   = useState(false)
   const notifRef   = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
+  const audioRef   = useRef<AudioContext | null>(null)
 
   const unread = notifications.filter(n => n.status === 'Non lu').length
 
-  useEffect(() => {
-    async function fetchNotifs() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      if (data) setNotifications(data)
+  // ─── Notification sound ──────────────────────────────────────
+  function playNotifSound() {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.setValueAtTime(880, ctx.currentTime)
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
+      gain.gain.setValueAtTime(0.15, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.4)
+    } catch (e) {
+      // Audio not available
     }
-    fetchNotifs()
+  }
+
+  // ─── Fetch notifications ─────────────────────────────────────
+  const fetchNotifs = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    if (data) setNotifications(data)
+    return user.id
   }, [])
 
-  // Close dropdowns on outside click
+  // ─── Initial load + Realtime subscription ────────────────────
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    async function init() {
+      const userId = await fetchNotifs()
+      if (!userId) return
+
+      channel = supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event:  'INSERT',
+            schema: 'public',
+            table:  'notifications',
+            filter: `recipient_id=eq.${userId}`,
+          },
+          (payload) => {
+            setNotifications(prev => [payload.new as Notification, ...prev])
+            playNotifSound()
+          }
+        )
+        .subscribe()
+    }
+
+    init()
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [fetchNotifs])
+
+  // ─── Close dropdowns on outside click ───────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifs(false)
+      if (notifRef.current   && !notifRef.current.contains(e.target as Node))   setShowNotifs(false)
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setShowProfile(false)
     }
     document.addEventListener('mousedown', handleClick)
@@ -85,74 +128,60 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin }: Heade
   }
 
   return (
-    <header
-      className={`
-        fixed top-0 right-0 z-30 h-16
-        flex items-center justify-between px-4
-        bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5
-        transition-all duration-300
-        ${collapsed ? 'left-[68px]' : 'left-[220px]'}
-      `}
-    >
+    <header className={`fixed top-0 right-0 z-30 h-16 flex items-center justify-between px-4 bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 transition-all duration-300 ${collapsed ? 'left-[68px]' : 'left-[220px]'}`}>
+
       {/* Burger */}
-      <button
-        onClick={onToggle}
-        className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl hover:bg-white/5 transition-all duration-200 group"
-      >
-        <span className={`block h-0.5 bg-slate-400 group-hover:bg-white transition-all duration-300 ${collapsed ? 'w-5' : 'w-4'}`} />
-        <span className="block w-5 h-0.5 bg-slate-400 group-hover:bg-white transition-all duration-300" />
-        <span className={`block h-0.5 bg-slate-400 group-hover:bg-white transition-all duration-300 ${collapsed ? 'w-5' : 'w-3'}`} />
+      <button onClick={onToggle}
+        className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-200 group">
+        <span className={`block h-0.5 bg-gray-400 group-hover:bg-gray-900 dark:group-hover:bg-white transition-all duration-300 ${collapsed ? 'w-5' : 'w-4'}`} />
+        <span className="block w-5 h-0.5 bg-gray-400 group-hover:bg-gray-900 dark:group-hover:bg-white transition-all duration-300" />
+        <span className={`block h-0.5 bg-gray-400 group-hover:bg-gray-900 dark:group-hover:bg-white transition-all duration-300 ${collapsed ? 'w-5' : 'w-3'}`} />
       </button>
 
       <div className="flex items-center gap-2">
+
         {/* Theme toggle */}
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
-          title="Changer le thème"
-        >
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
+        <ThemeToggle />
 
         {/* Bell */}
         <div ref={notifRef} className="relative">
-          <button
-            onClick={() => { setShowNotifs(!showNotifs); setShowProfile(false) }}
-            className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/5 transition text-slate-400 hover:text-white"
-          >
+          <button onClick={() => { setShowNotifs(!showNotifs); setShowProfile(false) }}
+            className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white">
             🔔
             {unread > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[#F0A500] rounded-full text-[10px] text-black font-bold flex items-center justify-center">
+              <span className="absolute top-1 right-1 w-4 h-4 bg-[#F0A500] rounded-full text-[10px] text-black font-bold flex items-center justify-center animate-bounce">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
           </button>
 
-          {/* Notif Dropdown */}
           {showNotifs && (
-            <div className="absolute right-0 top-12 w-80 bg-[#0e1628] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                <span className="text-white text-sm font-semibold">Notifications</span>
+            <div className="absolute right-0 top-12 w-80 bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5">
+                <span className="text-gray-900 dark:text-white text-sm font-semibold">Notifications</span>
                 {unread > 0 && (
                   <button onClick={markAllRead} className="text-[#F0A500] text-xs hover:underline">
                     Tout marquer lu
                   </button>
                 )}
               </div>
-              <div className="max-h-72 overflow-y-auto divide-y divide-white/5">
+              <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5">
                 {notifications.length === 0 ? (
-                  <p className="text-slate-500 text-sm text-center py-6">Aucune notification</p>
-                ) : (
-                  notifications.map(n => (
-                    <div key={n.id} className={`flex gap-3 px-4 py-3 text-sm transition hover:bg-white/5 ${n.status === 'Non lu' ? 'bg-[#1E5F7A]/10' : ''}`}>
-                      <span className="text-lg flex-shrink-0">{notifIcon[n.type] || notifIcon.default}</span>
-                      <div>
-                        <p className="text-slate-300 leading-snug">{n.message}</p>
-                        <p className="text-slate-600 text-xs mt-0.5">{new Date(n.created_at).toLocaleDateString('fr-MA')}</p>
-                      </div>
+                  <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-6">Aucune notification</p>
+                ) : notifications.map(n => (
+                  <div key={n.id} className={`flex gap-3 px-4 py-3 text-sm transition hover:bg-gray-50 dark:hover:bg-white/5 ${n.status === 'Non lu' ? 'bg-[#1E5F7A]/5' : ''}`}>
+                    <span className="text-lg flex-shrink-0">{notifIcon[n.type] || notifIcon.default}</span>
+                    <div>
+                      <p className="text-gray-700 dark:text-slate-300 leading-snug text-xs">{n.message}</p>
+                      <p className="text-gray-400 dark:text-slate-600 text-[10px] mt-0.5">
+                        {new Date(n.created_at).toLocaleDateString('fr-MA')}
+                      </p>
                     </div>
-                  ))
-                )}
+                    {n.status === 'Non lu' && (
+                      <div className="w-2 h-2 bg-[#F0A500] rounded-full flex-shrink-0 mt-1 ml-auto" />
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -160,36 +189,55 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin }: Heade
 
         {/* Profile */}
         <div ref={profileRef} className="relative">
-          <button
-            onClick={() => { setShowProfile(!showProfile); setShowNotifs(false) }}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-white/5 transition"
-          >
+          <button onClick={() => { setShowProfile(!showProfile); setShowNotifs(false) }}
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
             <div className="w-7 h-7 rounded-lg bg-[#1E5F7A] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {fullName?.[0]?.toUpperCase() ?? 'U'}
             </div>
-            <span className="text-slate-300 text-sm hidden sm:block">{fullName}</span>
+            <span className="text-gray-700 dark:text-slate-300 text-sm hidden sm:block">{fullName}</span>
             {isAdmin && (
               <span className="hidden sm:block text-[10px] bg-[#F0A500]/20 text-[#F0A500] px-1.5 py-0.5 rounded-md font-medium">Admin</span>
             )}
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 top-12 w-44 bg-[#0e1628] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-              <Link href="/settings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition">
+            <div className="absolute right-0 top-12 w-44 bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <Link href="/settings" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition">
                 ⚙️ Paramètres
               </Link>
-              <div className="border-t border-white/5" />
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
-              >
+              <div className="border-t border-gray-100 dark:border-white/5" />
+              <button onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition">
                 🚪 Déconnexion
               </button>
             </div>
           )}
         </div>
-
       </div>
     </header>
+  )
+}
+
+// ─── Theme toggle extracted to avoid re-rendering Header ─────
+function ThemeToggle() {
+  const [theme, setThemeState] = useState<string>('light')
+
+  useEffect(() => {
+    setThemeState(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
+  }, [])
+
+  function toggle() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setThemeState(next)
+    document.documentElement.classList.toggle('dark', next === 'dark')
+    localStorage.setItem('theme', next)
+  }
+
+  return (
+    <button onClick={toggle}
+      className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
+      title="Changer le thème">
+      {theme === 'dark' ? '☀️' : '🌙'}
+    </button>
   )
 }

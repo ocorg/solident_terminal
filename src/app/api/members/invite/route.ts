@@ -39,5 +39,9 @@ export async function POST(req: NextRequest) {
     await admin.from('profiles').update({ is_admin: true }).eq('id', data.user.id)
   }
 
+  // Send welcome email
+  const { emailInvite } = await import('@/lib/email')
+  await emailInvite(email, full_name)
+
   return NextResponse.json({ status: 'invited' })
 }

@@ -74,6 +74,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         message:      `Votre proposition "${proposal.title}" a été approuvée et le projet a été créé.`,
         status:       'Non lu',
       })
+
+      // Email proposer
+      const { emailProposalApproved } = await import('@/lib/email')
+      const { data: proposerAuth } = await admin.auth.admin.getUserById(proposal.proposed_by)
+      const { data: proposerProfile } = await admin.from('profiles').select('full_name').eq('id', proposal.proposed_by).single()
+      if (proposerAuth?.user?.email && proposerProfile?.full_name) {
+        await emailProposalApproved(proposerAuth.user.email, proposerProfile.full_name, proposal.title)
+      }
     }
   } else {
     // Notify proposer of rejection
@@ -84,6 +92,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       message:      `Votre proposition "${proposal.title}" a été rejetée.${review_notes ? ` Note: ${review_notes}` : ''}`,
       status:       'Non lu',
     })
+
+    // Email proposer
+    const { emailProposalRejected } = await import('@/lib/email')
+    const { data: proposerAuth } = await admin.auth.admin.getUserById(proposal.proposed_by)
+    const { data: proposerProfile } = await admin.from('profiles').select('full_name').eq('id', proposal.proposed_by).single()
+    if (proposerAuth?.user?.email && proposerProfile?.full_name) {
+      await emailProposalRejected(proposerAuth.user.email, proposerProfile.full_name, proposal.title, review_notes || '')
+    }
   }
 
   return NextResponse.json({ status: 'updated' })
