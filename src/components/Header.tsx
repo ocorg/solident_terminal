@@ -13,9 +13,10 @@ interface Notification {
 interface HeaderProps {
   collapsed: boolean; onToggle: () => void
   fullName: string; isAdmin: boolean
+  isMobile: boolean
 }
 
-export default function Header({ collapsed, onToggle, fullName, isAdmin }: HeaderProps) {
+export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobile }: HeaderProps) {
   const supabase = createClient()
   const router   = useRouter()
 
@@ -128,7 +129,7 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin }: Heade
   }
 
   return (
-    <header className={`fixed top-0 right-0 z-30 h-16 flex items-center justify-between px-4 bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 transition-all duration-300 ${collapsed ? 'left-[68px]' : 'left-[220px]'}`}>
+    <header className={`fixed top-0 right-0 z-30 h-16 flex items-center justify-between px-4 bg-white/80 dark:bg-[#080d1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 transition-all duration-300 ${isMobile ? 'left-0' : collapsed ? 'left-[68px]' : 'left-[220px]'}`}>
 
       {/* Burger */}
       <button onClick={onToggle}
