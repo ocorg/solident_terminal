@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit } from '@/lib/rateLimit'
 
 export async function PATCH(req: NextRequest) {
   const supabase = await createClient()
@@ -9,6 +10,9 @@ export async function PATCH(req: NextRequest) {
 
   const { current_password, new_password } = await req.json()
 
+  // Rate limit: 5 password attempts per user per 15 minutes
+  const allowed = rateLimit(`password:${user.id}`, 5, 15 * 60 * 1000)
+  if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans 15 minutes.' }, { status: 429 })
   if (!current_password || !new_password) {
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
   }

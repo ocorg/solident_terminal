@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
   // Verify caller is admin
@@ -12,6 +13,9 @@ export async function POST(req: NextRequest) {
     .from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  // Rate limit: 10 invites per admin per hour
+  const allowed = rateLimit(`invite:${user.id}`, 10, 60 * 60 * 1000)
+  if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une heure.' }, { status: 429 })  
   const { email, full_name, username, is_admin } = await req.json()
   if (!email || !full_name || !username) {
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
