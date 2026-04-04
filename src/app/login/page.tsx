@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -16,12 +16,23 @@ export default function LoginPage() {
   const [error, setError]       = useState('')
   const [showPass, setShowPass] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setResetSuccess(new URLSearchParams(window.location.search).get('reset') === 'success')
+      const saved = localStorage.getItem('theme')
+      const isDark = saved === 'dark' || document.documentElement.classList.contains('dark')
+      setTheme(isDark ? 'dark' : 'light')
     }
   }, [])
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.classList.toggle('dark', next === 'dark')
+    localStorage.setItem('theme', next)
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -141,6 +152,14 @@ export default function LoginPage() {
           </form>
         </div>
 
+        
+        {/* Theme toggle */}
+        <div className="flex justify-center mt-4">
+          <button onClick={toggleTheme}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white text-xs font-medium transition shadow-sm">
+            {theme === 'dark' ? '☀️ Mode clair' : '🌙 Mode sombre'}
+          </button>
+        </div>
         {/* Accent bottom line */}
         <div className="mt-6 flex items-center justify-center gap-2">
           <div className="h-px w-12 bg-[#F0A500]/30" />
