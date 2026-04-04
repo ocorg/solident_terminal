@@ -157,7 +157,11 @@ export default function CellulesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-gray-900 dark:text-white font-bold text-lg mb-5">Nouvelle cellule</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvelle cellule</h2>
+              <button type="button" onClick={() => setShowCreate(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
+            </div>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Nom *</label>

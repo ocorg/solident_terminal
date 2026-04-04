@@ -449,7 +449,11 @@ export default function EventsPage() {
           <div className="relative w-full max-w-lg bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
 
             <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-5">
               <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvel événement</h2>
+              <button type="button" onClick={() => handleCloseCreate()}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
+            </div>
               <button type="button" onClick={handleCloseCreate}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
             </div>
