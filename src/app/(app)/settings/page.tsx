@@ -44,7 +44,7 @@ export default function SettingsPage() {
       }
 
       const { data: prefs } = await supabase
-        .from('user_email_prefs').select('email_enabled').eq('user_id', user.id).single()
+        .from('user_email_prefs').select('email_enabled').eq('user_id', user.id).maybeSingle()
       if (prefs) setEmailEnabled(prefs.email_enabled)
 
       setLoading(false)
