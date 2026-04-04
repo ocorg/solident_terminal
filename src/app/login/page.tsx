@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useEffect } from 'react'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -14,6 +15,13 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setResetSuccess(new URLSearchParams(window.location.search).get('reset') === 'success')
+    }
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -102,6 +110,12 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+            
+            {resetSuccess && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 text-green-500 text-sm">
+                Mot de passe réinitialisé avec succès. Connectez-vous.
+              </div>
+            )}
 
             {/* Error */}
             {error && (
