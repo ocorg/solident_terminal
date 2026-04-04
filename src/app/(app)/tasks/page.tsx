@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useToast, ToastStyle } from '@/hooks/useToast'
 import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -57,7 +58,7 @@ export default function TasksPage() {
   const [profiles,     setProfiles]     = useState<Profile[]>([])
   const [contexts,     setContexts]     = useState<ContextOption[]>([])
   const [dragId,       setDragId]       = useState<string | null>(null)
-  const [toast,        setToast]        = useState<{ msg: string; ok: boolean } | null>(null)
+  const { toast, toastLeaving, showToast } = useToast()
   const [filterStatus, setFilterStatus] = useState('Tous')
   const [search,       setSearch]       = useState('')
   const [isAdmin,      setIsAdmin]      = useState(false)
@@ -69,10 +70,6 @@ export default function TasksPage() {
   const [editForm, setEditForm] = useState<Partial<Task> | null>(null)
   const commentEndRef = useRef<HTMLDivElement>(null)
 
-  function showToast(msg: string, ok = true) {
-    setToast({ msg, ok })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   // ─── Load data ─────────────────────────────────────────────
   async function loadTasks() {
@@ -213,7 +210,7 @@ export default function TasksPage() {
       {/* Toast */}
       {toast && (
         <div
-          style={{ animation: 'toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
+          style={ToastStyle(toastLeaving)}
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}
         >
           {toast.msg}

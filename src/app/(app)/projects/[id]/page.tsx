@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useToast, ToastStyle } from '@/hooks/useToast'
 
 // ─── Types ───────────────────────────────────────────────────
 interface Position  { id: string; position_name: string }
@@ -43,8 +44,7 @@ export default function ProjectDetailPage() {
   const [isAdmin,     setIsAdmin]     = useState(false)
   const [canManage,   setCanManage]   = useState(false)
   const [allProfiles, setAllProfiles] = useState<Profile[]>([])
-  const [toast,       setToast]       = useState<{ msg: string; ok: boolean } | null>(null)
-  const [toastLeaving, setToastLeaving] = useState(false)
+  const { toast, toastLeaving, showToast } = useToast()
 
   // Edit project state
   const [editMode,  setEditMode]  = useState(false)
@@ -63,13 +63,6 @@ export default function ProjectDetailPage() {
   const [showAddSub,  setShowAddSub]  = useState(false)
   const [subForm,     setSubForm]     = useState({ name: '', description: '', status: 'Actif' })
   const [addingSub,   setAddingSub]   = useState(false)
-
-  function showToast(msg: string, ok = true) {
-    setToastLeaving(false)
-    setToast({ msg, ok })
-    setTimeout(() => setToastLeaving(true), 2800)
-    setTimeout(() => { setToast(null); setToastLeaving(false) }, 3500)
-  }
 
   async function loadProject() {
     const res = await fetch(`/api/projects/${id}`)
@@ -233,7 +226,7 @@ export default function ProjectDetailPage() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ animation: toastLeaving ? 'toastOut 0.4s cubic-bezier(0.36,0,0.66,0) forwards' : 'toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
+        <div style={ToastStyle(toastLeaving)}
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>

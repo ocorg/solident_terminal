@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Cellule {
   id: string; name: string; description: string | null
@@ -20,16 +21,8 @@ export default function CellulesPage() {
   const [search,     setSearch]     = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [toast,      setToast]      = useState<{ msg: string; ok: boolean } | null>(null)
-  const [toastLeaving, setToastLeaving] = useState(false)
+  const { toast, toastLeaving, showToast } = useToast()
   const [form, setForm] = useState({ name: '', description: '' })
-
-  function showToast(msg: string, ok = true) {
-    setToastLeaving(false)
-    setToast({ msg, ok })
-    setTimeout(() => setToastLeaving(true), 2800)
-    setTimeout(() => { setToast(null); setToastLeaving(false) }, 3500)
-  }
 
   async function loadCellules() {
     const res = await fetch('/api/cellules')
@@ -81,7 +74,7 @@ export default function CellulesPage() {
     <div className="space-y-6">
 
       {toast && (
-        <div style={{ animation: toastLeaving ? 'toastOut 0.4s cubic-bezier(0.36,0,0.66,0) forwards' : 'toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
+        <div style={ToastStyle(toastLeaving)}
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
