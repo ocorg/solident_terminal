@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast, ToastStyle } from '@/hooks/useToast'
 
 // ─── Types ───────────────────────────────────────────────────
 interface UserRef { id: string; full_name: string; username: string }
@@ -54,8 +55,7 @@ export default function ProposalsPage() {
   const [reviewing,  setReviewing]  = useState(false)
   const [profiles,   setProfiles]   = useState<Profile[]>([])
   const [projects,   setProjects]   = useState<Project[]>([])
-  const [toast,      setToast]      = useState<{ msg: string; ok: boolean } | null>(null)
-  const [toastLeaving, setToastLeaving] = useState(false)
+  const { toast, toastLeaving, showToast } = useToast()
 
   const [form, setForm] = useState({
     title: '', description: '', type: 'Projet',
@@ -63,13 +63,6 @@ export default function ProposalsPage() {
     suggested_chef: '', estimated_budget: '',
     timeline: '', motivation: '',
   })
-
-  function showToast(msg: string, ok = true) {
-    setToastLeaving(false)
-    setToast({ msg, ok })
-    setTimeout(() => setToastLeaving(true), 2800)
-    setTimeout(() => { setToast(null); setToastLeaving(false) }, 3500)
-  }
 
   async function loadProposals() {
     const res = await fetch('/api/proposals')
@@ -161,7 +154,7 @@ export default function ProposalsPage() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ animation: toastLeaving ? 'toastOut 0.4s cubic-bezier(0.36,0,0.66,0) forwards' : 'toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
+        <div style={ToastStyle(toastLeaving)}
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
