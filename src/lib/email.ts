@@ -71,7 +71,7 @@ export async function emailInvite(to: string, fullName: string, activationLink: 
       `
       ${para("Vous avez été invité(e) à rejoindre la plateforme <strong>Solident</strong> de l'association <strong>Solidarité Dentaires</strong>.")}
       <div style="background:#f0f9ff;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
-        <p style="margin:0 0 8px;color:#1E5F7A;font-size:32px;">🦷</p>
+        <img src="https://solident-terminal.vercel.app/Logo_Solident.png" alt="Solident" width="60" height="60" style="border-radius:10px;display:block;margin:0 auto 8px;" />
         <p style="margin:0;color:#0f172a;font-weight:600;font-size:15px;">Solidarité Dentaires</p>
         <p style="margin:4px 0 0;color:#64748b;font-size:13px;">Plateforme de gestion associative</p>
       </div>
