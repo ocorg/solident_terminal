@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = 'Solident <noreply@solident-terminal.vercel.app>'
+const FROM = 'Solident <onboarding@resend.dev>'
 const BASE_URL = 'https://solident-terminal.vercel.app'
 
 // ─── Shared email wrapper ─────────────────────────────────────
