@@ -28,11 +28,17 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Not logged in → redirect to login
-  if (!user && !pathname.startsWith('/login') &&
-      !pathname.startsWith('/forgot-password') &&
-      !pathname.startsWith('/reset-password') &&
-      !pathname.startsWith('/auth') &&
-      !pathname.startsWith('/set-password')) {
+  const publicPaths = [
+    '/login',
+    '/forgot-password',
+    '/reset-password',
+    '/set-password',
+    '/auth',
+  ]
+
+  const isPublic = publicPaths.some(p => pathname.startsWith(p))
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
