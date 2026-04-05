@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
-  // Verify caller is admin
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -13,9 +12,9 @@ export async function POST(req: NextRequest) {
     .from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Rate limit: 10 invites per admin per hour
   const allowed = rateLimit(`invite:${user.id}`, 10, 60 * 60 * 1000)
-  if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une heure.' }, { status: 429 })  
+  if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une heure.' }, { status: 429 })
+
   const { email, full_name, username, is_admin } = await req.json()
   if (!email || !full_name || !username) {
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
@@ -28,32 +27,20 @@ export async function POST(req: NextRequest) {
     .from('profiles').select('id').eq('username', username).single()
   if (existing) return NextResponse.json({ error: 'Nom d\'utilisateur déjà pris' }, { status: 409 })
 
-  // Send invite — Supabase emails the magic link
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    user_metadata: { full_name, username },
-    password: Math.random().toString(36).slice(-12) + 'Aa1!',
+  // Invite user — Supabase sends the branded email template
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    data: { full_name, username },
+    redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
   })
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Set is_admin if needed (profile created by trigger, then we patch)
+  // Set is_admin if needed
   if (is_admin && data.user) {
-    await admin.from('profiles').update({ is_admin: true }).eq('id', data.user.id)
+    await admin.from('profiles')
+      .update({ is_admin: true, full_name, username })
+      .eq('id', data.user.id)
   }
-
-  // Generate password reset link for first login
-  const { data: linkData } = await admin.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: {
-      redirectTo: 'https://solident-terminal.vercel.app/set-password'
-    }
-  })
-
-  // Send our branded invite email
-  const { emailInvite } = await import('@/lib/email')
-  await emailInvite(email, full_name, linkData?.properties?.action_link || 'https://solident-terminal.vercel.app')
 
   return NextResponse.json({ status: 'invited' })
 }
