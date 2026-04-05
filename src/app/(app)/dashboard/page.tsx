@@ -136,9 +136,7 @@ export default function DashboardPage() {
               Administrateur
             </span>
           )}
-          <p className="text-slate-600 text-xs mt-2">
-            {new Date().toLocaleDateString('fr-MA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
+          
         </div>
       </div>
 
