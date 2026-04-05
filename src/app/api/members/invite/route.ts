@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   // Send invite — Supabase emails the magic link
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name, username },
+    redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

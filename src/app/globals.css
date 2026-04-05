@@ -20,8 +20,13 @@ body {
 }
 
 @keyframes toastIn {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0);     }
+  0%   { opacity: 0; transform: translateY(-16px); }
+  100% { opacity: 1; transform: translateY(0);     }
+}
+
+@keyframes toastOut {
+  0%   { opacity: 1; transform: translateY(0);     }
+  100% { opacity: 0; transform: translateY(-16px); }
 }
 
 .dark select option {
