@@ -62,17 +62,27 @@ function para(text: string) {
 
 // ─── Email functions ──────────────────────────────────────────
 
-export async function emailInvite(to: string, fullName: string) {
+export async function emailInvite(to: string, fullName: string, activationLink: string) {
   await sendEmail(
     to,
     'Bienvenue sur Solident — Activez votre compte',
     template(
-      `Bienvenue, ${fullName} !`,
+      `Bienvenue, ${fullName} ! 🎉`,
       `
-      ${para("Vous avez été invité(e) à rejoindre la plateforme Solident de l'association Solidarité Dentaires.")}
-      ${para("Cliquez sur le bouton ci-dessous pour activer votre compte et définir votre mot de passe.")}
-      ${btn('Activer mon compte', `${BASE_URL}/login`)}
-      ${para("Si vous n'attendiez pas cet email, vous pouvez l'ignorer.")}
+      ${para("Vous avez été invité(e) à rejoindre la plateforme <strong>Solident</strong> de l'association <strong>Solidarité Dentaires</strong>.")}
+      <div style="background:#f0f9ff;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
+        <p style="margin:0 0 8px;color:#1E5F7A;font-size:32px;">🦷</p>
+        <p style="margin:0;color:#0f172a;font-weight:600;font-size:15px;">Solidarité Dentaires</p>
+        <p style="margin:4px 0 0;color:#64748b;font-size:13px;">Plateforme de gestion associative</p>
+      </div>
+      ${para("Votre compte a été créé. Cliquez sur le bouton ci-dessous pour définir votre mot de passe et accéder à la plateforme.")}
+      <div style="text-align:center;margin:24px 0;">
+        ${btn('✨ Activer mon compte', activationLink)}
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-top:16px;">
+        <p style="margin:0;color:#92400e;font-size:12px;">⏰ <strong>Ce lien expire dans 24 heures.</strong> Si vous ne l'utilisez pas à temps, contactez votre administrateur.</p>
+      </div>
+      ${para("Si vous n'attendiez pas cet email, vous pouvez l'ignorer en toute sécurité.")}
       `
     )
   )

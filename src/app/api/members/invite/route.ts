@@ -29,9 +29,11 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ error: 'Nom d\'utilisateur déjà pris' }, { status: 409 })
 
   // Send invite — Supabase emails the magic link
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name, username },
-    redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { full_name, username },
+    password: Math.random().toString(36).slice(-12) + 'Aa1!',
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -40,9 +42,18 @@ export async function POST(req: NextRequest) {
     await admin.from('profiles').update({ is_admin: true }).eq('id', data.user.id)
   }
 
-  // Send welcome email
+  // Generate password reset link for first login
+  const { data: linkData } = await admin.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: {
+      redirectTo: 'https://solident-terminal.vercel.app/set-password'
+    }
+  })
+
+  // Send our branded invite email
   const { emailInvite } = await import('@/lib/email')
-  await emailInvite(email, full_name)
+  await emailInvite(email, full_name, linkData?.properties?.action_link || 'https://solident-terminal.vercel.app')
 
   return NextResponse.json({ status: 'invited' })
 }
