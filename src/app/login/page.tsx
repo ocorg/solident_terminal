@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -136,6 +138,11 @@ export default function LoginPage() {
             )}
 
             {/* Submit */}
+            <Turnstile
+              siteKey="0x4AAAAAAC04GpakBW04VgQZ"
+              onSuccess={token => setTurnstileToken(token)}
+              options={{ theme: 'auto' }}
+            />
             <div className="flex justify-end">
               <a href="/forgot-password" className="text-xs text-[#1E5F7A] hover:underline">
                 Mot de passe oublié ?
@@ -143,7 +150,7 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !turnstileToken}
               className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-[#1E5F7A]/30 hover:shadow-[#1E5F7A]/50 active:scale-[0.98]"
             >
               {loading ? 'Connexion en cours…' : 'Se connecter'}
