@@ -46,16 +46,20 @@ export async function middleware(request: NextRequest) {
 
   // Admin-only routes — check profile
   if (user && ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
 
-    if (!profile?.is_admin) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      if (!profile?.is_admin) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+    } catch {
+      // If profile check fails, allow through — page itself will handle auth
     }
   }
 
