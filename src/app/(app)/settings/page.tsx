@@ -9,6 +9,18 @@ interface Profile {
   full_name: string; username: string; is_admin: boolean
 }
 
+function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-white/10">
+        <span className="text-lg">{icon}</span>
+        <h2 className="text-gray-900 dark:text-white font-semibold text-sm">{title}</h2>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -98,15 +110,6 @@ export default function SettingsPage() {
 
   const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition"
 
-  const SectionCard = ({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) => (
-    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-white/10">
-        <span className="text-lg">{icon}</span>
-        <h2 className="text-gray-900 dark:text-white font-semibold text-sm">{title}</h2>
-      </div>
-      <div className="p-6">{children}</div>
-    </div>
-  )
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
