@@ -70,7 +70,10 @@ export default function CelluleDetailPage() {
     const res = await fetch(`/api/cellules/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify({
+        name:        editForm.name,
+        description: editForm.description,
+      }),
     })
     const data = await res.json()
     if (!res.ok) { showToast(data.error, false); return }

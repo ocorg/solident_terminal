@@ -110,7 +110,14 @@ export default function ProjectDetailPage() {
     const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify({
+        name:              editForm.name,
+        description:       editForm.description,
+        status:            editForm.status,
+        start_date:        editForm.start_date,
+        end_date:          editForm.end_date,
+        is_multi_activite: editForm.is_multi_activite,
+      }),
     })
     const data = await res.json()
     if (!res.ok) { showToast(data.error, false); return }
