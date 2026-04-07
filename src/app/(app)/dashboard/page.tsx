@@ -132,7 +132,7 @@ export default function DashboardPage() {
         </div>
         <div className="text-right hidden sm:block">
           {profile?.is_admin && (
-            <span className="bg-[#F0A500]/20 text-[#F0A500] text-xs font-semibold px-3 py-1 rounded-full border border-[#F0A500]/20">
+            <span className="bg-[#FFFFFF]/20 text-[#F0A500] text-xs font-semibold px-3 py-1 rounded-full border border-[#F0A500]/20">
               Administrateur
             </span>
           )}
