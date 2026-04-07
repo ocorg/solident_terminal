@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useToast, ToastStyle } from '@/hooks/useToast'
 import { useRouter } from 'next/navigation'
+import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Project {
   id: string; name: string; description: string | null
@@ -13,10 +13,10 @@ interface Project {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  'Actif':     'bg-green-50  dark:bg-green-500/20  text-green-600  dark:text-green-400',
-  'En pause':  'bg-yellow-50 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
-  'Bloqué':    'bg-red-50    dark:bg-red-500/20    text-red-600    dark:text-red-400',
-  'Terminé':   'bg-slate-50  dark:bg-slate-500/20  text-slate-600  dark:text-slate-400',
+  'Actif':    'bg-green-50  dark:bg-green-500/20  text-green-600  dark:text-green-400',
+  'En pause': 'bg-yellow-50 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
+  'Bloqué':   'bg-red-50    dark:bg-red-500/20    text-red-600    dark:text-red-400',
+  'Terminé':  'bg-slate-50  dark:bg-slate-500/20  text-slate-600  dark:text-slate-400',
 }
 
 const STATUSES = ['Tous', 'Actif', 'En pause', 'Bloqué', 'Terminé']
@@ -24,16 +24,16 @@ const STATUSES = ['Tous', 'Actif', 'En pause', 'Bloqué', 'Terminé']
 export default function ProjectsPage() {
   const supabase = createClient()
   const router = useRouter()
+  const { toast, toastLeaving, showToast } = useToast()
 
-  const [projects,  setProjects]  = useState<Project[]>([])
-  const [filtered,  setFiltered]  = useState<Project[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [isAdmin,   setIsAdmin]   = useState(false)
-  const [search,    setSearch]    = useState('')
-  const [filter,    setFilter]    = useState('Tous')
+  const [projects,   setProjects]   = useState<Project[]>([])
+  const [filtered,   setFiltered]   = useState<Project[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [isAdmin,    setIsAdmin]    = useState(false)
+  const [search,     setSearch]     = useState('')
+  const [filter,     setFilter]     = useState('Actif')
   const [showCreate, setShowCreate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const { toast, toastLeaving, showToast } = useToast()
 
   const [form, setForm] = useState({
     name: '', description: '', status: 'Actif',
@@ -43,7 +43,7 @@ export default function ProjectsPage() {
   async function loadProjects() {
     const res = await fetch('/api/projects')
     const data = await res.json()
-    if (Array.isArray(data)) { setProjects(data); setFiltered(data) }
+    if (Array.isArray(data)) { setProjects(data); }
     setLoading(false)
   }
 
@@ -82,7 +82,13 @@ export default function ProjectsPage() {
     showToast('Projet créé !')
     setShowCreate(false)
     setForm({ name: '', description: '', status: 'Actif', start_date: '', end_date: '', is_multi_activite: false })
-    loadProjects()
+    await loadProjects()
+  }
+
+  function handleCloseCreate() {
+    if (form.name && !confirm('Vos données seront perdues. Quitter quand même ?')) return
+    setShowCreate(false)
+    setForm({ name: '', description: '', status: 'Actif', start_date: '', end_date: '', is_multi_activite: false })
   }
 
   const initials = (name: string) =>
@@ -91,12 +97,9 @@ export default function ProjectsPage() {
   return (
     <div className="space-y-6">
 
-      {/* Toast */}
       {toast && (
-        <div
-          style={ToastStyle(toastLeaving)}
-          className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}
-        >
+        <div style={ToastStyle(toastLeaving)}
+          className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
       )}
@@ -105,7 +108,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-gray-900 dark:text-white text-2xl font-bold">Projets</h1>
-          <p className="text-gray-500 dark:text-slate-500 text-sm mt-0.5">{projects.length} projet{projects.length !== 1 ? 's' : ''}</p>
+          <p className="text-gray-500 dark:text-slate-500 text-sm mt-0.5">{filtered.length} projet{filtered.length !== 1 ? 's' : ''}</p>
         </div>
         {isAdmin && (
           <button onClick={() => setShowCreate(true)}
@@ -144,18 +147,19 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(project => {
             const memberCount = project.project_members?.length || 0
+            const letters = project.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
             return (
               <div key={project.id}
                 onClick={() => router.push(`/projects/${project.id}`)}
                 className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#1E5F7A]/50 hover:shadow-lg hover:shadow-[#1E5F7A]/10 transition-all duration-200 group">
 
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#1E5F7A]/10 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0">
-                    📁
+                  <div className="w-10 h-10 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0">
+                    {letters}
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap justify-end">
                     {project.is_multi_activite && (
-                      <span className="text-[10px] bg-[#F0A500]/20 text-[#F0A500] px-2 py-0.5 rounded-full font-semibold border border-[#F0A500]/20">
+                      <span className="text-[10px] bg-purple-500/20 text-purple-500 dark:text-purple-400 px-2 py-0.5 rounded-full font-semibold border border-purple-500/20">
                         Multi-activité
                       </span>
                     )}
@@ -170,7 +174,6 @@ export default function ProjectsPage() {
                   <p className="text-gray-400 dark:text-slate-500 text-xs line-clamp-2 mb-3">{project.description}</p>
                 )}
 
-                {/* Dates */}
                 {(project.start_date || project.end_date) && (
                   <p className="text-gray-400 dark:text-slate-600 text-xs mb-3">
                     {project.start_date ? new Date(project.start_date).toLocaleDateString('fr-MA') : '—'}
@@ -179,7 +182,6 @@ export default function ProjectsPage() {
                   </p>
                 )}
 
-                {/* Members avatars */}
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-white/5">
                   <div className="flex -space-x-2">
                     {project.project_members?.slice(0, 4).map((m, i) => (
@@ -205,11 +207,11 @@ export default function ProjectsPage() {
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleCloseCreate} />
           <div className="relative w-full max-w-lg bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouveau projet</h2>
-              <button type="button" onClick={() => setShowCreate(false)}
+              <button type="button" onClick={handleCloseCreate}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -235,9 +237,8 @@ export default function ProjectsPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Multi-activité</label>
-                  <div
-                    onClick={() => setForm(f => ({ ...f, is_multi_activite: !f.is_multi_activite }))}
-                    className={`mt-1 w-10 h-6 rounded-full transition-colors duration-200 relative cursor-pointer ${form.is_multi_activite ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                  <div onClick={() => setForm(f => ({ ...f, is_multi_activite: !f.is_multi_activite }))}
+                    className={`mt-1 w-10 h-6 rounded-full transition-colors duration-200 relative cursor-pointer ${form.is_multi_activite ? 'bg-purple-500' : 'bg-gray-200 dark:bg-white/10'}`}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${form.is_multi_activite ? 'left-5' : 'left-1'}`} />
                   </div>
                 </div>
@@ -255,7 +256,7 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreate(false)}
+                <button type="button" onClick={handleCloseCreate}
                   className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
                   Annuler
                 </button>
