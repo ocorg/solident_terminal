@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useToast, ToastStyle } from '@/hooks/useToast'
+import ConfirmModal from '@/components/ConfirmModal'
 import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -63,6 +64,7 @@ export default function TasksPage() {
   const [search,       setSearch]       = useState('')
   const [isAdmin,        setIsAdmin]        = useState(false)
   const [showArchived,   setShowArchived]   = useState(false)
+  const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [form, setForm] = useState({
     title: '', description: '', context_type: 'project',
@@ -165,13 +167,18 @@ export default function TasksPage() {
   }
 
   // ─── Delete task ───────────────────────────────────────────
-  async function deleteTask(id: string) {
-    if (!confirm('Supprimer cette tâche ?')) return
-    const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-    if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
-    showToast('Tâche supprimée.')
-    setTasks(prev => prev.filter(t => t.id !== id))
-    if (detail?.id === id) setDetail(null)
+  function deleteTask(id: string) {
+    setConfirm({
+      title: 'Supprimer la tâche',
+      message: 'Êtes-vous sûr de vouloir supprimer cette tâche ?',
+      onConfirm: async () => {
+        const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+        if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
+        showToast('Tâche supprimée.')
+        setTasks(prev => prev.filter(t => t.id !== id))
+        if (detail?.id === id) setDetail(null)
+      }
+    })
   }
 
   // ─── Save edit ─────────────────────────────────────────────
@@ -219,6 +226,17 @@ export default function TasksPage() {
         >
           {toast.msg}
         </div>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Confirmer"
+          danger
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
+        />
       )}
 
       {/* Header */}
@@ -374,10 +392,15 @@ export default function TasksPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!confirm('Archiver cette tâche ?')) return
+                    setConfirm({
+                      title: 'Archiver la tâche',
+                      message: 'Archiver cette tâche ? Elle n\'apparaîtra plus dans la liste principale.',
+                      onConfirm: async () => {
                     await updateTask(detail.id, { archived: true } as any)
-                    setDetail(null)
-                    showToast('Tâche archivée.')
+                        setDetail(null)
+                        showToast('Tâche archivée.')
+                      }
+                    })
                   }}
                   className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
                   Archiver

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastStyle } from '@/hooks/useToast'
+import ConfirmModal from '@/components/ConfirmModal'
 
 // ─── Types ───────────────────────────────────────────────────
 interface Attendee {
@@ -58,6 +59,7 @@ export default function EventsPage() {
   const [filterType,  setFilterType]  = useState('Tous')
   const [search,      setSearch]      = useState('')
   const { toast, toastLeaving, showToast } = useToast()
+  const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [form, setForm] = useState({
     title: '', description: '', type: 'Réunion',
@@ -67,7 +69,7 @@ export default function EventsPage() {
   })
 
   function handleCloseCreate() {
-    if (form.title && !confirm('Vos données seront perdues. Quitter quand même ?')) return
+    if (form.title && !window.confirm('Vos données seront perdues. Quitter quand même ?')) return
     setShowCreate(false)
     setForm({ title: '', description: '', type: 'Réunion', context_type: 'global', context_id: '', start_at: '', end_at: '', location: '', visibility: 'Tous', invitee_ids: [] })
   }
@@ -123,7 +125,7 @@ export default function EventsPage() {
     showToast('Événement créé !')
     setShowCreate(false)
     setForm({ title: '', description: '', type: 'Réunion', context_type: 'global', context_id: '', start_at: '', end_at: '', location: '', visibility: 'Tous', invitee_ids: [] })
-    loadEvents()
+    await loadEvents()
   }
 
   async function handleRsvp(eventId: string, rsvp_status: string) {
@@ -149,13 +151,18 @@ export default function EventsPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Supprimer cet événement ?')) return
-    const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
-    if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
-    showToast('Événement supprimé.')
-    if (detail?.id === id) setDetail(null)
-    loadEvents()
+  function handleDelete(id: string) {
+    setConfirm({
+      title: 'Supprimer l\'événement',
+      message: 'Êtes-vous sûr de vouloir supprimer cet événement ?',
+      onConfirm: async () => {
+        const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
+        if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
+        showToast('Événement supprimé.')
+        if (detail?.id === id) setDetail(null)
+        await loadEvents()
+      }
+    })
   }
 
   // ─── Filtered events ─────────────────────────────────────
@@ -192,6 +199,17 @@ export default function EventsPage() {
           className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
+        />
       )}
 
       {/* Header */}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastStyle } from '@/hooks/useToast'
+import ConfirmModal from '@/components/ConfirmModal'
 
 // ─── Types ───────────────────────────────────────────────────
 interface UserRef { id: string; full_name: string; username: string }
@@ -56,6 +57,7 @@ export default function ProposalsPage() {
   const [profiles,   setProfiles]   = useState<Profile[]>([])
   const [projects,   setProjects]   = useState<Project[]>([])
   const { toast, toastLeaving, showToast } = useToast()
+  const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [form, setForm] = useState({
     title: '', description: '', type: 'Projet',
@@ -135,13 +137,18 @@ export default function ProposalsPage() {
     loadProposals()
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Supprimer cette proposition ?')) return
-    const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' })
-    if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
-    showToast('Proposition supprimée.')
-    if (detail?.id === id) setDetail(null)
-    loadProposals()
+  function handleDelete(id: string) {
+    setConfirm({
+      title: 'Supprimer la proposition',
+      message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
+      onConfirm: async () => {
+        const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' })
+        if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
+        showToast('Proposition supprimée.')
+        if (detail?.id === id) setDetail(null)
+        await loadProposals()
+      }
+    })
   }
 
   const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition"
@@ -158,6 +165,17 @@ export default function ProposalsPage() {
           className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
+        />
       )}
 
       {/* Header */}

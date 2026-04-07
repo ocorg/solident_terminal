@@ -32,7 +32,7 @@ export async function GET() {
   }
 
   return NextResponse.json(cellules || [], {
-    headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=120' }
+    headers: { 'Cache-Control': 'no-store' }
   })
 }
 

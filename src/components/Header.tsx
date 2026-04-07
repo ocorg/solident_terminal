@@ -144,6 +144,14 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
         {/* Theme toggle */}
         <ThemeToggle />
 
+        {/* Refresh */}
+        <button
+          onClick={() => window.location.reload()}
+          title="Actualiser"
+          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white text-base">
+          ↺
+        </button>
+
         {/* Bell */}
         <div ref={notifRef} className="relative">
           <button onClick={() => { setShowNotifs(!showNotifs); setShowProfile(false) }}

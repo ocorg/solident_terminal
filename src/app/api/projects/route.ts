@@ -35,7 +35,9 @@ export async function GET() {
     projects = data
   }
 
-  return NextResponse.json(projects || [], { headers })
+  return NextResponse.json(projects || [], {
+    headers: { 'Cache-Control': 'no-store' }
+  })
 }
 
 export async function POST(req: NextRequest) {

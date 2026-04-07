@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useToast, ToastStyle } from '@/hooks/useToast'
+import ConfirmModal from '@/components/ConfirmModal'
 import { createClient } from '@/lib/supabase/client'
 
 interface Member {
@@ -39,6 +40,7 @@ export default function MembersPage() {
   const [showInvite,  setShowInvite]  = useState(false)
   const [showEdit,    setShowEdit]    = useState<Member | null>(null)
   const { toast, toastLeaving, showToast } = useToast()
+  const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [form, setForm] = useState({ email: '', full_name: '', username: '', is_admin: false })
   const [submitting, setSubmitting] = useState(false)
@@ -97,7 +99,7 @@ export default function MembersPage() {
     showToast('Invitation envoyée avec succès !')
     setShowInvite(false)
     setForm({ email: '', full_name: '', username: '', is_admin: false })
-    loadMembers()
+    await loadMembers()
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -114,17 +116,22 @@ export default function MembersPage() {
     if (!res.ok) { showToast(json.error, false); return }
     showToast('Membre mis à jour !')
     setShowEdit(null)
-    loadMembers()
+    await loadMembers()
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Supprimer ${name} ? Cette action est irréversible.`)) return
+  function handleDelete(id: string, name: string) {
+    setConfirm({
+      title: 'Supprimer le membre',
+      message: `Êtes-vous sûr de vouloir supprimer ${name} ? Cette action est irréversible.`,
+      onConfirm: async () => {
     const res = await fetch(`/api/members/${id}`, { method: 'DELETE' })
     const json = await res.json()
     if (!res.ok) { showToast(json.error, false); return }
     showToast('Membre supprimé.')
-    if (detail?.member.id === id) setDetail(null)
-    loadMembers()
+        if (detail?.member.id === id) setDetail(null)
+        await loadMembers()
+      }
+    })
   }
 
   const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -140,6 +147,17 @@ export default function MembersPage() {
         >
           {toast.msg}
         </div>
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
+        />
       )}
 
       {/* Header */}
