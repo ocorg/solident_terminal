@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast, ToastStyle } from '@/hooks/useToast'
+import ConfirmModal from '@/components/ConfirmModal'
 
 interface Position { id: string; position_name: string }
 interface Member   { id: string; user_id: string; profiles: { id: string; full_name: string; username: string }; cellule_positions: Position }
@@ -26,13 +27,14 @@ export default function CelluleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router   = useRouter()
   const supabase = createClient()
+  const { toast, toastLeaving, showToast } = useToast()
 
   const [cellule,     setCellule]     = useState<Cellule | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [tab,         setTab]         = useState(0)
   const [isAdmin,     setIsAdmin]     = useState(false)
   const [allProfiles, setAllProfiles] = useState<Profile[]>([])
-  const { toast, toastLeaving, showToast } = useToast()
+  const [confirm,     setConfirm]     = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [editMode, setEditMode] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Cellule>>({})
@@ -70,23 +72,13 @@ export default function CelluleDetailPage() {
     const res = await fetch(`/api/cellules/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name:        editForm.name,
-        description: editForm.description,
-      }),
+      body: JSON.stringify({ name: editForm.name, description: editForm.description }),
     })
     const data = await res.json()
     if (!res.ok) { showToast(data.error, false); return }
     showToast('Cellule mise à jour !')
     setEditMode(false)
     loadCellule()
-  }
-
-  async function deleteCellule() {
-    if (!confirm('Supprimer cette cellule ? Cette action est irréversible.')) return
-    const res = await fetch(`/api/cellules/${id}`, { method: 'DELETE' })
-    if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
-    router.push('/cellules')
   }
 
   async function addMember(e: React.FormEvent) {
@@ -102,18 +94,6 @@ export default function CelluleDetailPage() {
     if (!res.ok) { showToast(data.error, false); return }
     showToast('Membre ajouté !')
     setAddMemberUserId(''); setAddMemberPosition('')
-    loadCellule()
-  }
-
-  async function removeMember(userId: string) {
-    if (!confirm('Retirer ce membre ?')) return
-    const res = await fetch(`/api/cellules/${id}/members`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    })
-    if (!res.ok) { showToast('Erreur', false); return }
-    showToast('Membre retiré.')
     loadCellule()
   }
 
@@ -133,18 +113,6 @@ export default function CelluleDetailPage() {
     loadCellule()
   }
 
-  async function removePosition(positionId: string) {
-    if (!confirm('Supprimer cette position ?')) return
-    const res = await fetch(`/api/cellules/${id}/positions`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ position_id: positionId }),
-    })
-    if (!res.ok) { showToast('Erreur', false); return }
-    showToast('Position supprimée.')
-    loadCellule()
-  }
-
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
@@ -157,6 +125,7 @@ export default function CelluleDetailPage() {
 
   const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition"
   const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const letters  = cellule.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const doneTasks  = cellule.tasks.filter(t => t.status === '✅ Terminé').length
   const totalTasks = cellule.tasks.length
   const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
@@ -171,15 +140,30 @@ export default function CelluleDetailPage() {
         </div>
       )}
 
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       {/* Back + Header */}
       <div>
         <button onClick={() => router.push('/cellules')}
-          className="text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm mb-4 flex items-center gap-1 transition">
-          ← Retour aux cellules
+          className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400 hover:text-[#F0A500] transition mb-4 group">
+          <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/5 group-hover:bg-[#F0A500]/10 transition text-base">←</span>
+          <span>Retour aux cellules</span>
         </button>
+
         <div className="flex items-start justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#F0A500]/10 flex items-center justify-center text-2xl flex-shrink-0">🏛️</div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#F0A500]/20 flex items-center justify-center text-[#F0A500] font-bold text-lg flex-shrink-0">
+              {letters}
+            </div>
             <div>
               <h1 className="text-gray-900 dark:text-white text-2xl font-bold">{cellule.name}</h1>
               {cellule.description && (
@@ -193,7 +177,15 @@ export default function CelluleDetailPage() {
                 className="text-xs px-4 py-2 rounded-xl bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
                 {editMode ? 'Annuler' : '✏️ Modifier'}
               </button>
-              <button onClick={deleteCellule}
+              <button onClick={() => setConfirm({
+                title: 'Supprimer la cellule',
+                message: `Êtes-vous sûr de vouloir supprimer "${cellule.name}" ? Cette action est irréversible.`,
+                onConfirm: async () => {
+                  const res = await fetch(`/api/cellules/${id}`, { method: 'DELETE' })
+                  if (!res.ok) { showToast('Erreur lors de la suppression', false); return }
+                  router.push('/cellules')
+                }
+              })}
                 className="text-xs px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
                 Supprimer
               </button>
@@ -207,7 +199,7 @@ export default function CelluleDetailPage() {
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4">
           <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-2">
             <span>Progression des tâches</span>
-            <span className="font-semibold text-[#1E5F7A]">{progress}%</span>
+            <span className="font-semibold text-[#F0A500]">{progress}%</span>
           </div>
           <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
             <div className="h-full bg-[#F0A500] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -226,7 +218,7 @@ export default function CelluleDetailPage() {
         ))}
       </div>
 
-      {/* ── Vue d'ensemble ── */}
+      {/* Vue d'ensemble */}
       {tab === 0 && (
         <div className="space-y-4">
           {editMode ? (
@@ -260,7 +252,7 @@ export default function CelluleDetailPage() {
         </div>
       )}
 
-      {/* ── Tâches ── */}
+      {/* Tâches */}
       {tab === 1 && (
         <div className="space-y-2">
           {cellule.tasks.length === 0 ? (
@@ -285,7 +277,7 @@ export default function CelluleDetailPage() {
         </div>
       )}
 
-      {/* ── Membres ── */}
+      {/* Membres */}
       {tab === 2 && (
         <div className="space-y-4">
           {isAdmin && (
@@ -326,8 +318,21 @@ export default function CelluleDetailPage() {
                   {m.cellule_positions?.position_name}
                 </span>
                 {isAdmin && (
-                  <button onClick={() => removeMember(m.user_id)}
-                    className="text-xs text-red-400 hover:text-red-500 transition ml-1">✕</button>
+                  <button onClick={() => setConfirm({
+                    title: 'Retirer le membre',
+                    message: `Retirer ${m.profiles?.full_name} de la cellule ?`,
+                    onConfirm: async () => {
+                      const res = await fetch(`/api/cellules/${id}/members`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: m.user_id }),
+                      })
+                      if (!res.ok) { showToast('Erreur', false); return }
+                      showToast('Membre retiré.')
+                      loadCellule()
+                    }
+                  })}
+                    className="text-xs text-red-400 hover:text-red-500 transition ml-1 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">✕</button>
                 )}
               </div>
             ))}
@@ -335,7 +340,7 @@ export default function CelluleDetailPage() {
         </div>
       )}
 
-      {/* ── Positions ── */}
+      {/* Positions */}
       {tab === 3 && isAdmin && (
         <div className="space-y-4">
           <form onSubmit={addPosition} className="flex gap-3">
@@ -353,8 +358,23 @@ export default function CelluleDetailPage() {
             ) : cellule.cellule_positions.map(p => (
               <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
                 <span className="text-gray-900 dark:text-white text-sm font-medium">{p.position_name}</span>
-                <button onClick={() => removePosition(p.id)}
-                  className="text-xs text-red-400 hover:text-red-500 transition">Supprimer</button>
+                <button onClick={() => setConfirm({
+                  title: 'Supprimer la position',
+                  message: `Supprimer la position "${p.position_name}" ?`,
+                  onConfirm: async () => {
+                    const res = await fetch(`/api/cellules/${id}/positions`, {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ position_id: p.id }),
+                    })
+                    if (!res.ok) { showToast('Erreur', false); return }
+                    showToast('Position supprimée.')
+                    loadCellule()
+                  }
+                })}
+                  className="text-xs text-red-400 hover:text-red-500 transition px-3 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
+                  Supprimer
+                </button>
               </div>
             ))}
           </div>

@@ -13,6 +13,7 @@ interface Cellule {
 export default function CellulesPage() {
   const supabase = createClient()
   const router = useRouter()
+  const { toast, toastLeaving, showToast } = useToast()
 
   const [cellules,   setCellules]   = useState<Cellule[]>([])
   const [filtered,   setFiltered]   = useState<Cellule[]>([])
@@ -21,7 +22,6 @@ export default function CellulesPage() {
   const [search,     setSearch]     = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const { toast, toastLeaving, showToast } = useToast()
   const [form, setForm] = useState({ name: '', description: '' })
 
   async function loadCellules() {
@@ -64,7 +64,13 @@ export default function CellulesPage() {
     showToast('Cellule créée !')
     setShowCreate(false)
     setForm({ name: '', description: '' })
-    loadCellules()
+    await loadCellules()
+  }
+
+  function handleCloseCreate() {
+    if (form.name && !confirm('Vos données seront perdues. Quitter quand même ?')) return
+    setShowCreate(false)
+    setForm({ name: '', description: '' })
   }
 
   const initials = (name: string) =>
@@ -113,14 +119,15 @@ export default function CellulesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(cellule => {
             const memberCount = cellule.cellule_members?.length || 0
+            const letters = cellule.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
             return (
               <div key={cellule.id}
                 onClick={() => router.push(`/cellules/${cellule.id}`)}
-                className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#1E5F7A]/50 hover:shadow-lg hover:shadow-[#1E5F7A]/10 transition-all duration-200 group">
+                className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#F0A500]/50 hover:shadow-lg hover:shadow-[#F0A500]/10 transition-all duration-200 group">
 
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#F0A500]/10 flex items-center justify-center text-xl flex-shrink-0">
-                    🏛️
+                  <div className="w-10 h-10 rounded-xl bg-[#F0A500]/20 flex items-center justify-center text-[#F0A500] font-bold text-sm flex-shrink-0">
+                    {letters}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-gray-900 dark:text-white font-semibold text-sm truncate">{cellule.name}</h3>
@@ -155,11 +162,11 @@ export default function CellulesPage() {
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleCloseCreate} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvelle cellule</h2>
-              <button type="button" onClick={() => setShowCreate(false)}
+              <button type="button" onClick={handleCloseCreate}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -176,7 +183,7 @@ export default function CellulesPage() {
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition resize-none" />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreate(false)}
+                <button type="button" onClick={handleCloseCreate}
                   className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
                   Annuler
                 </button>
