@@ -20,7 +20,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setResetSuccess(new URLSearchParams(window.location.search).get('reset') === 'success')
+      const isReset = new URLSearchParams(window.location.search).get('reset') === 'success'
+      setResetSuccess(isReset)
+      if (isReset) window.history.replaceState({}, '', '/login')
       const saved = localStorage.getItem('theme')
       const isDark = saved === 'dark' || document.documentElement.classList.contains('dark')
       setTheme(isDark ? 'dark' : 'light')
