@@ -36,7 +36,21 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params
   const admin = createAdminClient()
+
+  // Clean up all related records before deleting the auth user
+  await admin.from('task_assignees').delete().eq('user_id', id)
+  await admin.from('project_members').delete().eq('user_id', id)
+  await admin.from('cellule_members').delete().eq('user_id', id)
+  await admin.from('event_attendees').delete().eq('user_id', id)
+  await admin.from('notifications').delete().eq('recipient_id', id)
+  await admin.from('user_email_prefs').delete().eq('user_id', id)
+  await admin.from('login_logs').delete().eq('user_id', id)
+  await admin.from('comments').delete().eq('author_id', id)
+  await admin.from('tasks').update({ created_by: null }).eq('created_by', id)
+
+  // Now delete the auth user (cascades to profiles automatically)
   const { error } = await admin.auth.admin.deleteUser(id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
   return NextResponse.json({ status: 'deleted' })
 }
