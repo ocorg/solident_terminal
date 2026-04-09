@@ -15,12 +15,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const admin = createAdminClient()
-  const { error } = await admin.from('event_attendees').upsert({
-    event_id:    id,
-    user_id:     user.id,
-    rsvp_status,
-  })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Check if a row already exists
+  const { data: existing } = await admin
+    .from('event_attendees')
+    .select('id')
+    .eq('event_id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (existing) {
+    const { error } = await admin
+      .from('event_attendees')
+      .update({ rsvp_status })
+      .eq('id', existing.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  } else {
+    const { error } = await admin
+      .from('event_attendees')
+      .insert({ event_id: id, user_id: user.id, rsvp_status })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
   return NextResponse.json({ status: 'updated' })
 }

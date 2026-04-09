@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from('tasks')
-    .select(`*, task_assignees(user_id, profiles(full_name, username))`)
+    .select(`*, task_assignees(user_id, profiles(full_name, username)), project:projects!tasks_context_id_fkey(name), cellule:cellules!tasks_context_id_fkey(name)`)
     .eq('archived', showArchived)
     .order('created_at', { ascending: false })
 

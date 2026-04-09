@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 // ─── Types ───────────────────────────────────────────────────
 interface Assignee { user_id: string; profiles: { full_name: string; username: string } }
 interface Task {
+  cellule: any
+  project: any
   id: string; title: string; description: string | null
   status: string; priority: string; due_date: string | null
   context_type: string; context_id: string
@@ -61,6 +63,7 @@ export default function TasksPage() {
   const [dragId,       setDragId]       = useState<string | null>(null)
   const { toast, toastLeaving, showToast } = useToast()
   const [filterStatus, setFilterStatus] = useState('Tous')
+  const [filterContext, setFilterContext] = useState('Tous')
   const [search,       setSearch]       = useState('')
   const [isAdmin,        setIsAdmin]        = useState(false)
   const [showArchived,   setShowArchived]   = useState(false)
@@ -201,10 +204,12 @@ export default function TasksPage() {
 
   // ─── Filtered tasks ────────────────────────────────────────
   const displayed = tasks.filter(t => {
-    const matchSearch = !search ||
-      t.title.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = filterStatus === 'Tous' || t.status === filterStatus
-    return matchSearch && matchStatus
+  if (filterStatus !== 'Tous' && t.status !== filterStatus) return false
+  if (filterContext !== 'Tous') {
+    const name = t.project?.name || t.cellule?.name || ''
+    if (name !== filterContext) return false
+  }
+  return true
   })
 
   // ─── Open detail ───────────────────────────────────────────
@@ -285,6 +290,20 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Context filter */}
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setFilterContext('Tous')}
+          className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterContext === 'Tous' ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
+          Tous les contextes
+        </button>
+        {contexts.map(c => (
+          <button key={c.id} onClick={() => setFilterContext(c.name)}
+            className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterContext === c.name ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
+            {c.name}
+          </button>
+        ))}
+      </div>
+
       {/* Loading */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
@@ -357,7 +376,9 @@ export default function TasksPage() {
               className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition ${i !== displayed.length - 1 ? 'border-b border-gray-100 dark:border-white/5' : ''}`}>
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] || 'bg-gray-400'}`} />
               <p className="text-gray-900 dark:text-white text-sm font-medium flex-1 truncate">{task.title}</p>
-              <span className="text-xs text-gray-500 dark:text-slate-500 hidden sm:block">{task.context_type}</span>
+              <span className="text-xs text-gray-500 dark:text-slate-500 hidden sm:block">
+                {task.project?.name || task.cellule?.name || task.context_type}
+              </span>
               {task.due_date && (
                 <span className={`text-xs hidden md:block ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-600'}`}>
                   {new Date(task.due_date).toLocaleDateString('fr-MA')}
@@ -485,7 +506,9 @@ export default function TasksPage() {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                       <p className="text-gray-400 dark:text-slate-500 mb-1">Contexte</p>
-                      <p className="text-gray-700 dark:text-slate-300 font-medium capitalize">{detail.context_type}</p>
+                      <p className="text-gray-700 dark:text-slate-300 font-medium">
+                        {detail.project?.name || detail.cellule?.name || detail.context_type}
+                      </p>
                     </div>
                     {detail.due_date && (
                       <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
