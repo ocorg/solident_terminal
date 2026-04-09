@@ -17,9 +17,16 @@ export default function ResetPasswordPage() {
   const [ready,     setReady]     = useState(false)
 
   useEffect(() => {
-    // Supabase sets the session automatically from the URL hash
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
+    // Session was already established by /auth/callback via setSession().
+    // The PASSWORD_RECOVERY event never fires in that flow, so we
+    // simply verify a session exists instead of waiting for the event.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        // No session — user navigated here directly or link expired
+        router.replace('/forgot-password')
+      } else {
+        setReady(true)
+      }
     })
   }, [])
 
@@ -44,6 +51,21 @@ export default function ResetPasswordPage() {
 
     await supabase.auth.signOut()
     router.push('/login?reset=success')
+  }
+
+  // Show spinner while session check is in progress
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0f1e]">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-gray-200 dark:border-white/10 mb-2 overflow-hidden mx-auto">
+            <Image src="/Logo_Solident.png" alt="Solident" width={72} height={72} className="object-contain" />
+          </div>
+          <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gray-500 dark:text-slate-400 text-sm">Vérification en cours…</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -115,7 +137,7 @@ export default function ResetPasswordPage() {
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
             )}
 
-            <button type="submit" disabled={loading || !ready}
+            <button type="submit" disabled={loading}
               className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white font-semibold rounded-xl py-3 text-sm transition-all shadow-lg shadow-[#1E5F7A]/30 active:scale-[0.98]">
               {loading ? 'Mise à jour…' : 'Réinitialiser le mot de passe'}
             </button>

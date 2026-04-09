@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rateLimit'
+import { emailPasswordReset } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,28 +14,28 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // Check user exists
+    // Check user exists — but return same response either way (prevents email enumeration)
     const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 1000 })
     const exists = usersData?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase())
-    if (!exists) return NextResponse.json({ error: 'Aucun compte associé à cette adresse email.' }, { status: 404 })
+    if (!exists) return NextResponse.json({ status: 'sent' })
 
-    // Actually send the reset email via Supabase
-    const { error } = await admin.auth.admin.generateLink({
+    // Generate reset link without sending Supabase's own email
+    const { data, error: linkError } = await admin.auth.admin.generateLink({
       type: 'recovery',
       email,
       options: {
         redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
-      }
+      },
     })
 
-    // generateLink doesn't send — use this instead:
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
-    })
+    if (linkError || !data?.properties?.action_link) {
+      console.error('generateLink error:', linkError)
+      return NextResponse.json({ error: 'Erreur lors de la génération du lien.' }, { status: 500 })
+    }
 
-    if (resetError) return NextResponse.json({ error: resetError.message }, { status: 500 })
+    // Send via Resend with branded template
+    await emailPasswordReset(email, data.properties.action_link)
+
     return NextResponse.json({ status: 'sent' })
 
   } catch (e) {

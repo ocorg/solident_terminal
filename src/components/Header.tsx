@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -25,62 +25,59 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
   const [showProfile,   setShowProfile]   = useState(false)
   const notifRef   = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
-  const audioRef   = useRef<AudioContext | null>(null)
 
   const unread = notifications.filter(n => n.status === 'Non lu').length
 
-  // ─── Notification sound ──────────────────────────────────────
+  // ─── Notification sound ───────────────────────────────────────
   function playNotifSound() {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const osc = ctx.createOscillator()
+      const ctx  = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc  = ctx.createOscillator()
       const gain = ctx.createGain()
       osc.connect(gain)
       gain.connect(ctx.destination)
-      osc.frequency.setValueAtTime(880, ctx.currentTime)
+      osc.frequency.setValueAtTime(880,  ctx.currentTime)
       osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
       gain.gain.setValueAtTime(0.15, ctx.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
       osc.start(ctx.currentTime)
       osc.stop(ctx.currentTime + 0.4)
-    } catch (e) {
+    } catch {
       // Audio not available
     }
   }
 
-  // ─── Fetch notifications ─────────────────────────────────────
-  const fetchNotifs = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('recipient_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10)
-    if (data) setNotifications(data)
-    return user.id
-  }, [])
-
-  // ─── Initial load + Realtime subscription ────────────────────
+  // ─── Fetch + Realtime subscription (runs once) ───────────────
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
 
     async function init() {
-      const userId = await fetchNotifs()
-      if (!userId) return
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !active) return
 
+      // Load existing notifications
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      if (data && active) setNotifications(data)
+
+      // Subscribe to new ones
       channel = supabase
-        .channel(`notifications:${userId}`)
+        .channel(`notifications:${user.id}`)
         .on(
           'postgres_changes',
           {
             event:  'INSERT',
             schema: 'public',
             table:  'notifications',
-            filter: `recipient_id=eq.${userId}`,
+            filter: `recipient_id=eq.${user.id}`,
           },
           (payload) => {
+            if (!active) return
             setNotifications(prev => [payload.new as Notification, ...prev])
             playNotifSound()
           }
@@ -89,10 +86,17 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
     }
 
     init()
-    return () => { if (channel) supabase.removeChannel(channel) }
-  }, [fetchNotifs])
 
-  // ─── Close dropdowns on outside click ───────────────────────
+    return () => {
+      active = false
+      if (channel) {
+        supabase.removeChannel(channel)
+        channel = null
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Close dropdowns on outside click ────────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current   && !notifRef.current.contains(e.target as Node))   setShowNotifs(false)
@@ -119,13 +123,13 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
   }
 
   const notifIcon: Record<string, string> = {
-    task_assigned:      '✅',
-    new_comment:        '💬',
-    event_invited:      '📅',
-    proposal_approved:  '✅',
-    proposal_rejected:  '❌',
-    task_overdue:       '⏰',
-    default:            '🔔',
+    task_assigned:     '✅',
+    new_comment:       '💬',
+    event_invited:     '📅',
+    proposal_approved: '✅',
+    proposal_rejected: '❌',
+    task_overdue:      '⏰',
+    default:           '🔔',
   }
 
   return (

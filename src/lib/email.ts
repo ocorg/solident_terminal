@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = 'Solident <onboarding@resend.dev>'
+const resend  = new Resend(process.env.RESEND_API_KEY)
+const FROM    = 'Solident <onboarding@resend.dev>'
 const BASE_URL = 'https://solident-terminal.vercel.app'
 
 // ─── Shared email wrapper ─────────────────────────────────────
@@ -193,7 +193,29 @@ export async function emailEventInvited(
         ${location ? `<p style="margin:0;color:#475569;font-size:13px;">📍 ${location}</p>` : ''}
       </div>
       ${para("Connectez-vous pour confirmer votre présence.")}
-      ${btn('Répondre à l\'invitation', `${BASE_URL}/events`)}
+      ${btn("Répondre à l'invitation", `${BASE_URL}/events`)}
+      `
+    )
+  )
+}
+
+export async function emailPasswordReset(to: string, resetLink: string) {
+  await sendEmail(
+    to,
+    'Réinitialisation de votre mot de passe Solident',
+    template(
+      '🔐 Réinitialisation de mot de passe',
+      `
+      ${para("Vous avez demandé la réinitialisation de votre mot de passe pour votre compte <strong>Solident</strong>.")}
+      ${para("Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe. Ce lien est valable <strong>1 heure</strong>.")}
+      <div style="text-align:center;margin:28px 0;">
+        ${btn('🔑 Réinitialiser mon mot de passe', resetLink)}
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-top:16px;">
+        <p style="margin:0 0 6px;color:#991b1b;font-size:13px;font-weight:700;">⚠️ Sécurité importante</p>
+        <p style="margin:0;color:#b91c1c;font-size:12px;line-height:1.6;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email — votre mot de passe reste inchangé. Ne partagez jamais ce lien avec quelqu'un d'autre.</p>
+      </div>
+      ${para("Ce lien expire automatiquement après utilisation ou dans 1 heure.")}
       `
     )
   )
