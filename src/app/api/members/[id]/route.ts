@@ -37,7 +37,16 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const admin = createAdminClient()
 
-  // Clean up all related records before deleting the auth user
+  // Nullify references (keep the content, remove the author link)
+  await admin.from('tasks').update({ created_by: null }).eq('created_by', id)
+  await admin.from('tasks').update({ last_updated_by: null }).eq('last_updated_by', id)
+  await admin.from('comments').update({ author_id: null }).eq('author_id', id)
+  await admin.from('projects').update({ proposed_by: null }).eq('proposed_by', id)
+  await admin.from('project_proposals').update({ proposed_by: null }).eq('proposed_by', id)
+  await admin.from('project_proposals').update({ reviewed_by: null }).eq('reviewed_by', id)
+  await admin.from('events').update({ created_by: null }).eq('created_by', id)
+
+  // Remove membership records entirely
   await admin.from('task_assignees').delete().eq('user_id', id)
   await admin.from('project_members').delete().eq('user_id', id)
   await admin.from('cellule_members').delete().eq('user_id', id)
@@ -45,10 +54,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   await admin.from('notifications').delete().eq('recipient_id', id)
   await admin.from('user_email_prefs').delete().eq('user_id', id)
   await admin.from('login_logs').delete().eq('user_id', id)
-  await admin.from('comments').delete().eq('author_id', id)
-  await admin.from('tasks').update({ created_by: null }).eq('created_by', id)
 
-  // Now delete the auth user (cascades to profiles automatically)
+  // Delete auth user — cascades to profiles automatically
   const { error } = await admin.auth.admin.deleteUser(id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
