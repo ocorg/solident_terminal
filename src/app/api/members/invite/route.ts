@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rateLimit'
+import { emailInvite } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -22,20 +23,24 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Check username not taken
   const { data: existing } = await admin
     .from('profiles').select('id').eq('username', username).single()
-  if (existing) return NextResponse.json({ error: 'Nom d\'utilisateur déjà pris' }, { status: 409 })
+  if (existing) return NextResponse.json({ error: "Nom d'utilisateur déjà pris" }, { status: 409 })
 
-  // Invite user — Supabase sends the branded email template
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name, username },
-    redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: {
+      data: { full_name, username },
+      redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
+    },
   })
+  if (error || !data?.properties?.action_link) {
+    return NextResponse.json({ error: error?.message ?? 'Erreur génération lien' }, { status: 500 })
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await emailInvite(email, full_name, data.properties.action_link)
 
-  // Set is_admin if needed
   if (is_admin && data.user) {
     await admin.from('profiles')
       .update({ is_admin: true, full_name, username })
