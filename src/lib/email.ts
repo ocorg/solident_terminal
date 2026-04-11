@@ -92,6 +92,7 @@ const ACTION_LABELS: Record<string, { icon: string; label: string; color: string
   added_to_project: { icon: '📁', label: 'Ajouté à un projet',          color: '#f0f9ff' },
   added_to_cellule: { icon: '🏛️', label: 'Ajouté à une cellule',        color: '#fffbeb' },
   proposal_submitted:{ icon: '💡', label: 'Nouvelle proposition',       color: '#fffbeb' },
+  task_updated:      { icon: '🔄', label: 'Tâche mise à jour',          color: '#f8fafc' },
 }
 
 export async function sendDigestEmail(to: string, fullName: string, actions: any[]) {

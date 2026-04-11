@@ -15,79 +15,75 @@ interface Task {
   created_at: string; created_by: string
   task_assignees: Assignee[]
 }
+interface MemberWorkload {
+  id: string; full_name: string; username: string
+  taskCount: number; contextCount: number
+  label: string; labelColor: string
+}
 interface Comment { id: string; content: string; created_at: string; profiles: { full_name: string; username: string } }
 interface Profile { id: string; full_name: string; username: string }
 interface ContextOption { id: string; name: string; type: string }
-interface MemberWorkload {
-  id: string
-  full_name: string
-  username: string
-  taskCount: number
-  contextCount: number
-  label: string
-  labelColor: string
-}
 
 // ─── Constants ───────────────────────────────────────────────
 const STATUSES = ['📋 À faire', '🔄 En cours', '🚫 Bloqué', '✅ Terminé']
-
 const PRIORITIES = ['🔴 Urgent', '🟠 Élevé', '🟡 Moyen', '🟢 Faible']
 
-const STATUS_STYLES: Record<string, string> = {
-  '📋 À faire':  'border-t-slate-400',
-  '🔄 En cours': 'border-t-[#1E5F7A]',
-  '🚫 Bloqué':   'border-t-red-400',
-  '✅ Terminé':  'border-t-green-400',
+// Priority strip colors — replaces the dot, much faster to scan
+const PRIORITY_STRIP: Record<string, string> = {
+  '🔴 Urgent': '#f87171',
+  '🟠 Élevé':  '#fb923c',
+  '🟡 Moyen':  '#facc15',
+  '🟢 Faible': '#4ade80',
 }
 
-const PRIORITY_DOT: Record<string, string> = {
-  '🔴 Urgent': 'bg-red-400',
-  '🟠 Élevé':  'bg-orange-400',
-  '🟡 Moyen':  'bg-yellow-400',
-  '🟢 Faible': 'bg-green-400',
+// Column top-border accent colors
+const STATUS_ACCENT: Record<string, string> = {
+  '📋 À faire':  '#94a3b8',
+  '🔄 En cours': '#1E5F7A',
+  '🚫 Bloqué':   '#f87171',
+  '✅ Terminé':  '#4ade80',
 }
 
-// ─── Helpers ─────────────────────────────────────────────────
 const initials = (name: string) =>
   name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
 const isOverdue = (due: string | null) =>
-  due && new Date(due) < new Date() ? true : false
+  due ? new Date(due) < new Date() : false
 
 // ─── Main Component ──────────────────────────────────────────
 export default function TasksPage() {
   const supabase = createClient()
 
-  const [tasks,        setTasks]        = useState<Task[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [view,         setView]         = useState<'kanban' | 'list'>('kanban')
-  const [detail,       setDetail]       = useState<Task | null>(null)
-  const [comments,     setComments]     = useState<Comment[]>([])
-  const [newComment,   setNewComment]   = useState('')
-  const [postingComment, setPostingComment] = useState(false)
-  const [showCreate,   setShowCreate]   = useState(false)
-  const [profiles,     setProfiles]     = useState<Profile[]>([])
-  const [contexts,     setContexts]     = useState<ContextOption[]>([])
-  const [contextMembers, setContextMembers] = useState<MemberWorkload[]>([])
-  const [loadingMembers, setLoadingMembers] = useState(false)
-  const [dragId,       setDragId]       = useState<string | null>(null)
+  const [tasks,           setTasks]           = useState<Task[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [view,            setView]            = useState<'kanban' | 'list'>('kanban')
+  const [detail,          setDetail]          = useState<Task | null>(null)
+  const [comments,        setComments]        = useState<Comment[]>([])
+  const [newComment,      setNewComment]      = useState('')
+  const [postingComment,  setPostingComment]  = useState(false)
+  const [showCreate,      setShowCreate]      = useState(false)
+  const [profiles,        setProfiles]        = useState<Profile[]>([])
+  const [contexts,        setContexts]        = useState<ContextOption[]>([])
+  const [dragId,          setDragId]          = useState<string | null>(null)
+  const [dragOverCol,     setDragOverCol]     = useState<string | null>(null)
   const { toast, toastLeaving, showToast } = useToast()
-  const [filterStatus, setFilterStatus] = useState('Tous')
-  const [filterContext, setFilterContext] = useState('Tous')
-  const [search,       setSearch]       = useState('')
-  const [isAdmin,        setIsAdmin]        = useState(false)
+  const [filterStatus,    setFilterStatus]    = useState('Tous')
+  const [filterContext,   setFilterContext]   = useState('Tous')
+  const [search,          setSearch]          = useState('')
+  const [isAdmin,         setIsAdmin]         = useState(false)
+  const [showArchived,    setShowArchived]    = useState(false)
+  const [confirm,         setConfirm]         = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
   const [managedContextIds, setManagedContextIds] = useState<Set<string>>(new Set())
-  const [showArchived,   setShowArchived]   = useState(false)
-  const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [contextMembers,  setContextMembers]  = useState<MemberWorkload[]>([])
+  const [loadingMembers,  setLoadingMembers]  = useState(false)
+  const [editAssigneeIds, setEditAssigneeIds] = useState<string[]>([])
 
   const [form, setForm] = useState({
     title: '', description: '', context_type: 'project',
     context_id: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[],
   })
   const [editForm, setEditForm] = useState<Partial<Task> | null>(null)
-  const [editAssigneeIds, setEditAssigneeIds] = useState<string[]>([])
   const commentEndRef = useRef<HTMLDivElement>(null)
-
 
   // ─── Load data ─────────────────────────────────────────────
   async function loadTasks() {
@@ -129,12 +125,10 @@ export default function TasksPage() {
         supabase.from('projects').select('id, name'),
         supabase.from('cellules').select('id, name'),
       ])
-
       if (profsRes.data) setProfiles(profsRes.data)
-
       const ctxs: ContextOption[] = [
-        ...(projRes.data || []).map(p => ({ id: p.id, name: p.name, type: 'project'  })),
-        ...(celRes.data  || []).map(c => ({ id: c.id, name: c.name, type: 'cellule'  })),
+        ...(projRes.data || []).map(p => ({ id: p.id, name: p.name, type: 'project' })),
+        ...(celRes.data  || []).map(c => ({ id: c.id, name: c.name, type: 'cellule' })),
       ]
       setContexts(ctxs)
       if (ctxs.length > 0) setForm(f => ({ ...f, context_id: ctxs[0].id, context_type: ctxs[0].type }))
@@ -142,67 +136,47 @@ export default function TasksPage() {
     init()
   }, [])
 
-  useEffect(() => {
-    loadTasks()
-  }, [showArchived])
+  useEffect(() => { loadTasks() }, [showArchived])
 
+  // Load context members when context changes (for workload display)
   useEffect(() => {
-  if (!form.context_id) return
-  async function loadContextMembers() {
-    setLoadingMembers(true)
-
-    // Fetch members of the selected context
-    let memberIds: string[] = []
-    if (form.context_type === 'project') {
-      const { data } = await supabase.from('project_members').select('user_id').eq('project_id', form.context_id)
-      memberIds = (data || []).map(r => r.user_id)
-    } else {
-      const { data } = await supabase.from('cellule_members').select('user_id').eq('cellule_id', form.context_id)
-      memberIds = (data || []).map(r => r.user_id)
+    if (!form.context_id) return
+    async function loadContextMembers() {
+      setLoadingMembers(true)
+      let memberIds: string[] = []
+      if (form.context_type === 'project') {
+        const { data } = await supabase.from('project_members').select('user_id').eq('project_id', form.context_id)
+        memberIds = (data || []).map(r => r.user_id)
+      } else {
+        const { data } = await supabase.from('cellule_members').select('user_id').eq('cellule_id', form.context_id)
+        memberIds = (data || []).map(r => r.user_id)
+      }
+      if (memberIds.length === 0) { setContextMembers([]); setLoadingMembers(false); return }
+      const { data: profs } = await supabase.from('profiles').select('id, full_name, username').in('id', memberIds)
+      const { data: assigneeRows } = await supabase.from('task_assignees').select('user_id').in('user_id', memberIds)
+      const taskCountMap: Record<string, number> = {}
+      ;(assigneeRows || []).forEach((r: any) => { taskCountMap[r.user_id] = (taskCountMap[r.user_id] || 0) + 1 })
+      const [{ data: projMemberships }, { data: celMemberships }] = await Promise.all([
+        supabase.from('project_members').select('user_id').in('user_id', memberIds),
+        supabase.from('cellule_members').select('user_id').in('user_id', memberIds),
+      ])
+      const contextCountMap: Record<string, number> = {}
+      ;[...(projMemberships || []), ...(celMemberships || [])].forEach((r: any) => {
+        contextCountMap[r.user_id] = (contextCountMap[r.user_id] || 0) + 1
+      })
+      const enriched: MemberWorkload[] = (profs || []).map(p => {
+        const count = taskCountMap[p.id] || 0
+        const ctxCount = contextCountMap[p.id] || 0
+        let label = 'Disponible 🟢'; let labelColor = 'text-green-500'
+        if (count >= 6) { label = 'Chargé 🔴'; labelColor = 'text-red-400' }
+        else if (count >= 3) { label = 'Modéré 🟡'; labelColor = 'text-yellow-500' }
+        return { id: p.id, full_name: p.full_name, username: p.username, taskCount: count, contextCount: ctxCount, label, labelColor }
+      }).sort((a, b) => a.taskCount - b.taskCount)
+      setContextMembers(enriched)
+      setLoadingMembers(false)
     }
-
-    if (memberIds.length === 0) { setContextMembers([]); setLoadingMembers(false); return }
-
-    // Fetch profiles
-    const { data: profs } = await supabase.from('profiles').select('id, full_name, username').in('id', memberIds)
-
-    // Fetch active task count per member (across all platform)
-    const { data: assigneeRows } = await supabase
-      .from('task_assignees').select('user_id').in('user_id', memberIds)
-    const { data: activeTasks } = await supabase
-      .from('tasks').select('id').eq('archived', false).neq('status', '✅ Terminé')
-
-    const activeTaskIds = new Set((activeTasks || []).map(t => t.id))
-    const taskCountMap: Record<string, number> = {}
-    ;(assigneeRows || []).forEach(r => {
-      taskCountMap[r.user_id] = (taskCountMap[r.user_id] || 0) + 1
-    })
-
-    // Fetch context memberships count per member
-    const [{ data: projMemberships }, { data: celMemberships }] = await Promise.all([
-      supabase.from('project_members').select('user_id').in('user_id', memberIds),
-      supabase.from('cellule_members').select('user_id').in('user_id', memberIds),
-    ])
-    const contextCountMap: Record<string, number> = {}
-    ;[...(projMemberships || []), ...(celMemberships || [])].forEach(r => {
-      contextCountMap[r.user_id] = (contextCountMap[r.user_id] || 0) + 1
-    })
-
-    const enriched: MemberWorkload[] = (profs || []).map(p => {
-      const count = taskCountMap[p.id] || 0
-      const ctxCount = contextCountMap[p.id] || 0
-      let label = 'Disponible 🟢'
-      let labelColor = 'text-green-500'
-      if (count >= 6) { label = 'Chargé 🔴'; labelColor = 'text-red-400' }
-      else if (count >= 3) { label = 'Modéré 🟡'; labelColor = 'text-yellow-500' }
-      return { id: p.id, full_name: p.full_name, username: p.username, taskCount: count, contextCount: ctxCount, label, labelColor }
-    }).sort((a, b) => a.taskCount - b.taskCount)
-
-    setContextMembers(enriched)
-    setLoadingMembers(false)
-  }
-  loadContextMembers()
-}, [form.context_id])
+    loadContextMembers()
+  }, [form.context_id])
 
   // ─── Comments ──────────────────────────────────────────────
   async function loadComments(taskId: string) {
@@ -215,8 +189,7 @@ export default function TasksPage() {
     if (!detail || !newComment.trim()) return
     setPostingComment(true)
     const res = await fetch('/api/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task_id: detail.id, content: newComment }),
     })
     const data = await res.json()
@@ -227,12 +200,11 @@ export default function TasksPage() {
     setTimeout(() => commentEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
-  // ─── Create task ───────────────────────────────────────────
+  // ─── CRUD ──────────────────────────────────────────────────
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
     const data = await res.json()
@@ -243,11 +215,9 @@ export default function TasksPage() {
     loadTasks()
   }
 
-  // ─── Update task ───────────────────────────────────────────
   async function updateTask(id: string, updates: Partial<Task>) {
     const res = await fetch(`/api/tasks/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     })
     const data = await res.json()
@@ -257,7 +227,6 @@ export default function TasksPage() {
     return data
   }
 
-  // ─── Delete task ───────────────────────────────────────────
   function deleteTask(id: string) {
     setConfirm({
       title: 'Supprimer la tâche',
@@ -272,7 +241,6 @@ export default function TasksPage() {
     })
   }
 
-  // ─── Save edit ─────────────────────────────────────────────
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!detail || !editForm) return
@@ -284,21 +252,24 @@ export default function TasksPage() {
 
   // ─── Drag & Drop ───────────────────────────────────────────
   function onDragStart(taskId: string) { setDragId(taskId) }
-  function onDragOver(e: React.DragEvent) { e.preventDefault() }
+  function onDragOver(e: React.DragEvent, status: string) { e.preventDefault(); setDragOverCol(status) }
+  function onDragLeave() { setDragOverCol(null) }
   async function onDrop(status: string) {
     if (!dragId) return
     await updateTask(dragId, { status } as Partial<Task>)
-    setDragId(null)
+    setDragId(null); setDragOverCol(null)
   }
 
-  // ─── Filtered tasks ────────────────────────────────────────
+  // ─── Filters ───────────────────────────────────────────────
   const displayed = tasks.filter(t => {
-  if (filterStatus !== 'Tous' && t.status !== filterStatus) return false
-  if (filterContext !== 'Tous' && t.context_name !== filterContext) return false
-  return true
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (filterStatus !== 'Tous' && t.status !== filterStatus) return false
+    if (filterContext !== 'Tous' && t.context_name !== filterContext) return false
+    return true
   })
 
-  // ─── Open detail ───────────────────────────────────────────
+  const canManageTask = (task: Task) => isAdmin || managedContextIds.has(task.context_id)
+
   function openDetail(task: Task) {
     setDetail(task)
     setEditForm(null)
@@ -307,46 +278,35 @@ export default function TasksPage() {
     setForm(f => ({ ...f, context_id: task.context_id, context_type: task.context_type }))
   }
 
-  const canManageTask = (task: Task) =>
-    isAdmin || managedContextIds.has(task.context_id)
-
   // ─── Render ────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
-      {/* Toast */}
       {toast && (
-        <div
-          style={ToastStyle(toastLeaving)}
-          className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}
-        >
+        <div style={ToastStyle(toastLeaving)}
+          className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
       )}
 
       {confirm && (
-        <ConfirmModal
-          title={confirm.title}
-          message={confirm.message}
-          confirmLabel="Confirmer"
-          danger
+        <ConfirmModal title={confirm.title} message={confirm.message} confirmLabel="Confirmer" danger
           onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
-          onCancel={() => setConfirm(null)}
-        />
+          onCancel={() => setConfirm(null)} />
       )}
 
-      {/* Header */}
+      {/* ── Row 1: Title + Controls ── */}
+      {/* WHY: merged the archive toggle, view switch, and create button into one tight row
+          with the title. Saves a full row of vertical space. */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-gray-900 dark:text-white text-2xl font-bold">Tâches</h1>
-          <p className="text-gray-500 dark:text-slate-500 text-sm mt-0.5">{tasks.length} tâche{tasks.length !== 1 ? 's' : ''} au total</p>
+          <p className="text-gray-500 dark:text-slate-500 text-sm mt-0.5">{tasks.length} tâche{tasks.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <button
-            onClick={() => setShowArchived(prev => !prev)}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowArchived(prev => !prev)}
             className={`px-3 py-2 rounded-xl text-xs font-medium transition border ${showArchived ? 'bg-[#F0A500]/20 text-[#F0A500] border-[#F0A500]/30' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
-            {showArchived ? '📦 Archivées' : '📦 Archivées'}
+            📦 Archivées
           </button>
           <div className="flex bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
             {(['kanban', 'list'] as const).map(v => (
@@ -365,57 +325,78 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* ── Row 2: Search + Status filters (hidden in kanban — columns show status already) ── */}
+      {/* WHY: In kanban mode, the 4 column headers already show À faire / En cours / etc.
+          Showing status filter buttons too is redundant. We hide them in kanban view.
+          The search stays always visible. */}
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher une tâche..."
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-[#1E5F7A] transition" />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {['Tous', ...STATUSES].map(s => (
-            <button key={s} onClick={() => setFilterStatus(s)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterStatus === s ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
-              {s}
+        {view === 'list' && (
+          <div className="flex gap-1.5 flex-wrap">
+            {['Tous', ...STATUSES].map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterStatus === s ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Row 3: Context filter — horizontal scroll, no scrollbar ── */}
+      {/* WHY: Previously context pills wrapped onto a new line when there were many projects.
+          This causes the kanban board to shift down unexpectedly. A single scrollable row
+          keeps the layout height fixed regardless of how many projects exist. */}
+      {contexts.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+          <button onClick={() => setFilterContext('Tous')}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition ${filterContext === 'Tous' ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
+            Tous les contextes
+          </button>
+          {contexts.map(c => (
+            <button key={c.id} onClick={() => setFilterContext(c.name)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition ${filterContext === c.name ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
+              {c.name}
             </button>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Context filter */}
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={() => setFilterContext('Tous')}
-          className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterContext === 'Tous' ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
-          Tous les contextes
-        </button>
-        {contexts.map(c => (
-          <button key={c.id} onClick={() => setFilterContext(c.name)}
-            className={`px-3 py-2 rounded-xl text-xs font-medium transition ${filterContext === c.name ? 'bg-[#F0A500] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-slate-400 hover:border-[#F0A500]'}`}>
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Loading */}
+      {/* ── Kanban / List ── */}
       {loading ? (
+        // Inline shimmer spinner while data loads (full skeleton is in loading.tsx for SSR)
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
         </div>
 
-      /* ── Kanban ── */
       ) : view === 'kanban' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {STATUSES.map(status => {
             const col = displayed.filter(t => t.status === status)
+            const isDropTarget = dragOverCol === status
             return (
               <div key={status}
-                onDragOver={onDragOver}
+                onDragOver={e => onDragOver(e, status)}
+                onDragLeave={onDragLeave}
                 onDrop={() => onDrop(status)}
-                className={`bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-2xl p-3 min-h-[300px] border-t-4 ${STATUS_STYLES[status]} transition-all duration-200`}>
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <span className="text-gray-700 dark:text-slate-300 text-xs font-semibold">{status}</span>
-                  <span className="bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-slate-400 text-xs px-2 py-0.5 rounded-full">{col.length}</span>
+                // WHY: removed border-gray-200. Using inline borderTop so we can set exact accent color
+                // per status. The column bg is slightly off-white (#F8FAFC) in light mode and
+                // deep navy (#161B22) in dark — matches the "Apple Dark" elevation spec.
+                className={`rounded-2xl p-3 min-h-[300px] transition-all duration-200 ${isDropTarget ? 'ring-2 ring-[#1E5F7A]/40 ring-inset' : ''}`}
+                style={{
+                  background: 'var(--col-bg, #F8FAFC)',
+                  borderTop: `4px solid ${STATUS_ACCENT[status]}`,
+                }}>
+                {/* WHY: Column header shows status name in slightly bolder weight and count
+                    inline next to it — no separate pill, cleaner read */}
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-gray-700 dark:text-slate-300 text-xs font-bold">{status}</span>
+                  <span className="text-gray-400 dark:text-slate-500 text-xs font-medium">{col.length}</span>
                 </div>
                 <div className="space-y-2">
                   {col.map(task => (
@@ -423,35 +404,73 @@ export default function TasksPage() {
                       draggable
                       onDragStart={() => onDragStart(task.id)}
                       onClick={() => openDetail(task)}
-                      className={`bg-white dark:bg-[#0e1628] border rounded-xl p-3 cursor-grab active:cursor-grabbing hover:border-[#1E5F7A]/50 hover:shadow-md transition-all duration-200 ${dragId === task.id ? 'opacity-40 scale-95' : ''} ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'border-red-300 dark:border-red-500/30' : 'border-gray-200 dark:border-white/10'}`}>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-gray-900 dark:text-white text-sm font-medium leading-snug">{task.title}</p>
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${PRIORITY_DOT[task.priority] || 'bg-gray-400'}`} />
+                      // WHY: no border on cards in light mode — replaced with diffuse shadow.
+                      // In dark mode: 1px top border rgba(255,255,255,0.08) = "edge light" effect.
+                      // On drag: opacity + scale down. On hover: teal glow.
+                      className={`relative bg-white dark:bg-[#1a2235] rounded-xl p-3 cursor-grab active:cursor-grabbing transition-all duration-200 overflow-hidden
+                        ${dragId === task.id ? 'opacity-40 scale-95' : ''}
+                        ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? '' : ''}
+                      `}
+                      style={{
+                        boxShadow: dragId === task.id ? 'none' :
+                          '0 10px 15px -3px rgba(0,0,0,0.04), 0 4px 6px -2px rgba(0,0,0,0.02)',
+                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                      }}
+                      onMouseEnter={e => {
+                        if (dragId) return
+                        ;(e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 1px rgba(30,95,122,0.3), 0 10px 15px -3px rgba(0,0,0,0.06)'
+                      }}
+                      onMouseLeave={e => {
+                        ;(e.currentTarget as HTMLElement).style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.04), 0 4px 6px -2px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      {/* WHY: Priority strip on left edge — 3px wide colored bar.
+                          Much faster to scan priority at a glance vs a small dot in the corner. */}
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+                        style={{ background: PRIORITY_STRIP[task.priority] || '#94a3b8' }} />
+
+                      {/* Overdue indicator */}
+                      {isOverdue(task.due_date) && task.status !== '✅ Terminé' && (
+                        <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-red-400" />
+                      )}
+
+                      <div className="pl-2">
+                        <p className="text-gray-900 dark:text-white text-sm font-medium leading-snug pr-3">{task.title}</p>
+                        {task.due_date && (
+                          <p className={`text-xs mt-1 ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-500'}`}>
+                            📅 {new Date(task.due_date).toLocaleDateString('fr-MA')}
+                          </p>
+                        )}
+                        {/* WHY: Stacked avatars — overlap by 6px, saves horizontal space,
+                            more modern feel. Uses -ml-1.5 on all but first avatar. */}
+                        {task.task_assignees?.length > 0 && (
+                          <div className="flex mt-2">
+                            {task.task_assignees.slice(0, 3).map((a, i) => (
+                              <div key={a.user_id} title={a.profiles?.full_name}
+                                className="w-6 h-6 rounded-full bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-[#1a2235]"
+                                style={{ marginLeft: i > 0 ? '-6px' : '0', zIndex: 3 - i }}>
+                                {initials(a.profiles?.full_name || '?')}
+                              </div>
+                            ))}
+                            {task.task_assignees.length > 3 && (
+                              <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-[#1a2235]"
+                                style={{ marginLeft: '-6px', zIndex: 0 }}>
+                                +{task.task_assignees.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {task.due_date && (
-                        <p className={`text-xs mt-1 ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-600'}`}>
-                          📅 {new Date(task.due_date).toLocaleDateString('fr-MA')}
-                        </p>
-                      )}
-                      {task.task_assignees?.length > 0 && (
-                        <div className="flex mt-2 gap-1">
-                          {task.task_assignees.slice(0, 3).map(a => (
-                            <div key={a.user_id} title={a.profiles?.full_name}
-                              className="w-6 h-6 rounded-full bg-[#1E5F7A]/30 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center">
-                              {initials(a.profiles?.full_name || '?')}
-                            </div>
-                          ))}
-                          {task.task_assignees.length > 3 && (
-                            <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-slate-400 text-[10px] flex items-center justify-center">
-                              +{task.task_assignees.length - 3}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   ))}
+                  {/* WHY: Ghost card instead of text — preserves column visual height
+                      and signals "drop here" without text noise. */}
                   {col.length === 0 && (
-                    <p className="text-center text-gray-300 dark:text-slate-700 text-xs py-8">Aucune tâche</p>
+                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors duration-200
+                      ${isDropTarget ? 'border-[#1E5F7A]/50 bg-[#1E5F7A]/5' : 'border-gray-200 dark:border-white/10'}`}
+                      style={{ minHeight: '80px' }}>
+                      <p className="text-gray-300 dark:text-slate-700 text-xs mt-4">Aucune tâche</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -459,21 +478,21 @@ export default function TasksPage() {
           })}
         </div>
 
-      /* ── List ── */
       ) : (
+        // ─── List view ─────────────────────────────────────
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden">
           {displayed.length === 0 ? (
             <p className="text-center text-gray-400 dark:text-slate-600 py-12">Aucune tâche</p>
           ) : displayed.map((task, i) => (
             <div key={task.id} onClick={() => openDetail(task)}
-              className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition ${i !== displayed.length - 1 ? 'border-b border-gray-100 dark:border-white/5' : ''}`}>
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] || 'bg-gray-400'}`} />
+              className={`flex items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition ${i !== displayed.length - 1 ? 'border-b border-gray-100 dark:border-white/5' : ''}`}>
+              {/* Priority strip as a small colored bar instead of dot */}
+              <div className="w-[3px] h-8 rounded-full flex-shrink-0"
+                style={{ background: PRIORITY_STRIP[task.priority] || '#94a3b8' }} />
               <p className="text-gray-900 dark:text-white text-sm font-medium flex-1 truncate">{task.title}</p>
-              <span className="text-xs text-gray-500 dark:text-slate-500 hidden sm:block">
-                {task.context_name}
-              </span>
+              <span className="text-xs text-gray-400 dark:text-slate-500 hidden sm:block truncate max-w-[120px]">{task.context_name || task.context_type}</span>
               {task.due_date && (
-                <span className={`text-xs hidden md:block ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-600'}`}>
+                <span className={`text-xs hidden md:block flex-shrink-0 ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-600'}`}>
                   {new Date(task.due_date).toLocaleDateString('fr-MA')}
                 </span>
               )}
@@ -482,9 +501,7 @@ export default function TasksPage() {
                 task.status === '🔄 En cours' ? 'bg-blue-50    dark:bg-[#1E5F7A]/20  text-[#1E5F7A]  dark:text-[#5bbcde]' :
                 task.status === '🚫 Bloqué'   ? 'bg-red-50     dark:bg-red-500/20    text-red-500    dark:text-red-400'   :
                                                 'bg-green-50   dark:bg-green-500/20  text-green-600  dark:text-green-400'
-              }`}>
-                {task.status}
-              </span>
+              }`}>{task.status}</span>
             </div>
           ))}
         </div>
@@ -496,46 +513,34 @@ export default function TasksPage() {
           <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setDetail(null)} />
           <div className="w-full max-w-lg bg-white dark:bg-[#0e1628] border-l border-gray-200 dark:border-white/10 h-full flex flex-col animate-in slide-in-from-right duration-300">
 
-            {/* Slide-over header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
               <h2 className="text-gray-900 dark:text-white font-bold truncate flex-1 mr-4">{detail.title}</h2>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {canManageTask(detail) && (
-                  <button onClick={() => {
-                  if (editForm) {
-                    setEditForm(null)
-                    setEditAssigneeIds([])
-                  } else {
-                    setEditForm({ ...detail })
-                    setEditAssigneeIds(detail.task_assignees?.map(a => a.user_id) || [])
-                  }
-                }}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
-                    {editForm ? 'Annuler' : 'Modifier'}
-                  </button>
-                )}
-                {canManageTask(detail) && (
-                  <button
-                    onClick={async () => {
+                  <>
+                    <button onClick={() => {
+                      if (editForm) { setEditForm(null); setEditAssigneeIds([]) }
+                      else { setEditForm({ ...detail }); setEditAssigneeIds(detail.task_assignees?.map(a => a.user_id) || []) }
+                    }} className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
+                      {editForm ? 'Annuler' : 'Modifier'}
+                    </button>
+                    <button onClick={async () => {
                       setConfirm({
                         title: 'Archiver la tâche',
-                        message: 'Archiver cette tâche ? Elle n\'apparaîtra plus dans la liste principale.',
+                        message: "Archiver cette tâche ? Elle n'apparaîtra plus dans la liste principale.",
                         onConfirm: async () => {
                           await updateTask(detail.id, { archived: true } as any)
-                          setDetail(null)
-                          showToast('Tâche archivée.')
+                          setDetail(null); showToast('Tâche archivée.')
                         }
                       })
-                    }}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
-                    Archiver
-                  </button>
-                )}
-                {canManageTask(detail) && (
-                  <button onClick={() => deleteTask(detail.id)}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
-                    Supprimer
-                  </button>
+                    }} className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
+                      Archiver
+                    </button>
+                    <button onClick={() => deleteTask(detail.id)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
+                      Supprimer
+                    </button>
+                  </>
                 )}
                 <button onClick={() => setDetail(null)}
                   className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition text-xl ml-1">×</button>
@@ -543,8 +548,6 @@ export default function TasksPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-
-              {/* Edit form */}
               {editForm ? (
                 <form onSubmit={saveEdit} className="p-6 space-y-4">
                   <div>
@@ -576,7 +579,7 @@ export default function TasksPage() {
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Échéance</label>
                     <input type="datetime-local" value={editForm.due_date?.slice(0, 16) || ''} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition [color-scheme:light] dark:[color-scheme:dark]" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Assignés</label>
@@ -587,9 +590,7 @@ export default function TasksPage() {
                         const selected = editAssigneeIds.includes(m.id)
                         return (
                           <button type="button" key={m.id}
-                            onClick={() => setEditAssigneeIds(prev =>
-                              selected ? prev.filter(i => i !== m.id) : [...prev, m.id]
-                            )}
+                            onClick={() => setEditAssigneeIds(prev => selected ? prev.filter(i => i !== m.id) : [...prev, m.id])}
                             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
                             <div className="w-6 h-6 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                               {m.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -609,8 +610,6 @@ export default function TasksPage() {
 
               ) : (
                 <div className="p-6 space-y-5">
-
-                  {/* Status + Priority badges */}
                   <div className="flex gap-2 flex-wrap">
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                       detail.status === '📋 À faire'  ? 'bg-slate-100  dark:bg-slate-500/20 text-slate-600 dark:text-slate-300' :
@@ -624,7 +623,6 @@ export default function TasksPage() {
                     )}
                   </div>
 
-                  {/* Description */}
                   {detail.description && (
                     <div>
                       <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Description</p>
@@ -632,13 +630,10 @@ export default function TasksPage() {
                     </div>
                   )}
 
-                  {/* Meta */}
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                       <p className="text-gray-400 dark:text-slate-500 mb-1">Contexte</p>
-                      <p className="text-gray-700 dark:text-slate-300 font-medium">
-                        {detail.context_name || detail.context_type}
-                      </p>
+                      <p className="text-gray-700 dark:text-slate-300 font-medium">{detail.context_name || detail.context_type}</p>
                     </div>
                     {detail.due_date && (
                       <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
@@ -650,7 +645,6 @@ export default function TasksPage() {
                     )}
                   </div>
 
-                  {/* Quick status change */}
                   <div>
                     <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Changer le statut</p>
                     <div className="flex gap-2 flex-wrap">
@@ -663,7 +657,6 @@ export default function TasksPage() {
                     </div>
                   </div>
 
-                  {/* Assignees */}
                   {detail.task_assignees?.length > 0 && (
                     <div>
                       <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Assignés</p>
@@ -682,7 +675,6 @@ export default function TasksPage() {
                 </div>
               )}
 
-              {/* Comments */}
               <div className="px-6 pb-6 border-t border-gray-100 dark:border-white/10 pt-5">
                 <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3 font-semibold">Commentaires ({comments.length})</p>
                 <div className="space-y-3 max-h-52 overflow-y-auto mb-3">
@@ -710,18 +702,15 @@ export default function TasksPage() {
                     placeholder="Ajouter un commentaire..."
                     className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-[#1E5F7A] transition" />
                   <button onClick={submitComment} disabled={postingComment || !newComment.trim()}
-                    className="bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-40 text-white text-xs px-3 rounded-xl transition">
-                    ↑
-                  </button>
+                    className="bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-40 text-white text-xs px-3 rounded-xl transition">↑</button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Create Modal ──────────────────────────────────── */}
+      {/* ── Create Modal ── */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
@@ -732,36 +721,29 @@ export default function TasksPage() {
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
-
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Titre *</label>
                 <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="Titre de la tâche"
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
               </div>
-
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
                 <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Description optionnelle..."
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition resize-none" />
               </div>
-
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Contexte *</label>
-                <select
-                  value={form.context_id}
+                <select value={form.context_id}
                   onChange={e => {
                     const ctx = contexts.find(c => c.id === e.target.value)
                     setForm(f => ({ ...f, context_id: e.target.value, context_type: ctx?.type || 'project' }))
                   }}
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
-                  {contexts.map(c => (
-                    <option key={c.id} value={c.id}>[{c.type}] {c.name}</option>
-                  ))}
+                  {contexts.map(c => <option key={c.id} value={c.id}>[{c.type}] {c.name}</option>)}
                 </select>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Priorité</label>
@@ -773,10 +755,9 @@ export default function TasksPage() {
                 <div>
                   <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Échéance</label>
                   <input type="datetime-local" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
+                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition [color-scheme:light] dark:[color-scheme:dark]" />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Assigner à</label>
                 {loadingMembers ? (
@@ -793,19 +774,15 @@ export default function TasksPage() {
                         <button type="button" key={m.id}
                           onClick={() => setForm(f => ({
                             ...f,
-                            assignee_ids: selected
-                              ? f.assignee_ids.filter(id => id !== m.id)
-                              : [...f.assignee_ids, m.id]
+                            assignee_ids: selected ? f.assignee_ids.filter(i => i !== m.id) : [...f.assignee_ids, m.id]
                           }))}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
                           <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                            {m.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            {m.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-gray-900 dark:text-white text-xs font-medium truncate">{m.full_name}</p>
-                            <p className="text-gray-400 dark:text-slate-500 text-[10px]">
-                              {m.contextCount} contexte{m.contextCount !== 1 ? 's' : ''} · {m.taskCount} tâche{m.taskCount !== 1 ? 's' : ''} active{m.taskCount !== 1 ? 's' : ''}
-                            </p>
+                            <p className="text-gray-400 dark:text-slate-500 text-[10px]">{m.contextCount} contexte{m.contextCount !== 1 ? 's' : ''} · {m.taskCount} tâche{m.taskCount !== 1 ? 's' : ''} active{m.taskCount !== 1 ? 's' : ''}</p>
                           </div>
                           <span className={`text-[10px] font-semibold flex-shrink-0 ${m.labelColor}`}>{m.label}</span>
                         </button>
@@ -814,7 +791,6 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
-
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)}
                   className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
@@ -825,7 +801,6 @@ export default function TasksPage() {
                   Créer la tâche
                 </button>
               </div>
-
             </form>
           </div>
         </div>
