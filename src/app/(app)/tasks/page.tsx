@@ -8,8 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 // ─── Types ───────────────────────────────────────────────────
 interface Assignee { user_id: string; profiles: { full_name: string; username: string } }
 interface Task {
-  cellule: any
-  project: any
+  context_name?: string
   id: string; title: string; description: string | null
   status: string; priority: string; due_date: string | null
   context_type: string; context_id: string
@@ -19,6 +18,15 @@ interface Task {
 interface Comment { id: string; content: string; created_at: string; profiles: { full_name: string; username: string } }
 interface Profile { id: string; full_name: string; username: string }
 interface ContextOption { id: string; name: string; type: string }
+interface MemberWorkload {
+  id: string
+  full_name: string
+  username: string
+  taskCount: number
+  contextCount: number
+  label: string
+  labelColor: string
+}
 
 // ─── Constants ───────────────────────────────────────────────
 const STATUSES = ['📋 À faire', '🔄 En cours', '🚫 Bloqué', '✅ Terminé']
@@ -60,12 +68,15 @@ export default function TasksPage() {
   const [showCreate,   setShowCreate]   = useState(false)
   const [profiles,     setProfiles]     = useState<Profile[]>([])
   const [contexts,     setContexts]     = useState<ContextOption[]>([])
+  const [contextMembers, setContextMembers] = useState<MemberWorkload[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const [dragId,       setDragId]       = useState<string | null>(null)
   const { toast, toastLeaving, showToast } = useToast()
   const [filterStatus, setFilterStatus] = useState('Tous')
   const [filterContext, setFilterContext] = useState('Tous')
   const [search,       setSearch]       = useState('')
   const [isAdmin,        setIsAdmin]        = useState(false)
+  const [managedContextIds, setManagedContextIds] = useState<Set<string>>(new Set())
   const [showArchived,   setShowArchived]   = useState(false)
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
@@ -74,6 +85,7 @@ export default function TasksPage() {
     context_id: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[],
   })
   const [editForm, setEditForm] = useState<Partial<Task> | null>(null)
+  const [editAssigneeIds, setEditAssigneeIds] = useState<string[]>([])
   const commentEndRef = useRef<HTMLDivElement>(null)
 
 
@@ -92,7 +104,25 @@ export default function TasksPage() {
 
       const { data: profile } = await supabase
         .from('profiles').select('is_admin').eq('id', user.id).single()
-      setIsAdmin(!!profile?.is_admin)
+      const admin = !!profile?.is_admin
+      setIsAdmin(admin)
+
+      if (!admin) {
+        const [{ data: projMemberships }, { data: celMemberships }] = await Promise.all([
+          supabase.from('project_members').select('project_id, project_positions(position_name)').eq('user_id', user.id),
+          supabase.from('cellule_members').select('cellule_id, cellule_positions(position_name)').eq('user_id', user.id),
+        ])
+        const managed = new Set<string>()
+        ;(projMemberships || []).forEach((m: any) => {
+          if (m.project_positions?.position_name && !m.project_positions.position_name.toLowerCase().includes('membre'))
+            managed.add(m.project_id)
+        })
+        ;(celMemberships || []).forEach((m: any) => {
+          if (m.cellule_positions?.position_name && !m.cellule_positions.position_name.toLowerCase().includes('membre'))
+            managed.add(m.cellule_id)
+        })
+        setManagedContextIds(managed)
+      }
 
       const [profsRes, projRes, celRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name, username'),
@@ -115,6 +145,64 @@ export default function TasksPage() {
   useEffect(() => {
     loadTasks()
   }, [showArchived])
+
+  useEffect(() => {
+  if (!form.context_id) return
+  async function loadContextMembers() {
+    setLoadingMembers(true)
+
+    // Fetch members of the selected context
+    let memberIds: string[] = []
+    if (form.context_type === 'project') {
+      const { data } = await supabase.from('project_members').select('user_id').eq('project_id', form.context_id)
+      memberIds = (data || []).map(r => r.user_id)
+    } else {
+      const { data } = await supabase.from('cellule_members').select('user_id').eq('cellule_id', form.context_id)
+      memberIds = (data || []).map(r => r.user_id)
+    }
+
+    if (memberIds.length === 0) { setContextMembers([]); setLoadingMembers(false); return }
+
+    // Fetch profiles
+    const { data: profs } = await supabase.from('profiles').select('id, full_name, username').in('id', memberIds)
+
+    // Fetch active task count per member (across all platform)
+    const { data: assigneeRows } = await supabase
+      .from('task_assignees').select('user_id').in('user_id', memberIds)
+    const { data: activeTasks } = await supabase
+      .from('tasks').select('id').eq('archived', false).neq('status', '✅ Terminé')
+
+    const activeTaskIds = new Set((activeTasks || []).map(t => t.id))
+    const taskCountMap: Record<string, number> = {}
+    ;(assigneeRows || []).forEach(r => {
+      taskCountMap[r.user_id] = (taskCountMap[r.user_id] || 0) + 1
+    })
+
+    // Fetch context memberships count per member
+    const [{ data: projMemberships }, { data: celMemberships }] = await Promise.all([
+      supabase.from('project_members').select('user_id').in('user_id', memberIds),
+      supabase.from('cellule_members').select('user_id').in('user_id', memberIds),
+    ])
+    const contextCountMap: Record<string, number> = {}
+    ;[...(projMemberships || []), ...(celMemberships || [])].forEach(r => {
+      contextCountMap[r.user_id] = (contextCountMap[r.user_id] || 0) + 1
+    })
+
+    const enriched: MemberWorkload[] = (profs || []).map(p => {
+      const count = taskCountMap[p.id] || 0
+      const ctxCount = contextCountMap[p.id] || 0
+      let label = 'Disponible 🟢'
+      let labelColor = 'text-green-500'
+      if (count >= 6) { label = 'Chargé 🔴'; labelColor = 'text-red-400' }
+      else if (count >= 3) { label = 'Modéré 🟡'; labelColor = 'text-yellow-500' }
+      return { id: p.id, full_name: p.full_name, username: p.username, taskCount: count, contextCount: ctxCount, label, labelColor }
+    }).sort((a, b) => a.taskCount - b.taskCount)
+
+    setContextMembers(enriched)
+    setLoadingMembers(false)
+  }
+  loadContextMembers()
+}, [form.context_id])
 
   // ─── Comments ──────────────────────────────────────────────
   async function loadComments(taskId: string) {
@@ -188,8 +276,9 @@ export default function TasksPage() {
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!detail || !editForm) return
-    await updateTask(detail.id, editForm)
+    await updateTask(detail.id, { ...editForm, assignee_ids: editAssigneeIds } as any)
     setEditForm(null)
+    setEditAssigneeIds([])
     showToast('Tâche mise à jour !')
   }
 
@@ -205,10 +294,7 @@ export default function TasksPage() {
   // ─── Filtered tasks ────────────────────────────────────────
   const displayed = tasks.filter(t => {
   if (filterStatus !== 'Tous' && t.status !== filterStatus) return false
-  if (filterContext !== 'Tous') {
-    const name = t.project?.name || t.cellule?.name || ''
-    if (name !== filterContext) return false
-  }
+  if (filterContext !== 'Tous' && t.context_name !== filterContext) return false
   return true
   })
 
@@ -216,8 +302,13 @@ export default function TasksPage() {
   function openDetail(task: Task) {
     setDetail(task)
     setEditForm(null)
+    setEditAssigneeIds([])
     loadComments(task.id)
+    setForm(f => ({ ...f, context_id: task.context_id, context_type: task.context_type }))
   }
+
+  const canManageTask = (task: Task) =>
+    isAdmin || managedContextIds.has(task.context_id)
 
   // ─── Render ────────────────────────────────────────────────
   return (
@@ -265,10 +356,12 @@ export default function TasksPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#1E5F7A]/30 active:scale-[0.98]">
-            <span className="text-lg leading-none">+</span> Nouvelle tâche
-          </button>
+          {(isAdmin || managedContextIds.size > 0) && (
+            <button onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#1E5F7A]/30 active:scale-[0.98]">
+              <span className="text-lg leading-none">+</span> Nouvelle tâche
+            </button>
+          )}
         </div>
       </div>
 
@@ -377,7 +470,7 @@ export default function TasksPage() {
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] || 'bg-gray-400'}`} />
               <p className="text-gray-900 dark:text-white text-sm font-medium flex-1 truncate">{task.title}</p>
               <span className="text-xs text-gray-500 dark:text-slate-500 hidden sm:block">
-                {task.project?.name || task.cellule?.name || task.context_type}
+                {task.context_name}
               </span>
               {task.due_date && (
                 <span className={`text-xs hidden md:block ${isOverdue(task.due_date) && task.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-400 dark:text-slate-600'}`}>
@@ -407,29 +500,43 @@ export default function TasksPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
               <h2 className="text-gray-900 dark:text-white font-bold truncate flex-1 mr-4">{detail.title}</h2>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => setEditForm(editForm ? null : { ...detail })}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
-                  {editForm ? 'Annuler' : 'Modifier'}
-                </button>
-                <button
-                  onClick={async () => {
-                    setConfirm({
-                      title: 'Archiver la tâche',
-                      message: 'Archiver cette tâche ? Elle n\'apparaîtra plus dans la liste principale.',
-                      onConfirm: async () => {
-                    await updateTask(detail.id, { archived: true } as any)
-                        setDetail(null)
-                        showToast('Tâche archivée.')
-                      }
-                    })
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
-                  Archiver
-                </button>
-                <button onClick={() => deleteTask(detail.id)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
-                  Supprimer
-                </button>
+                {canManageTask(detail) && (
+                  <button onClick={() => {
+                  if (editForm) {
+                    setEditForm(null)
+                    setEditAssigneeIds([])
+                  } else {
+                    setEditForm({ ...detail })
+                    setEditAssigneeIds(detail.task_assignees?.map(a => a.user_id) || [])
+                  }
+                }}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
+                    {editForm ? 'Annuler' : 'Modifier'}
+                  </button>
+                )}
+                {canManageTask(detail) && (
+                  <button
+                    onClick={async () => {
+                      setConfirm({
+                        title: 'Archiver la tâche',
+                        message: 'Archiver cette tâche ? Elle n\'apparaîtra plus dans la liste principale.',
+                        onConfirm: async () => {
+                          await updateTask(detail.id, { archived: true } as any)
+                          setDetail(null)
+                          showToast('Tâche archivée.')
+                        }
+                      })
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-[#F0A500]/10 text-[#F0A500] hover:bg-[#F0A500]/20 transition font-medium">
+                    Archiver
+                  </button>
+                )}
+                {canManageTask(detail) && (
+                  <button onClick={() => deleteTask(detail.id)}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition font-medium">
+                    Supprimer
+                  </button>
+                )}
                 <button onClick={() => setDetail(null)}
                   className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition text-xl ml-1">×</button>
               </div>
@@ -471,6 +578,29 @@ export default function TasksPage() {
                     <input type="datetime-local" value={editForm.due_date?.slice(0, 16) || ''} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
                   </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Assignés</label>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {contextMembers.length === 0 ? (
+                        <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-2">Chargement…</p>
+                      ) : contextMembers.map(m => {
+                        const selected = editAssigneeIds.includes(m.id)
+                        return (
+                          <button type="button" key={m.id}
+                            onClick={() => setEditAssigneeIds(prev =>
+                              selected ? prev.filter(i => i !== m.id) : [...prev, m.id]
+                            )}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
+                            <div className="w-6 h-6 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                              {m.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </div>
+                            <p className="text-gray-900 dark:text-white text-xs font-medium flex-1 truncate">{m.full_name}</p>
+                            <span className={`text-[10px] font-semibold flex-shrink-0 ${m.labelColor}`}>{m.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                   <button type="submit"
                     className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
                     Enregistrer
@@ -507,7 +637,7 @@ export default function TasksPage() {
                     <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                       <p className="text-gray-400 dark:text-slate-500 mb-1">Contexte</p>
                       <p className="text-gray-700 dark:text-slate-300 font-medium">
-                        {detail.project?.name || detail.cellule?.name || detail.context_type}
+                        {detail.context_name || detail.context_type}
                       </p>
                     </div>
                     {detail.due_date && (
@@ -649,23 +779,40 @@ export default function TasksPage() {
 
               <div>
                 <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Assigner à</label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
-                  {profiles.map(p => {
-                    const selected = form.assignee_ids.includes(p.id)
-                    return (
-                      <button type="button" key={p.id}
-                        onClick={() => setForm(f => ({
-                          ...f,
-                          assignee_ids: selected
-                            ? f.assignee_ids.filter(id => id !== p.id)
-                            : [...f.assignee_ids, p.id]
-                        }))}
-                        className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
-                        {p.full_name}
-                      </button>
-                    )
-                  })}
-                </div>
+                {loadingMembers ? (
+                  <div className="flex justify-center py-4">
+                    <div className="w-5 h-5 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : contextMembers.length === 0 ? (
+                  <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-3">Aucun membre dans ce contexte</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {contextMembers.map(m => {
+                      const selected = form.assignee_ids.includes(m.id)
+                      return (
+                        <button type="button" key={m.id}
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            assignee_ids: selected
+                              ? f.assignee_ids.filter(id => id !== m.id)
+                              : [...f.assignee_ids, m.id]
+                          }))}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
+                          <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                            {m.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-900 dark:text-white text-xs font-medium truncate">{m.full_name}</p>
+                            <p className="text-gray-400 dark:text-slate-500 text-[10px]">
+                              {m.contextCount} contexte{m.contextCount !== 1 ? 's' : ''} · {m.taskCount} tâche{m.taskCount !== 1 ? 's' : ''} active{m.taskCount !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-semibold flex-shrink-0 ${m.labelColor}`}>{m.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

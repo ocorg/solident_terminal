@@ -106,16 +106,10 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  async function markAllRead() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase
-      .from('notifications')
-      .update({ status: 'Lu' })
-      .eq('recipient_id', user.id)
-      .eq('status', 'Non lu')
-    setNotifications(prev => prev.map(n => ({ ...n, status: 'Lu' })))
-  }
+    async function markAllRead() {
+      const res = await fetch('/api/notifications', { method: 'PATCH' })
+      if (res.ok) setNotifications(prev => prev.map(n => ({ ...n, status: 'Lu' })))
+    }
 
   async function handleLogout() {
     await supabase.auth.signOut()

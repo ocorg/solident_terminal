@@ -15,11 +15,10 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from('tasks')
-    .select(`*, task_assignees(user_id, profiles(full_name, username)), project:projects!tasks_context_id_fkey(name), cellule:cellules!tasks_context_id_fkey(name)`)
+    .select(`*, task_assignees(user_id, profiles(full_name, username))`)
     .eq('archived', showArchived)
     .order('created_at', { ascending: false })
 
-  // Non-admins only see tasks they're assigned to
   if (!profile?.is_admin) {
     const { data: assigneeRows } = await supabase
       .from('task_assignees').select('task_id').eq('user_id', user.id)
@@ -28,9 +27,29 @@ export async function GET(req: Request) {
     query = query.in('id', ids)
   }
 
-  const { data, error } = await query
+  const { data: tasks, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  // Fetch context names separately (context_id is polymorphic — can't join directly)
+  const projectIds = [...new Set(tasks.filter(t => t.context_type === 'project').map(t => t.context_id))]
+  const celluleIds = [...new Set(tasks.filter(t => t.context_type === 'cellule').map(t => t.context_id))]
+
+  const [{ data: projects }, { data: cellules }] = await Promise.all([
+    projectIds.length > 0 ? supabase.from('projects').select('id, name').in('id', projectIds) : { data: [] },
+    celluleIds.length > 0 ? supabase.from('cellules').select('id, name').in('id', celluleIds) : { data: [] },
+  ])
+
+  const projectMap = Object.fromEntries((projects || []).map(p => [p.id, p.name]))
+  const celluleMap = Object.fromEntries((cellules || []).map(c => [c.id, c.name]))
+
+  const enriched = tasks.map(t => ({
+    ...t,
+    context_name: t.context_type === 'project'
+      ? (projectMap[t.context_id] ?? t.context_type)
+      : (celluleMap[t.context_id] ?? t.context_type),
+  }))
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(req: NextRequest) {
@@ -43,6 +62,33 @@ export async function POST(req: NextRequest) {
 
   if (!title || !context_type || !context_id) {
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
+  }
+
+  // Check permission: admin or manager in the target context
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) {
+    const admin = createAdminClient()
+    let isManager = false
+    if (context_type === 'project') {
+      const { data: membership } = await admin
+        .from('project_members')
+        .select('project_positions(position_name)')
+        .eq('project_id', context_id)
+        .eq('user_id', user.id)
+        .single()
+      const pos = (membership?.project_positions as any)?.position_name ?? ''
+      isManager = pos !== '' && !pos.toLowerCase().includes('membre')
+    } else if (context_type === 'cellule') {
+      const { data: membership } = await admin
+        .from('cellule_members')
+        .select('cellule_positions(position_name)')
+        .eq('cellule_id', context_id)
+        .eq('user_id', user.id)
+        .single()
+      const pos = (membership?.cellule_positions as any)?.position_name ?? ''
+      isManager = pos !== '' && !pos.toLowerCase().includes('membre')
+    }
+    if (!isManager) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
   }
 
   const admin = createAdminClient()
@@ -69,19 +115,25 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Always assign creator
-  await admin.from('task_assignees').upsert({ task_id: task.id, user_id: user.id })
-
-  // Email assignees
+  // Email assignees — respects user email preferences
   if (assignee_ids?.length > 0) {
     const { emailTaskAssigned } = await import('@/lib/email')
-    const { data: assigneeProfiles } = await admin
-      .from('profiles').select('full_name, email:id').in('id', assignee_ids)
 
-    const { data: authUsers } = await admin.auth.admin.listUsers()
+    const [{ data: assigneeProfiles }, { data: authUsersData }, { data: emailPrefs }] = await Promise.all([
+      admin.from('profiles').select('id, full_name').in('id', assignee_ids),
+      admin.auth.admin.listUsers(),
+      admin.from('user_email_prefs').select('user_id, email_enabled').in('user_id', assignee_ids),
+    ])
+
+    const prefMap: Record<string, boolean> = {}
+    ;(emailPrefs || []).forEach((p: any) => { prefMap[p.user_id] = p.email_enabled })
+
     for (const assigneeId of assignee_ids) {
-      const authUser = authUsers?.users?.find((u: { id: string }) => u.id === assigneeId)
-      const profile  = (assigneeProfiles || []).find((p: { full_name: string }) => p)
+      // Default to true if no pref row exists, skip if explicitly disabled
+      if (prefMap[assigneeId] === false) continue
+
+      const authUser = authUsersData?.users?.find((u: any) => u.id === assigneeId)
+      const profile  = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
       if (authUser?.email && profile?.full_name) {
         await emailTaskAssigned(authUser.email, profile.full_name, title, task.id)
       }

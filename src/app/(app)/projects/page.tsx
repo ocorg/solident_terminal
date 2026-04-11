@@ -34,7 +34,7 @@ export default function ProjectsPage() {
   const [filter,     setFilter]     = useState('Actif')
   const [showCreate, setShowCreate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-
+  const [activities, setActivities] = useState<Project[]>([])
   const [form, setForm] = useState({
     name: '', description: '', status: 'Actif',
     start_date: '', end_date: '', is_multi_activite: false,
@@ -43,7 +43,16 @@ export default function ProjectsPage() {
   async function loadProjects() {
     const res = await fetch('/api/projects')
     const data = await res.json()
-    if (Array.isArray(data)) { setProjects(data); }
+    if (Array.isArray(data)) setProjects(data)
+
+    // Fetch sub-activities separately
+    const { data: acts } = await supabase
+      .from('projects')
+      .select(`*, project_members(user_id, profiles(full_name))`)
+      .not('parent_project_id', 'is', null)
+      .order('created_at', { ascending: false })
+    if (acts) setActivities(acts)
+
     setLoading(false)
   }
 
@@ -201,6 +210,57 @@ export default function ProjectsPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Activities Section */}
+      {activities.length > 0 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-gray-900 dark:text-white text-lg font-bold">Activités</h2>
+            <p className="text-gray-500 dark:text-slate-500 text-sm mt-0.5">{activities.length} activité{activities.length !== 1 ? 's' : ''} issues de projets multi-activité</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {activities.map(act => {
+              const memberCount = act.project_members?.length || 0
+              const letters = act.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+              return (
+                <div key={act.id}
+                  onClick={() => router.push(`/projects/${act.id}`)}
+                  className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-500 dark:text-purple-400 font-bold text-sm flex-shrink-0">
+                      {letters}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[10px] bg-purple-500/20 text-purple-500 dark:text-purple-400 px-2 py-0.5 rounded-full font-semibold border border-purple-500/20">Activité</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[act.status] || ''}`}>{act.status}</span>
+                    </div>
+                  </div>
+                  <h3 className="text-gray-900 dark:text-white font-semibold text-sm mb-1 truncate">{act.name}</h3>
+                  {act.description && (
+                    <p className="text-gray-400 dark:text-slate-500 text-xs line-clamp-2 mb-3">{act.description}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-white/5">
+                    <div className="flex -space-x-2">
+                      {act.project_members?.slice(0, 4).map((m: any, i: number) => (
+                        <div key={i} title={m.profiles?.full_name}
+                          className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-500 dark:text-purple-400 text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-[#0a0f1e]">
+                          {initials(m.profiles?.full_name || '?')}
+                        </div>
+                      ))}
+                      {memberCount > 4 && (
+                        <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-slate-400 text-[10px] flex items-center justify-center border-2 border-white dark:border-[#0a0f1e]">
+                          +{memberCount - 4}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-gray-400 dark:text-slate-600 text-xs">{memberCount} membre{memberCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

@@ -12,6 +12,7 @@ interface Profile {
 
 interface Task { id: string; title: string; status: string; priority: string; due_date: string | null }
 interface Project { id: string; name: string; status: string }
+interface Cellule { id: string; name: string }
 interface Event { id: string; title: string; type: string; start_at: string; location: string | null }
 interface Notification { id: string; message: string; status: string }
 interface Proposal { id: string; title: string; proposed_at: string; type: string }
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [profile,       setProfile]       = useState<Profile | null>(null)
   const [tasks,         setTasks]         = useState<Task[]>([])
   const [projects,      setProjects]      = useState<Project[]>([])
+  const [cellules,      setCellules]      = useState<Cellule[]>([])
   const [events,        setEvents]        = useState<Event[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [proposals,     setProposals]     = useState<Proposal[]>([])
@@ -85,20 +87,31 @@ export default function DashboardPage() {
         if (taskData) setTasks(taskData)
       }
 
-      // Projects user is member of
-      const { data: memberRows } = await supabase
-        .from('project_members')
-        .select('project_id')
-        .eq('user_id', user.id)
+      // Projects
+      const isAdmin = !!profileRes.data?.is_admin
+      if (isAdmin) {
+        const { data: allProjects } = await supabase.from('projects').select('*').neq('status', 'Terminé').limit(6)
+        if (allProjects) setProjects(allProjects)
+      } else {
+        const { data: memberRows } = await supabase.from('project_members').select('project_id').eq('user_id', user.id)
+        if (memberRows && memberRows.length > 0) {
+          const projIds = memberRows.map(r => r.project_id)
+          const { data: projData } = await supabase.from('projects').select('*').in('id', projIds).limit(6)
+          if (projData) setProjects(projData)
+        }
+      }
 
-      if (memberRows && memberRows.length > 0) {
-        const projIds = memberRows.map(r => r.project_id)
-        const { data: projData } = await supabase
-          .from('projects')
-          .select('*')
-          .in('id', projIds)
-          .limit(6)
-        if (projData) setProjects(projData)
+      // Cellules
+      if (isAdmin) {
+        const { data: allCellules } = await supabase.from('cellules').select('id, name').limit(6)
+        if (allCellules) setCellules(allCellules)
+      } else {
+        const { data: celRows } = await supabase.from('cellule_members').select('cellule_id').eq('user_id', user.id)
+        if (celRows && celRows.length > 0) {
+          const celIds = celRows.map(r => r.cellule_id)
+          const { data: celData } = await supabase.from('cellules').select('id, name').in('id', celIds).limit(6)
+          if (celData) setCellules(celData)
+        }
       }
 
       setLoading(false)
@@ -223,28 +236,38 @@ export default function DashboardPage() {
         </Widget>
 
         {/* My Projects */}
-        <Widget title="📁 Mes projets" className="break-inside-avoid">
+        <Widget title="📁 Mes projets & cellules" className="break-inside-avoid">
           <div className="space-y-2">
-            {projects.length === 0 ? (
-              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucun projet</p>
-            ) : projects.map(project => (
-              <div key={project.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
-                <div className="w-8 h-8 rounded-lg bg-[#1E5F7A]/30 flex items-center justify-center text-sm flex-shrink-0">
-                  📁
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-gray-800 dark:text-slate-200 text-sm truncate">{project.name}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-lg flex-shrink-0 ${
-                  project.status === 'Actif'    ? 'bg-green-500/20 text-green-400'   :
-                  project.status === 'En pause' ? 'bg-yellow-500/20 text-yellow-400' :
-                  project.status === 'Bloqué'   ? 'bg-red-500/20 text-red-400'       :
-                  'bg-slate-500/20 text-slate-400'
-                }`}>
-                  {project.status}
-                </span>
-              </div>
-            ))}
+            {projects.length === 0 && cellules.length === 0 ? (
+              <p className="text-gray-400 dark:text-slate-600 text-sm text-center py-2">Aucun projet ou cellule</p>
+            ) : (
+              <>
+                {projects.map(project => (
+                  <div key={project.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
+                    <div className="w-8 h-8 rounded-lg bg-[#1E5F7A]/30 flex items-center justify-center text-sm flex-shrink-0">📁</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-800 dark:text-slate-200 text-sm truncate">{project.name}</p>
+                      <p className="text-gray-400 dark:text-slate-600 text-xs">Projet</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-lg flex-shrink-0 ${
+                      project.status === 'Actif'    ? 'bg-green-500/20 text-green-400'   :
+                      project.status === 'En pause' ? 'bg-yellow-500/20 text-yellow-400' :
+                      project.status === 'Bloqué'   ? 'bg-red-500/20 text-red-400'       :
+                      'bg-slate-500/20 text-slate-400'
+                    }`}>{project.status}</span>
+                  </div>
+                ))}
+                {cellules.map(cellule => (
+                  <div key={cellule.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition cursor-pointer">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0A500]/20 flex items-center justify-center text-sm flex-shrink-0">🏛️</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-800 dark:text-slate-200 text-sm truncate">{cellule.name}</p>
+                      <p className="text-gray-400 dark:text-slate-600 text-xs">Cellule</p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </Widget>
 

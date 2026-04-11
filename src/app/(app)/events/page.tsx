@@ -58,6 +58,7 @@ export default function EventsPage() {
   const [calMonth,    setCalMonth]    = useState(new Date().getMonth())
   const [filterType,  setFilterType]  = useState('Tous')
   const [search,      setSearch]      = useState('')
+  const [inviteeSearch, setInviteeSearch] = useState('')
   const { toast, toastLeaving, showToast } = useToast()
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
@@ -187,7 +188,7 @@ export default function EventsPage() {
     })
   }
 
-  const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition"
+  const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition [color-scheme:light] dark:[color-scheme:dark]"
   const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
@@ -520,22 +521,30 @@ export default function EventsPage() {
               {form.visibility === 'Invités seulement' && (
                 <div>
                   <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Inviter des membres</label>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
-                    {profiles.map(p => {
-                      const selected = form.invitee_ids.includes(p.id)
-                      return (
-                        <button type="button" key={p.id}
-                          onClick={() => setForm(f => ({
-                            ...f,
-                            invitee_ids: selected
-                              ? f.invitee_ids.filter(id => id !== p.id)
-                              : [...f.invitee_ids, p.id]
-                          }))}
-                          className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
-                          {p.full_name}
-                        </button>
-                      )
-                    })}
+                  <input
+                    value={inviteeSearch}
+                    onChange={e => setInviteeSearch(e.target.value)}
+                    placeholder="Rechercher un membre..."
+                    className="w-full mb-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#1E5F7A] transition"
+                  />
+                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+                    {profiles
+                      .filter(p => p.full_name.toLowerCase().includes(inviteeSearch.toLowerCase()))
+                      .map(p => {
+                        const selected = form.invitee_ids.includes(p.id)
+                        return (
+                          <button type="button" key={p.id}
+                            onClick={() => setForm(f => ({
+                              ...f,
+                              invitee_ids: selected
+                                ? f.invitee_ids.filter(id => id !== p.id)
+                                : [...f.invitee_ids, p.id]
+                            }))}
+                            className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
+                            {p.full_name}
+                          </button>
+                        )
+                      })}
                   </div>
                 </div>
               )}

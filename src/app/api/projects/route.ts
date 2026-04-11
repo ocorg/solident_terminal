@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { name, description, status, start_date, end_date, is_multi_activite } = body
+  const { name, description, status, start_date, end_date, is_multi_activite, parent_project_id } = body
   if (!name) return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
 
   const admin = createAdminClient()
@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     is_multi_activite: is_multi_activite || false,
     start_date: start_date || null,
     end_date: end_date || null,
+    parent_project_id: parent_project_id || null,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

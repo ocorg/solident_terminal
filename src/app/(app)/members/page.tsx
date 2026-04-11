@@ -22,6 +22,7 @@ interface Badge {
 interface DetailData {
   member: Member
   projectMemberships: { project_name: string; position_name: string }[]
+  activityMemberships: { activity_name: string; position_name: string }[]
   celluleMemberships: { cellule_name: string; position_name: string }[]
   loginLogs: { created_at: string; status: string }[]
 }
@@ -41,6 +42,7 @@ export default function MembersPage() {
   const [showEdit,    setShowEdit]    = useState<Member | null>(null)
   const { toast, toastLeaving, showToast } = useToast()
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
+  const [memberBadges, setMemberBadges] = useState<Record<string, Badge[]>>({})
 
   const [form, setForm] = useState({ email: '', full_name: '', username: '', is_admin: false })
   const [submitting, setSubmitting] = useState(false)
@@ -48,6 +50,35 @@ export default function MembersPage() {
   async function loadMembers() {
     const { data } = await supabase.from('profiles').select('*').order('full_name')
     if (data) { setMembers(data); setFiltered(data) }
+
+    // Fetch all non-membre positions across projects and cellules
+    const [{ data: pmData }, { data: cmData }] = await Promise.all([
+      supabase.from('project_members').select('user_id, project_positions(position_name), projects(name, parent_project_id)'),
+      supabase.from('cellule_members').select('user_id, cellule_positions(position_name), cellules(name)'),
+    ])
+
+    const badgeMap: Record<string, Badge[]> = {}
+
+    ;(pmData || []).forEach((r: any) => {
+      const pos = r.project_positions?.position_name || ''
+      if (!pos || pos.toLowerCase().includes('membre')) return
+      if (!badgeMap[r.user_id]) badgeMap[r.user_id] = []
+      const isActivity = !!r.projects?.parent_project_id
+      badgeMap[r.user_id].push({
+        contextType: isActivity ? 'activity' : 'project',
+        contextName: r.projects?.name || '',
+        positionName: pos,
+      })
+    })
+
+    ;(cmData || []).forEach((r: any) => {
+      const pos = r.cellule_positions?.position_name || ''
+      if (!pos || pos.toLowerCase().includes('membre')) return
+      if (!badgeMap[r.user_id]) badgeMap[r.user_id] = []
+      badgeMap[r.user_id].push({ contextType: 'cellule', contextName: r.cellules?.name || '', positionName: pos })
+    })
+
+    setMemberBadges(badgeMap)
     setLoading(false)
   }
 
@@ -66,19 +97,27 @@ export default function MembersPage() {
 
   async function openDetail(member: Member) {
     const [pmRes, cmRes, llRes] = await Promise.all([
-      supabase.from('project_members').select('position_id, project_id, projects(name), project_positions(position_name)').eq('user_id', member.id),
+      supabase.from('project_members').select('position_id, project_id, projects(name, parent_project_id), project_positions(position_name)').eq('user_id', member.id),
       supabase.from('cellule_members').select('position_id, cellule_id, cellules(name), cellule_positions(position_name)').eq('user_id', member.id),
       supabase.from('login_logs').select('created_at, status').eq('user_id', member.id).order('created_at', { ascending: false }).limit(5),
     ])
 
+    const allProjectRows = pmRes.data || []
+    const projectRows  = allProjectRows.filter((r: any) => !r.projects?.parent_project_id)
+    const activityRows = allProjectRows.filter((r: any) => !!r.projects?.parent_project_id)
+
     setDetail({
       member,
-      projectMemberships: (pmRes.data || []).map((r: any) => ({
-        project_name:  r.projects?.name      || '—',
+      projectMemberships: projectRows.map((r: any) => ({
+        project_name:  r.projects?.name || '—',
+        position_name: r.project_positions?.position_name || '—',
+      })),
+      activityMemberships: activityRows.map((r: any) => ({
+        activity_name: r.projects?.name || '—',
         position_name: r.project_positions?.position_name || '—',
       })),
       celluleMemberships: (cmRes.data || []).map((r: any) => ({
-        cellule_name:  r.cellules?.name       || '—',
+        cellule_name:  r.cellules?.name || '—',
         position_name: r.cellule_positions?.position_name || '—',
       })),
       loginLogs: llRes.data || [],
@@ -217,10 +256,23 @@ export default function MembersPage() {
                 <div className="w-12 h-12 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0">
                   {initials(member.full_name)}
                 </div>
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1 justify-end max-w-[140px]">
                   {member.is_admin && (
                     <span className="text-[10px] bg-[#F0A500]/20 text-[#F0A500] px-2 py-0.5 rounded-full font-semibold border border-[#F0A500]/20">Admin</span>
                   )}
+                  {!member.is_admin && (memberBadges[member.id] || []).length === 0 && (
+                    <span className="text-[10px] bg-green-100 dark:bg-gray/10 text-gray-500 dark:text-slate-400 px-2 py-0.5 rounded-full font-semibold border border-gray-200 dark:border-white/10">Membre</span>
+                  )}
+                  {(memberBadges[member.id] || []).map((b, i) => (
+                    <span key={i} title={`${b.positionName} — ${b.contextName}`}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border truncate max-w-[120px] ${
+                        b.contextType === 'activity'
+                          ? 'bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/20'
+                          : 'bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] border-[#1E5F7A]/20'
+                      }`}>
+                      {b.positionName}
+                    </span>
+                  ))}
                 </div>
               </div>
               <p className="text-gray-900 dark:text-white font-semibold text-sm truncate">{member.full_name}</p>
@@ -286,6 +338,19 @@ export default function MembersPage() {
                 </div>
               ))}
             </div>
+
+            {/* Activities */}
+            {detail.activityMemberships.length > 0 && (
+              <div>
+                <h3 className="text-gray-700 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Activités</h3>
+                {detail.activityMemberships.map((a, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
+                    <p className="text-gray-800 dark:text-slate-200 text-sm">⚡ {a.activity_name}</p>
+                    <span className="text-xs text-purple-500 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg">{a.position_name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Cellules */}
             <div>
