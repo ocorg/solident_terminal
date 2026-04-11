@@ -15,10 +15,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user_id || !position_id) return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
 
   const admin = createAdminClient()
-  const { error } = await admin.from('project_members').upsert({
-    project_id: id, user_id, position_id
-  })
+  const { error } = await admin.from('project_members').upsert({ project_id: id, user_id, position_id })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify the added member
+  const { data: proj } = await admin.from('projects').select('name').eq('id', id).single()
+  const { data: memberProfile } = await admin.from('profiles').select('full_name').eq('id', user_id).single()
+  const { data: authUser } = await admin.auth.admin.getUserById(user_id)
+  const { data: emailPref } = await admin.from('user_email_prefs').select('email_enabled').eq('user_id', user_id).single()
+
+  if (proj && authUser?.user?.email && memberProfile?.full_name && emailPref?.email_enabled !== false) {
+    const { queueDigest } = await import('@/lib/digest')
+    await queueDigest(user_id, authUser.user.email, memberProfile.full_name, 'added_to_project', { title: proj.name })
+  }
+
   return NextResponse.json({ status: 'added' })
 }
 

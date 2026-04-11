@@ -1,8 +1,9 @@
 import { Resend } from 'resend'
 
-const resend  = new Resend(process.env.RESEND_API_KEY)
-const FROM    = 'Solident <onboarding@resend.dev>'
+const resend   = new Resend(process.env.RESEND_API_KEY)
+const FROM     = 'Solident <onboarding@resend.dev>'
 const BASE_URL = 'https://solident-terminal.vercel.app'
+const LOGO     = 'https://nuycsptqqxuqxxhofbpv.supabase.co/storage/v1/object/public/Logo_Solident/Logo%20Solident.png'
 
 // ─── Shared email wrapper ─────────────────────────────────────
 async function sendEmail(to: string, subject: string, html: string) {
@@ -26,6 +27,7 @@ function template(title: string, body: string) {
             <!-- Header -->
             <tr>
               <td style="background:linear-gradient(135deg,#1E5F7A,#2a7a9a);padding:32px 40px;text-align:center;">
+                <img src="${LOGO}" alt="Solident" width="72" height="72" style="border-radius:12px;background:#ffffff;padding:4px;display:block;margin:0 auto 12px;" />
                 <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Solident</h1>
                 <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Solidarité Dentaires — Espace membre</p>
               </td>
@@ -60,7 +62,51 @@ function para(text: string) {
   return `<p style="margin:0 0 12px;color:#475569;font-size:14px;line-height:1.6;">${text}</p>`
 }
 
-// ─── Email functions ──────────────────────────────────────────
+function card(color: string, icon: string, text: string) {
+  return `<div style="background:${color};border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:18px;">${icon}</span>
+    <p style="margin:0;color:#0f172a;font-size:14px;font-weight:500;">${text}</p>
+  </div>`
+}
+
+// ─── Digest email ─────────────────────────────────────────────
+const ACTION_LABELS: Record<string, { icon: string; label: string; color: string }> = {
+  task_assigned:    { icon: '📋', label: 'Tâche assignée',              color: '#f0f9ff' },
+  task_comment:     { icon: '💬', label: 'Nouveau commentaire',         color: '#f0fdf4' },
+  event_invited:    { icon: '📅', label: 'Invitation événement',        color: '#faf5ff' },
+  proposal_approved:{ icon: '✅', label: 'Proposition approuvée',       color: '#f0fdf4' },
+  proposal_rejected:{ icon: '❌', label: 'Proposition non retenue',     color: '#fef2f2' },
+  added_to_project: { icon: '📁', label: 'Ajouté à un projet',          color: '#f0f9ff' },
+  added_to_cellule: { icon: '🏛️', label: 'Ajouté à une cellule',        color: '#fffbeb' },
+  proposal_submitted:{ icon: '💡', label: 'Nouvelle proposition',       color: '#fffbeb' },
+}
+
+export async function sendDigestEmail(to: string, fullName: string, actions: any[]) {
+  const count = actions.length
+  const subject = count === 1
+    ? `Solident — 1 nouvelle notification`
+    : `Solident — ${count} nouvelles notifications`
+
+  const items = actions.map(a => {
+    const meta = ACTION_LABELS[a.action_type] || { icon: '🔔', label: a.action_type, color: '#f8fafc' }
+    const detail = a.payload?.title || a.payload?.name || a.payload?.detail || ''
+    return card(meta.color, meta.icon, `<strong>${meta.label}</strong>${detail ? ` : ${detail}` : ''}`)
+  }).join('')
+
+  await sendEmail(to, subject, template(
+    `Bonjour ${fullName}, vous avez ${count} notification${count > 1 ? 's' : ''}`,
+    `
+    ${para('Voici un résumé de vos dernières activités sur la plateforme Solident :')}
+    <div style="margin:20px 0;">${items}</div>
+    ${para('Connectez-vous pour voir les détails et répondre.')}
+    <div style="text-align:center;margin:24px 0;">
+      ${btn('Accéder à la plateforme', BASE_URL)}
+    </div>
+    `
+  ))
+}
+
+// ─── Auth emails (immediate — never queued) ───────────────────
 
 export async function emailInvite(to: string, fullName: string, activationLink: string) {
   await sendEmail(
@@ -71,7 +117,7 @@ export async function emailInvite(to: string, fullName: string, activationLink: 
       `
       ${para("Vous avez été invité(e) à rejoindre la plateforme <strong>Solident</strong> de l'association <strong>Solidarité Dentaires</strong>.")}
       <div style="background:#f0f9ff;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
-        <img src="https://nuycsptqqxuqxxhofbpv.supabase.co/storage/v1/object/public/Logo_Solident/Logo%20Solident.png" alt="Solident" width="60" height="60" style="border-radius:10px;display:block;margin:0 auto 8px;" />
+        <img src="${LOGO}" alt="Solident" width="60" height="60" style="border-radius:10px;display:block;margin:0 auto 8px;" />
         <p style="margin:0;color:#0f172a;font-weight:600;font-size:15px;">Solidarité Dentaires</p>
         <p style="margin:4px 0 0;color:#64748b;font-size:13px;">Plateforme de gestion associative</p>
       </div>
@@ -83,117 +129,6 @@ export async function emailInvite(to: string, fullName: string, activationLink: 
         <p style="margin:0;color:#92400e;font-size:12px;">⏰ <strong>Ce lien expire dans 24 heures.</strong> Si vous ne l'utilisez pas à temps, contactez votre administrateur.</p>
       </div>
       ${para("Si vous n'attendiez pas cet email, vous pouvez l'ignorer en toute sécurité.")}
-      `
-    )
-  )
-}
-
-export async function emailTaskAssigned(
-  to: string, fullName: string, taskTitle: string, taskId: string
-) {
-  await sendEmail(
-    to,
-    `Nouvelle tâche assignée : ${taskTitle}`,
-    template(
-      'Une tâche vous a été assignée',
-      `
-      ${para(`Bonjour ${fullName},`)}
-      ${para(`La tâche suivante vous a été assignée :`)}
-      <div style="background:#f0f9ff;border-left:4px solid #1E5F7A;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
-        <p style="margin:0;color:#0f172a;font-weight:600;font-size:14px;">${taskTitle}</p>
-      </div>
-      ${para("Connectez-vous à la plateforme pour consulter les détails et commencer à travailler.")}
-      ${btn('Voir la tâche', `${BASE_URL}/tasks`)}
-      `
-    )
-  )
-}
-
-export async function emailProposalSubmitted(
-  to: string, adminName: string, proposalTitle: string, proposedBy: string
-) {
-  await sendEmail(
-    to,
-    `Nouvelle proposition à examiner : ${proposalTitle}`,
-    template(
-      'Nouvelle proposition en attente',
-      `
-      ${para(`Bonjour ${adminName},`)}
-      ${para(`<strong>${proposedBy}</strong> a soumis une nouvelle proposition qui attend votre examen :`)}
-      <div style="background:#fffbeb;border-left:4px solid #F0A500;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
-        <p style="margin:0;color:#0f172a;font-weight:600;font-size:14px;">${proposalTitle}</p>
-      </div>
-      ${btn('Examiner la proposition', `${BASE_URL}/proposals`)}
-      `
-    )
-  )
-}
-
-export async function emailProposalApproved(
-  to: string, fullName: string, proposalTitle: string
-) {
-  await sendEmail(
-    to,
-    `Votre proposition a été approuvée : ${proposalTitle}`,
-    template(
-      '🎉 Proposition approuvée !',
-      `
-      ${para(`Bonjour ${fullName},`)}
-      ${para(`Bonne nouvelle ! Votre proposition a été approuvée et un projet a été créé automatiquement :`)}
-      <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
-        <p style="margin:0;color:#0f172a;font-weight:600;font-size:14px;">${proposalTitle}</p>
-      </div>
-      ${para("Vous pouvez maintenant accéder au projet et commencer à organiser les activités.")}
-      ${btn('Voir mes projets', `${BASE_URL}/projects`)}
-      `
-    )
-  )
-}
-
-export async function emailProposalRejected(
-  to: string, fullName: string, proposalTitle: string, note: string
-) {
-  await sendEmail(
-    to,
-    `Votre proposition n'a pas été retenue : ${proposalTitle}`,
-    template(
-      'Proposition non retenue',
-      `
-      ${para(`Bonjour ${fullName},`)}
-      ${para(`Après examen, votre proposition n'a malheureusement pas été retenue :`)}
-      <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;">
-        <p style="margin:0;color:#0f172a;font-weight:600;font-size:14px;">${proposalTitle}</p>
-      </div>
-      ${note ? `<div style="background:#f8fafc;padding:12px 16px;border-radius:8px;margin:16px 0;"><p style="margin:0;color:#475569;font-size:13px;"><strong>Note de l'administrateur :</strong> ${note}</p></div>` : ''}
-      ${para("N'hésitez pas à soumettre une nouvelle proposition en tenant compte des remarques.")}
-      ${btn('Soumettre une nouvelle proposition', `${BASE_URL}/proposals`)}
-      `
-    )
-  )
-}
-
-export async function emailEventInvited(
-  to: string, fullName: string, eventTitle: string, startAt: string, location: string | null
-) {
-  const date = new Date(startAt).toLocaleDateString('fr-MA', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  })
-  await sendEmail(
-    to,
-    `Invitation : ${eventTitle}`,
-    template(
-      `Vous êtes invité(e) à un événement`,
-      `
-      ${para(`Bonjour ${fullName},`)}
-      ${para(`Vous avez été invité(e) à l'événement suivant :`)}
-      <div style="background:#f0f9ff;border-left:4px solid #1E5F7A;padding:16px;border-radius:0 8px 8px 0;margin:16px 0;">
-        <p style="margin:0 0 4px;color:#0f172a;font-weight:600;font-size:15px;">${eventTitle}</p>
-        <p style="margin:0 0 4px;color:#475569;font-size:13px;">📅 ${date}</p>
-        ${location ? `<p style="margin:0;color:#475569;font-size:13px;">📍 ${location}</p>` : ''}
-      </div>
-      ${para("Connectez-vous pour confirmer votre présence.")}
-      ${btn("Répondre à l'invitation", `${BASE_URL}/events`)}
       `
     )
   )
@@ -213,7 +148,7 @@ export async function emailPasswordReset(to: string, resetLink: string) {
       </div>
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-top:16px;">
         <p style="margin:0 0 6px;color:#991b1b;font-size:13px;font-weight:700;">⚠️ Sécurité importante</p>
-        <p style="margin:0;color:#b91c1c;font-size:12px;line-height:1.6;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email — votre mot de passe reste inchangé. Ne partagez jamais ce lien avec quelqu'un d'autre.</p>
+        <p style="margin:0;color:#b91c1c;font-size:12px;line-height:1.6;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email — votre mot de passe reste inchangé.</p>
       </div>
       ${para("Ce lien expire automatiquement après utilisation ou dans 1 heure.")}
       `

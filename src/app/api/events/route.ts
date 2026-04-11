@@ -89,5 +89,27 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Queue email digest for invited attendees
+  if (attendeeIds.length > 0) {
+    const { queueDigest } = await import('@/lib/digest')
+    const { data: authUsersData } = await admin.auth.admin.listUsers()
+    const { data: attendeeProfiles } = await admin
+      .from('profiles').select('id, full_name').in('id', attendeeIds)
+    const { data: emailPrefs } = await admin
+      .from('user_email_prefs').select('user_id, email_enabled').in('user_id', attendeeIds)
+
+    const prefMap: Record<string, boolean> = {}
+    ;(emailPrefs || []).forEach((p: any) => { prefMap[p.user_id] = p.email_enabled })
+
+    for (const uid of attendeeIds) {
+      if (prefMap[uid] === false) continue
+      const authUser = authUsersData?.users?.find((u: any) => u.id === uid)
+      const profile  = (attendeeProfiles || []).find((p: any) => p.id === uid)
+      if (authUser?.email && profile?.full_name) {
+        await queueDigest(uid, authUser.email, profile.full_name, 'event_invited', { title })
+      }
+    }
+  }
+
   return NextResponse.json(event)
 }

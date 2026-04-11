@@ -115,27 +115,24 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Email assignees — respects user email preferences
+  // Queue digest notifications for assignees
   if (assignee_ids?.length > 0) {
-    const { emailTaskAssigned } = await import('@/lib/email')
-
-    const [{ data: assigneeProfiles }, { data: authUsersData }, { data: emailPrefs }] = await Promise.all([
-      admin.from('profiles').select('id, full_name').in('id', assignee_ids),
-      admin.auth.admin.listUsers(),
-      admin.from('user_email_prefs').select('user_id, email_enabled').in('user_id', assignee_ids),
-    ])
+    const { queueDigest } = await import('@/lib/digest')
+    const { data: authUsersData } = await admin.auth.admin.listUsers()
+    const { data: assigneeProfiles } = await admin
+      .from('profiles').select('id, full_name').in('id', assignee_ids)
+    const { data: emailPrefs } = await admin
+      .from('user_email_prefs').select('user_id, email_enabled').in('user_id', assignee_ids)
 
     const prefMap: Record<string, boolean> = {}
     ;(emailPrefs || []).forEach((p: any) => { prefMap[p.user_id] = p.email_enabled })
 
     for (const assigneeId of assignee_ids) {
-      // Default to true if no pref row exists, skip if explicitly disabled
       if (prefMap[assigneeId] === false) continue
-
       const authUser = authUsersData?.users?.find((u: any) => u.id === assigneeId)
       const profile  = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
       if (authUser?.email && profile?.full_name) {
-        await emailTaskAssigned(authUser.email, profile.full_name, title, task.id)
+        await queueDigest(assigneeId, authUser.email, profile.full_name, 'task_assigned', { title })
       }
     }
   }
