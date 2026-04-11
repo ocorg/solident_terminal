@@ -75,12 +75,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         status:       'Non lu',
       })
 
-      // Email proposer
-      const { emailProposalApproved } = await import('@/lib/email')
+      // Queue digest for proposer
+      const { queueDigest } = await import('@/lib/digest')
       const { data: proposerAuth } = await admin.auth.admin.getUserById(proposal.proposed_by)
       const { data: proposerProfile } = await admin.from('profiles').select('full_name').eq('id', proposal.proposed_by).single()
-      if (proposerAuth?.user?.email && proposerProfile?.full_name) {
-        await emailProposalApproved(proposerAuth.user.email, proposerProfile.full_name, proposal.title)
+      const { data: emailPref } = await admin.from('user_email_prefs').select('email_enabled').eq('user_id', proposal.proposed_by).single()
+      if (proposerAuth?.user?.email && proposerProfile?.full_name && emailPref?.email_enabled !== false) {
+        await queueDigest(proposal.proposed_by, proposerAuth.user.email, proposerProfile.full_name, 'proposal_approved', { title: proposal.title })
       }
     }
   } else {
@@ -93,12 +94,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       status:       'Non lu',
     })
 
-    // Email proposer
-    const { emailProposalRejected } = await import('@/lib/email')
+    // Queue digest for proposer
+    const { queueDigest } = await import('@/lib/digest')
     const { data: proposerAuth } = await admin.auth.admin.getUserById(proposal.proposed_by)
     const { data: proposerProfile } = await admin.from('profiles').select('full_name').eq('id', proposal.proposed_by).single()
-    if (proposerAuth?.user?.email && proposerProfile?.full_name) {
-      await emailProposalRejected(proposerAuth.user.email, proposerProfile.full_name, proposal.title, review_notes || '')
+    const { data: emailPref } = await admin.from('user_email_prefs').select('email_enabled').eq('user_id', proposal.proposed_by).single()
+    if (proposerAuth?.user?.email && proposerProfile?.full_name && emailPref?.email_enabled !== false) {
+      await queueDigest(proposal.proposed_by, proposerAuth.user.email, proposerProfile.full_name, 'proposal_rejected', { title: proposal.title, detail: review_notes || '' })
     }
   }
 
