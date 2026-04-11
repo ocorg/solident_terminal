@@ -62,11 +62,24 @@ function para(text: string) {
   return `<p style="margin:0 0 12px;color:#475569;font-size:14px;line-height:1.6;">${text}</p>`
 }
 
-function card(color: string, icon: string, text: string) {
-  return `<div style="background:${color};border-radius:10px;padding:14px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
-    <span style="font-size:18px;">${icon}</span>
-    <p style="margin:0;color:#0f172a;font-size:14px;font-weight:500;">${text}</p>
-  </div>`
+function card(color: string, icon: string, label: string, detail: string) {
+  return `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${color};border-radius:10px;margin:10px 0;">
+    <tr>
+      <td style="padding:14px 16px;">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width:36px;vertical-align:middle;padding-right:12px;">
+              <div style="width:32px;height:32px;background:#1E5F7A;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">${icon}</div>
+            </td>
+            <td style="vertical-align:middle;">
+              <p style="margin:0;color:#0f172a;font-size:14px;font-weight:600;">${label}${detail ? `<span style="font-weight:400;color:#475569;"> — ${detail}</span>` : ''}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`
 }
 
 // ─── Digest email ─────────────────────────────────────────────
@@ -90,7 +103,7 @@ export async function sendDigestEmail(to: string, fullName: string, actions: any
   const items = actions.map(a => {
     const meta = ACTION_LABELS[a.action_type] || { icon: '🔔', label: a.action_type, color: '#f8fafc' }
     const detail = a.payload?.title || a.payload?.name || a.payload?.detail || ''
-    return card(meta.color, meta.icon, `<strong>${meta.label}</strong>${detail ? ` : ${detail}` : ''}`)
+    return card(meta.color, meta.icon, meta.label, detail)
   }).join('')
 
   await sendEmail(to, subject, template(

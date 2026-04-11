@@ -87,6 +87,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
+  // Notify other assignees of changes (status update, edit)
+  if (isStatusOnly || (!Array.isArray(body.assignee_ids) && isEdit)) {
+    const { data: task } = await admin.from('tasks').select('title').eq('id', id).single()
+    const { data: assignees } = await admin
+      .from('task_assignees').select('user_id').eq('task_id', id).neq('user_id', user.id)
+
+    if (task && assignees && assignees.length > 0) {
+      const { queueDigest } = await import('@/lib/digest')
+      const assigneeIds = assignees.map((a: any) => a.user_id)
+      const { data: authUsersData } = await admin.auth.admin.listUsers()
+      const { data: profiles } = await admin.from('profiles').select('id, full_name').in('id', assigneeIds)
+      const { data: emailPrefs } = await admin.from('user_email_prefs').select('user_id, email_enabled').in('user_id', assigneeIds)
+      const prefMap: Record<string, boolean> = {}
+      ;(emailPrefs || []).forEach((p: any) => { prefMap[p.user_id] = p.email_enabled })
+
+      for (const assigneeId of assigneeIds) {
+        if (prefMap[assigneeId] === false) continue
+        const authUser = authUsersData?.users?.find((u: any) => u.id === assigneeId)
+        const profile  = (profiles || []).find((p: any) => p.id === assigneeId)
+        if (authUser?.email && profile?.full_name) {
+          await queueDigest(assigneeId, authUser.email, profile.full_name, 'task_updated', {
+            title: task.title,
+            detail: body.status ? `statut → ${body.status}` : 'modifiée',
+          })
+        }
+      }
+    }
+  }
+
   return NextResponse.json(data)
 }
 

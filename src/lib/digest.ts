@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export type DigestActionType =
   | 'task_assigned'
   | 'task_comment'
+  | 'task_updated'
   | 'event_invited'
   | 'proposal_approved'
   | 'proposal_rejected'
