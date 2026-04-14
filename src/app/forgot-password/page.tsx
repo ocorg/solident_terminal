@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
             <Image src="/Logo_Solident.png" alt="Solident" width={72} height={72} className="object-contain" />
           </div>
           <h1 className="text-gray-900 dark:text-white text-2xl font-semibold tracking-tight">Solident</h1>
-          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Solidarité Dentaires — Espace membre</p>
+          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Bridge de Solidarite des Medecins Dentistes — Espace membre</p>
         </div>
 
         <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-2xl">
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
 
         <div className="mt-6 flex items-center justify-center gap-2">
           <div className="h-px w-12 bg-[#F0A500]/30" />
-          <p className="text-gray-400 dark:text-slate-600 text-xs">Solidarité Dentaires © {new Date().getFullYear()}</p>
+          <p className="text-gray-400 dark:text-slate-600 text-xs">Bridge de Solidarite des Medecins Dentistes © {new Date().getFullYear()}</p>
           <div className="h-px w-12 bg-[#F0A500]/30" />
         </div>
       </div>

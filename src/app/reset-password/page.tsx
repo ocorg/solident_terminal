@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
             <Image src="/Logo_Solident.png" alt="Solident" width={72} height={72} className="object-contain" />
           </div>
           <h1 className="text-gray-900 dark:text-white text-2xl font-semibold">Solident</h1>
-          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Solidarité Dentaires — Espace membre</p>
+          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Bridge de Solidarite des Medecins Dentistes — Espace membre</p>
         </div>
 
         <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-8 shadow-2xl">

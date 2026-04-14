@@ -76,7 +76,7 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-gray-900 dark:text-white text-2xl font-semibold tracking-tight">Solident</h1>
-          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Solidarité Dentaires — Espace membre</p>
+          <p className="text-[#1E5F7A] text-sm mt-1 font-medium">Bridge de Solidarite des Medecins Dentistes — Espace membre</p>
         </div>
 
         {/* Card */}
@@ -164,7 +164,7 @@ export default function LoginPage() {
         {/* Accent bottom line */}
         <div className="mt-6 flex items-center justify-center gap-2">
           <div className="h-px w-12 bg-[#F0A500]/30" />
-          <p className="text-slate-600 text-xs">Solidarité Dentaires © {new Date().getFullYear()}</p>
+          <p className="text-slate-600 text-xs">Bridge de Solidarite des Medecins Dentistes © {new Date().getFullYear()}</p>
           <div className="h-px w-12 bg-[#F0A500]/30" />
         </div>
 

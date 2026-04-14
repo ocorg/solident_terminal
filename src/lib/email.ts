@@ -29,7 +29,7 @@ function template(title: string, body: string) {
               <td style="background:linear-gradient(135deg,#1E5F7A,#2a7a9a);padding:32px 40px;text-align:center;">
                 <img src="${LOGO}" alt="Solident" width="72" height="72" style="border-radius:12px;background:#ffffff;padding:4px;display:block;margin:0 auto 12px;" />
                 <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Solident</h1>
-                <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Solidarité Dentaires — Espace membre</p>
+                <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Bridge de Solidarite des Medecins Dentistes — Espace membre</p>
               </td>
             </tr>
             <!-- Body -->
@@ -42,7 +42,7 @@ function template(title: string, body: string) {
             <!-- Footer -->
             <tr>
               <td style="padding:20px 40px;border-top:1px solid #f1f5f9;text-align:center;">
-                <p style="margin:0;color:#94a3b8;font-size:12px;">Solidarité Dentaires © ${new Date().getFullYear()}</p>
+                <p style="margin:0;color:#94a3b8;font-size:12px;">Bridge de Solidarite des Medecins Dentistes © ${new Date().getFullYear()}</p>
                 <p style="margin:4px 0 0;color:#cbd5e1;font-size:11px;">Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
               </td>
             </tr>
@@ -129,10 +129,10 @@ export async function emailInvite(to: string, fullName: string, activationLink: 
     template(
       `Bienvenue, ${fullName} ! 🎉`,
       `
-      ${para("Vous avez été invité(e) à rejoindre la plateforme <strong>Solident</strong> de l'association <strong>Solidarité Dentaires</strong>.")}
+      ${para("Vous avez été invité(e) à rejoindre la plateforme <strong>Solident</strong> de l'association <strong>Bridge de Solidarite des Medecins Dentistes</strong>.")}
       <div style="background:#f0f9ff;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
         <img src="${LOGO}" alt="Solident" width="60" height="60" style="border-radius:10px;display:block;margin:0 auto 8px;" />
-        <p style="margin:0;color:#0f172a;font-weight:600;font-size:15px;">Solidarité Dentaires</p>
+        <p style="margin:0;color:#0f172a;font-weight:600;font-size:15px;">Bridge de Solidarite des Medecins Dentistes</p>
         <p style="margin:4px 0 0;color:#64748b;font-size:13px;">Plateforme de gestion associative</p>
       </div>
       ${para("Votre compte a été créé. Cliquez sur le bouton ci-dessous pour définir votre mot de passe et accéder à la plateforme.")}

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Solident — Solidarité Dentaires',
-  description: "Espace membre de l'association Solidarité Dentaires",
+  title: 'Bridge de Solidarite des Medecins Dentistes',
+  description: "Espace membre de l'association Solident",
   icons: {
     icon: '/Logo_Solident.png',
     apple: '/Logo_Solident.png',

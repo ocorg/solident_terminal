@@ -26,7 +26,7 @@ export default function NotFound() {
 
         <div className="mt-8 flex items-center justify-center gap-2">
           <div className="h-px w-12 bg-[#F0A500]/30" />
-          <p className="text-gray-400 dark:text-slate-600 text-xs">Solidarité Dentaires © {new Date().getFullYear()}</p>
+          <p className="text-gray-400 dark:text-slate-600 text-xs">Bridge de Solidarite des Medecins Dentistes © {new Date().getFullYear()}</p>
           <div className="h-px w-12 bg-[#F0A500]/30" />
         </div>
       </div>

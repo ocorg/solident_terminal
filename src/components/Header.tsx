@@ -230,7 +230,7 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
                   )}
                 </div>
                 <p className="text-gray-900 dark:text-white font-bold text-sm text-center leading-tight">{fullName}</p>
-                <p className="text-gray-400 dark:text-slate-500 text-xs text-center mt-0.5 truncate">Solidarité Dentaires</p>
+                <p className="text-gray-400 dark:text-slate-500 text-xs text-center mt-0.5 truncate">Bridge de Solidarite des Medecins Dentistes</p>
               </div>
               <div className="border-t border-gray-100 dark:border-white/5" />
               <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition">
