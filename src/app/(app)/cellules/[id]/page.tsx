@@ -452,9 +452,28 @@ export default function CelluleDetailPage() {
                   <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{m.profiles?.full_name}</p>
                   <p className="text-gray-400 dark:text-slate-500 text-xs">@{m.profiles?.username}</p>
                 </div>
-                <span className="text-xs bg-[#F0A500]/10 text-[#F0A500] px-3 py-1 rounded-lg font-medium">
-                  {m.cellule_positions?.position_name}
-                </span>
+                {isAdmin ? (
+                  <select
+                    defaultValue={m.cellule_positions?.id || ''}
+                    onChange={async e => {
+                      await fetch(`/api/cellules/${id}/members`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: m.user_id, position_id: e.target.value }),
+                      })
+                      showToast('Rôle mis à jour !')
+                      loadCellule()
+                    }}
+                    className="text-xs bg-[#F0A500]/10 text-[#F0A500] px-2 py-1 rounded-lg font-medium border-0 focus:outline-none cursor-pointer">
+                    {cellule.cellule_positions.map(p => (
+                      <option key={p.id} value={p.id}>{p.position_name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs bg-[#F0A500]/10 text-[#F0A500] px-3 py-1 rounded-lg font-medium">
+                    {m.cellule_positions?.position_name}
+                  </span>
+                )}
                 {isAdmin && (
                   <button onClick={() => setConfirm({
                     title: 'Retirer le membre',

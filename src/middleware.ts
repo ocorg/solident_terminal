@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const ADMIN_ROUTES = ['/members']
 

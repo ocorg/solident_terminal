@@ -60,6 +60,8 @@ export default function EventsPage() {
   const [search,      setSearch]      = useState('')
   const [inviteeSearch, setInviteeSearch] = useState('')
   const { toast, toastLeaving, showToast } = useToast()
+  const [editEvent, setEditEvent] = useState<Partial<typeof form> | null>(null)
+  const [savingEvent, setSavingEvent] = useState(false)
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
   const [form, setForm] = useState({
@@ -127,6 +129,24 @@ export default function EventsPage() {
     setShowCreate(false)
     setForm({ title: '', description: '', type: 'Réunion', context_type: 'global', context_id: '', start_at: '', end_at: '', location: '', visibility: 'Tous', invitee_ids: [] })
     await loadEvents()
+  }
+
+  async function handleSaveEvent(e: React.FormEvent) {
+    e.preventDefault()
+    if (!detail || !editEvent) return
+    setSavingEvent(true)
+    const res = await fetch(`/api/events/${detail.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editEvent),
+    })
+    const data = await res.json()
+    setSavingEvent(false)
+    if (!res.ok) { showToast(data.error, false); return }
+    showToast('Événement mis à jour !')
+    setEditEvent(null)
+    await loadEvents()
+    setDetail(prev => prev ? { ...prev, ...data } : null)
   }
 
   async function handleRsvp(eventId: string, rsvp_status: string) {
@@ -368,16 +388,64 @@ export default function EventsPage() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {(isAdmin || detail.created_by === currentId) && (
-                  <button onClick={() => handleDelete(detail.id)}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
-                    Supprimer
-                  </button>
+                  <>
+                    <button onClick={() => setEditEvent(editEvent ? null : {
+                      title: detail.title,
+                      description: detail.description || '',
+                      type: detail.type,
+                      location: detail.location || '',
+                      start_at: detail.start_at?.slice(0, 16),
+                      end_at: detail.end_at?.slice(0, 16) || '',
+                      visibility: detail.visibility,
+                    })}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition">
+                      {editEvent ? 'Annuler' : 'Modifier'}
+                    </button>
+                    <button onClick={() => handleDelete(detail.id)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
+                      Supprimer
+                    </button>
+                  </>
                 )}
                 <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition text-xl">×</button>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+              {/* Edit form */}
+              {editEvent && (
+                <form onSubmit={handleSaveEvent} className="space-y-4 pb-4 border-b border-gray-100 dark:border-white/10">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Titre</label>
+                    <input value={editEvent.title || ''} onChange={e => setEditEvent(f => ({ ...f, title: e.target.value }))} required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
+                    <textarea rows={2} value={editEvent.description || ''} onChange={e => setEditEvent(f => ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none`} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Début</label>
+                      <input type="datetime-local" value={editEvent.start_at || ''} onChange={e => setEditEvent(f => ({ ...f, start_at: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Fin</label>
+                      <input type="datetime-local" value={editEvent.end_at || ''} onChange={e => setEditEvent(f => ({ ...f, end_at: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Lieu</label>
+                    <input value={editEvent.location || ''} onChange={e => setEditEvent(f => ({ ...f, location: e.target.value }))} className={inputCls} />
+                  </div>
+                  <button type="submit" disabled={savingEvent}
+                    className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                    {savingEvent ? (
+                      <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Enregistrement…</>
+                    ) : 'Enregistrer'}
+                  </button>
+                </form>
+              )}
 
               {/* Date/Time */}
               <div className="bg-[#1E5F7A]/10 rounded-2xl p-4">
@@ -404,7 +472,8 @@ export default function EventsPage() {
                 </div>
               )}
 
-              {/* RSVP */}
+              {/* RSVP — only for invited attendees */}
+              {(detail.event_attendees.some(a => a.user_id === currentId) || detail.visibility === 'Tous') && (
               <div>
                 <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-3 font-semibold">Votre réponse</p>
                 <div className="flex gap-2">
@@ -425,6 +494,7 @@ export default function EventsPage() {
                   })}
                 </div>
               </div>
+              )}
 
               {/* Attendees */}
               <div>

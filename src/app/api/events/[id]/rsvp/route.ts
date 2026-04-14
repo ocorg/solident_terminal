@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const admin = createAdminClient()
 
-  // Check if a row already exists
+  // Check if row exists
   const { data: existing } = await admin
     .from('event_attendees')
     .select('id')

@@ -62,6 +62,7 @@ export default function TasksPage() {
   const [newComment,      setNewComment]      = useState('')
   const [postingComment,  setPostingComment]  = useState(false)
   const [showCreate,      setShowCreate]      = useState(false)
+  const [creating,        setCreating]        = useState(false)
   const [profiles,        setProfiles]        = useState<Profile[]>([])
   const [contexts,        setContexts]        = useState<ContextOption[]>([])
   const [dragId,          setDragId]          = useState<string | null>(null)
@@ -77,6 +78,7 @@ export default function TasksPage() {
   const [contextMembers,  setContextMembers]  = useState<MemberWorkload[]>([])
   const [loadingMembers,  setLoadingMembers]  = useState(false)
   const [editAssigneeIds, setEditAssigneeIds] = useState<string[]>([])
+  const [keepCreating, setKeepCreating] = useState(false)
 
   const [form, setForm] = useState({
     title: '', description: '', context_type: 'project',
@@ -129,7 +131,7 @@ export default function TasksPage() {
       const ctxs: ContextOption[] = [
         ...(projRes.data || []).map(p => ({ id: p.id, name: p.name, type: 'project' })),
         ...(celRes.data  || []).map(c => ({ id: c.id, name: c.name, type: 'cellule' })),
-      ]
+      ].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
       setContexts(ctxs)
       if (ctxs.length > 0) setForm(f => ({ ...f, context_id: ctxs[0].id, context_type: ctxs[0].type }))
     }
@@ -202,18 +204,31 @@ export default function TasksPage() {
 
   // ─── CRUD ──────────────────────────────────────────────────
   async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
+  e.preventDefault();
+  setCreating(true);
+  try {
     const res = await fetch('/api/tasks', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
-    })
-    const data = await res.json()
-    if (!res.ok) { showToast(data.error, false); return }
-    showToast('Tâche créée !')
-    setShowCreate(false)
-    setForm(f => ({ ...f, title: '', description: '', due_date: '', assignee_ids: [] }))
-    loadTasks()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error, false);
+      return;
+    }
+    showToast('Tâche créée !');
+    await loadTasks();
+    setForm(f => ({ ...f, title: '', description: '', due_date: '', assignee_ids: [] }));
+    if (!keepCreating) {
+      setShowCreate(false);
+    }
+  } catch (error) {
+    showToast("Une erreur est survenue", false);
+  } finally {
+    setCreating(false);
   }
+}
 
   async function updateTask(id: string, updates: Partial<Task>) {
     const res = await fetch(`/api/tasks/${id}`, {
@@ -244,10 +259,18 @@ export default function TasksPage() {
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!detail || !editForm) return
-    await updateTask(detail.id, { ...editForm, assignee_ids: editAssigneeIds } as any)
+    await updateTask(detail.id, {
+      title:       editForm.title,
+      description: editForm.description,
+      status:      editForm.status,
+      priority:    editForm.priority,
+      due_date:    editForm.due_date,
+      assignee_ids: editAssigneeIds,
+    } as any)
     setEditForm(null)
     setEditAssigneeIds([])
     showToast('Tâche mise à jour !')
+    await loadTasks()
   }
 
   // ─── Drag & Drop ───────────────────────────────────────────
@@ -759,7 +782,9 @@ export default function TasksPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Assigner à</label>
+                <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">
+                Assigner à {form.assignee_ids.length > 0 && <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{form.assignee_ids.length}</span>}
+              </label>
                 {loadingMembers ? (
                   <div className="flex justify-center py-4">
                     <div className="w-5 h-5 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
@@ -791,14 +816,21 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
+              <label className="flex items-center gap-3 cursor-pointer py-1">
+                <div onClick={() => setKeepCreating(k => !k)}
+                  className={`w-9 h-5 rounded-full transition-colors duration-200 relative flex-shrink-0 ${keepCreating ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${keepCreating ? 'left-4' : 'left-0.5'}`} />
+                </div>
+                <span className="text-xs text-gray-500 dark:text-slate-400">Plus de tâches (créer en continu)</span>
+              </label>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)}
                   className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
                   Annuler
                 </button>
-                <button type="submit"
-                  className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
-                  Créer la tâche
+                <button type="submit" disabled={creating}
+                  className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
+                  {creating ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Création…</> : 'Créer la tâche'}
                 </button>
               </div>
             </form>

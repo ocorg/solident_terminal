@@ -29,9 +29,11 @@ const STATUS_STYLES: Record<string, string> = {
   'Terminé':  'bg-slate-50  dark:bg-slate-500/20  text-slate-600  dark:text-slate-400  border border-slate-200  dark:border-slate-500/30',
 }
 
-const PRIORITY_DOT: Record<string, string> = {
-  '🔴 Urgent': 'bg-red-400', '🟠 Élevé': 'bg-orange-400',
-  '🟡 Moyen':  'bg-yellow-400', '🟢 Faible': 'bg-green-400',
+const PRIORITY_STRIP: Record<string, string> = {
+  '🔴 Urgent': '#f87171',
+  '🟠 Élevé':  '#fb923c',
+  '🟡 Moyen':  '#facc15',
+  '🟢 Faible': '#4ade80',
 }
 
 export default function ProjectDetailPage() {
@@ -58,13 +60,13 @@ export default function ProjectDetailPage() {
   const [newPositionName, setNewPositionName] = useState('')
   const [addingPosition,  setAddingPosition]  = useState(false)
   const [parentMembers,   setParentMembers]   = useState<Member[]>([])
-  const [showAddTask,   setShowAddTask]   = useState(false)
-  const [taskForm,      setTaskForm]      = useState({ title: '', description: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[] })
-  const [addingTask,    setAddingTask]    = useState(false)
+  const [showAddTask,     setShowAddTask]     = useState(false)
+  const [taskForm,        setTaskForm]        = useState({ title: '', description: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[] })
+  const [addingTask,      setAddingTask]      = useState(false)
   const [memberWorkloads, setMemberWorkloads] = useState<Record<string, { taskCount: number; contextCount: number }>>({})
-  const [showAddSub, setShowAddSub] = useState(false)
-  const [subForm,    setSubForm]    = useState({ name: '', description: '', status: 'Actif' })
-  const [addingSub,  setAddingSub]  = useState(false)
+  const [showAddSub,      setShowAddSub]      = useState(false)
+  const [subForm,         setSubForm]         = useState({ name: '', description: '', status: 'Actif' })
+  const [addingSub,       setAddingSub]       = useState(false)
 
   async function loadProject() {
     const res = await fetch(`/api/projects/${id}`)
@@ -72,7 +74,6 @@ export default function ProjectDetailPage() {
     if (res.ok) {
       setProject(data)
       setEditForm(data)
-      // If this is a sub-activity, fetch parent project members for task assignment
       if (data.parent_project_id) {
         const parentRes = await fetch(`/api/projects/${data.parent_project_id}`)
         const parentData = await parentRes.json()
@@ -166,7 +167,6 @@ export default function ProjectDetailPage() {
 
   async function openAddTask() {
     setShowAddTask(true)
-    // Sub-activities are limited to parent project's members
     const sourceMembers = (project?.parent_project_id && parentMembers.length > 0)
       ? parentMembers
       : (project?.project_members || [])
@@ -182,7 +182,7 @@ export default function ProjectDetailPage() {
     const contextCountMap: Record<string, number> = {}
     ;[...(projRows || []), ...(celRows || [])].forEach((r: any) => { contextCountMap[r.user_id] = (contextCountMap[r.user_id] || 0) + 1 })
     const workloads: Record<string, { taskCount: number; contextCount: number }> = {}
-    memberIds.forEach(id => { workloads[id] = { taskCount: taskCountMap[id] || 0, contextCount: contextCountMap[id] || 0 } })
+    memberIds.forEach(uid => { workloads[uid] = { taskCount: taskCountMap[uid] || 0, contextCount: contextCountMap[uid] || 0 } })
     setMemberWorkloads(workloads)
   }
 
@@ -210,7 +210,6 @@ export default function ProjectDetailPage() {
     setTaskForm({ title: '', description: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] })
     loadProject()
   }
-
 
   async function addSubActivity(e: React.FormEvent) {
     e.preventDefault()
@@ -244,10 +243,10 @@ export default function ProjectDetailPage() {
   const progress   = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
   const visibleTabs = TABS.filter(t => {
-  if (t === 'Positions') return canManage || isAdmin
-  if (t === 'Sous-activités') return project.is_multi_activite && (canManage || isAdmin)
-  if (t === 'Santé') return canManage || isAdmin
-  return true
+    if (t === 'Positions') return canManage || isAdmin
+    if (t === 'Sous-activités') return project.is_multi_activite && (canManage || isAdmin)
+    if (t === 'Santé') return canManage || isAdmin
+    return true
   })
 
   const inputCls = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition"
@@ -331,7 +330,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Progress */}
+      {/* Progress bar */}
       {totalTasks > 0 && (
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4">
           <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-2">
@@ -355,7 +354,7 @@ export default function ProjectDetailPage() {
         ))}
       </div>
 
-      {/* Vue d'ensemble */}
+      {/* ── Vue d'ensemble ── */}
       {tab === 0 && (
         <div className="space-y-4">
           {editMode ? (
@@ -389,24 +388,56 @@ export default function ProjectDetailPage() {
               </button>
             </form>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'Statut',      value: project.status },
-                { label: 'Membres',     value: `${project.project_members.length}` },
-                { label: 'Tâches',      value: `${totalTasks}` },
-                { label: 'Progression', value: `${progress}%` },
-              ].map(s => (
-                <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                  <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
-                  <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
-                </div>
-              ))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Statut',      value: project.status },
+                  { label: 'Membres',     value: `${project.project_members.length}` },
+                  { label: 'Tâches',      value: `${totalTasks}` },
+                  { label: 'Progression', value: `${progress}%` },
+                ].map(s => (
+                  <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                    <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
+                    <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              {totalTasks > 0 && (canManage || isAdmin) && (() => {
+                const overdue = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
+                const blocked = project.tasks.filter(t => t.status === '🚫 Bloqué').length
+                const score = Math.min(100, Math.max(0, Math.round(100 - (overdue * 20) - (blocked * 15) + (progress * 0.3))))
+                const scoreBg = score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-400'
+                const scoreColor = score >= 70 ? 'text-green-500' : score >= 40 ? 'text-yellow-500' : 'text-red-400'
+                return (
+                  <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé du projet</p>
+                      <p className={`text-2xl font-bold ${scoreColor}`}>{score}/100</p>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${score}%` }} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-4">
+                      {[
+                        { label: 'En retard', value: overdue, color: overdue > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'Bloquées',  value: blocked, color: blocked > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'Terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-[#5bbcde]' },
+                      ].map(k => (
+                        <div key={k.label} className="text-center">
+                          <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-0.5">{k.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
       )}
 
-      {/* Tâches */}
+      {/* ── Tâches ── */}
       {tab === 1 && (
         <div className="space-y-4">
           {canManage && (
@@ -418,31 +449,41 @@ export default function ProjectDetailPage() {
             </div>
           )}
           <div className="space-y-2">
-          {project.tasks.length === 0 ? (
-            <p className="text-center text-gray-400 dark:text-slate-600 py-12">Aucune tâche pour ce projet</p>
-          ) : project.tasks.map(task => (
-            <div key={task.id} className="flex items-center gap-4 px-5 py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[task.priority] || 'bg-gray-400'}`} />
-              <p className="text-gray-900 dark:text-white text-sm flex-1 truncate">{task.title}</p>
-              {task.due_date && (
-                <span className="text-xs text-gray-400 dark:text-slate-600 hidden sm:block">
-                  {new Date(task.due_date).toLocaleDateString('fr-MA')}
-                </span>
-              )}
-              <span className={`text-xs px-2 py-1 rounded-lg flex-shrink-0 ${
-                task.status === '✅ Terminé'  ? 'bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400' :
-                task.status === '🚫 Bloqué'   ? 'bg-red-50 dark:bg-red-500/20 text-red-500 dark:text-red-400' :
-                task.status === '🔄 En cours' ? 'bg-blue-50 dark:bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde]' :
-                'bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-300'
-              }`}>{task.status}</span>
-            </div>
-          ))}
+            {project.tasks.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-12 text-center">
+                <p className="text-gray-400 dark:text-slate-600 text-sm">Aucune tâche pour ce projet</p>
+                {canManage && (
+                  <button onClick={openAddTask} className="mt-3 text-xs text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">
+                    + Créer une tâche
+                  </button>
+                )}
+              </div>
+            ) : project.tasks.map(task => (
+              <div key={task.id} className="relative flex items-center gap-3 pl-4 pr-5 py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-[3px]"
+                  style={{ background: PRIORITY_STRIP[task.priority] || '#94a3b8' }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{task.title}</p>
+                  {task.due_date && (
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                      📅 {new Date(task.due_date).toLocaleDateString('fr-MA')}
+                    </p>
+                  )}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-lg flex-shrink-0 ${
+                  task.status === '✅ Terminé'  ? 'bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400' :
+                  task.status === '🚫 Bloqué'   ? 'bg-red-50 dark:bg-red-500/20 text-red-500 dark:text-red-400' :
+                  task.status === '🔄 En cours' ? 'bg-blue-50 dark:bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde]' :
+                  'bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-300'
+                }`}>{task.status}</span>
+              </div>
+            ))}
           </div>
 
           {showAddTask && (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
               <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddTask(false)} />
-              <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvelle tâche</h2>
                   <button onClick={() => setShowAddTask(false)}
@@ -456,7 +497,7 @@ export default function ProjectDetailPage() {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
-                    <textarea rows={3} value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
+                    <textarea rows={2} value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
                       placeholder="Description optionnelle..." className={`${inputCls} resize-none`} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -473,7 +514,11 @@ export default function ProjectDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Assigner à</label>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">
+                      Assigner à {taskForm.assignee_ids.length > 0 && (
+                        <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{taskForm.assignee_ids.length}</span>
+                      )}
+                    </label>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                       {[...(project.parent_project_id && parentMembers.length > 0 ? parentMembers : project.project_members || [])].sort((a, b) =>
                         (memberWorkloads[a.user_id]?.taskCount || 0) - (memberWorkloads[b.user_id]?.taskCount || 0)
@@ -510,8 +555,8 @@ export default function ProjectDetailPage() {
                       Annuler
                     </button>
                     <button type="submit" disabled={addingTask}
-                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
-                      {addingTask ? 'Création…' : 'Créer la tâche'}
+                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
+                      {addingTask ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Création…</> : 'Créer la tâche'}
                     </button>
                   </div>
                 </form>
@@ -521,7 +566,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Membres */}
+      {/* ── Membres ── */}
       {tab === 2 && (
         <div className="space-y-4">
           {canManage && (
@@ -558,9 +603,28 @@ export default function ProjectDetailPage() {
                   <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{m.profiles?.full_name}</p>
                   <p className="text-gray-400 dark:text-slate-500 text-xs">@{m.profiles?.username}</p>
                 </div>
-                <span className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-3 py-1 rounded-lg font-medium">
-                  {m.project_positions?.position_name}
-                </span>
+                {canManage ? (
+                  <select
+                    defaultValue={m.project_positions?.id || ''}
+                    onChange={async e => {
+                      await fetch(`/api/projects/${id}/members`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: m.user_id, position_id: e.target.value }),
+                      })
+                      showToast('Rôle mis à jour !')
+                      loadProject()
+                    }}
+                    className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-2 py-1 rounded-lg font-medium border-0 focus:outline-none cursor-pointer">
+                    {project.project_positions.map((p: Position) => (
+                      <option key={p.id} value={p.id}>{p.position_name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-3 py-1 rounded-lg font-medium">
+                    {m.project_positions?.position_name}
+                  </span>
+                )}
                 {canManage && (
                   <button onClick={() => setConfirm({
                     title: 'Retirer le membre',
@@ -584,7 +648,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Positions */}
+      {/* ── Positions ── */}
       {tab === 3 && (canManage || isAdmin) && (
         <div className="space-y-4">
           <form onSubmit={addPosition} className="flex gap-3">
@@ -625,7 +689,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Sous-activités */}
+      {/* ── Sous-activités ── */}
       {tab === 4 && project.is_multi_activite && (
         <div className="space-y-4">
           {canManage && (
@@ -641,7 +705,7 @@ export default function ProjectDetailPage() {
               <div key={sub.id} onClick={() => router.push(`/projects/${sub.id}`)}
                 className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:border-[#1E5F7A]/50 transition">
                 <div className="w-9 h-9 rounded-xl bg-[#1E5F7A]/10 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm">
-                  {sub.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {sub.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
                 <div className="flex-1">
                   <p className="text-gray-900 dark:text-white text-sm font-medium">{sub.name}</p>
@@ -683,7 +747,7 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Santé */}
+      {/* ── Santé ── */}
       {tab === 5 && (canManage || isAdmin) && (() => {
         const overdueTasks = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
         const blockedTasks = project.tasks.filter(t => t.status === '🚫 Bloqué').length
@@ -694,7 +758,6 @@ export default function ProjectDetailPage() {
         const scoreBg = clampedScore >= 70 ? 'bg-green-500' : clampedScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
         return (
           <div className="space-y-4">
-            {/* Score global */}
             <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Score de santé global</p>
@@ -707,13 +770,12 @@ export default function ProjectDetailPage() {
                 {clampedScore >= 70 ? '✅ Projet en bonne santé' : clampedScore >= 40 ? '⚠️ Attention requise' : '🔴 Projet en difficulté'}
               </p>
             </div>
-            {/* KPI Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Tâches terminées',  value: `${doneTasks}/${totalTasks}`,  color: 'text-green-500' },
-                { label: 'En retard',         value: overdueTasks,                  color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'Bloquées',          value: blockedTasks,                  color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'En cours',          value: inProgressTasks,               color: 'text-[#5bbcde]' },
+                { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
+                { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
               ].map(k => (
                 <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
                   <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
@@ -721,7 +783,6 @@ export default function ProjectDetailPage() {
                 </div>
               ))}
             </div>
-            {/* Members workload */}
             <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
               <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Charge des membres</p>
               <div className="space-y-2">
