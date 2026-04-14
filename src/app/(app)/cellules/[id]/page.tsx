@@ -16,7 +16,7 @@ interface Cellule  {
 }
 interface Profile { id: string; full_name: string; username: string }
 
-const TABS = ['Vue d\'ensemble', 'Tâches', 'Membres', 'Positions', 'Santé']
+const TABS = ['Vue d\'ensemble', 'Tâches', 'Membres', 'Positions']
 
 const PRIORITY_DOT: Record<string, string> = {
   '🔴 Urgent': 'bg-red-400', '🟠 Élevé': 'bg-orange-400',
@@ -284,17 +284,70 @@ export default function CelluleDetailPage() {
               </button>
             </form>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { label: 'Membres',     value: `${cellule.cellule_members.length}` },
-                { label: 'Tâches',      value: `${totalTasks}` },
-                { label: 'Progression', value: `${progress}%` },
-              ].map(s => (
-                <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                  <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
-                  <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
-                </div>
-              ))}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Membres',     value: `${cellule.cellule_members.length}` },
+                  { label: 'Tâches',      value: `${totalTasks}` },
+                  { label: 'Progression', value: `${progress}%` },
+                ].map(s => (
+                  <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                    <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
+                    <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              {isAdmin && (() => {
+                const overdueTasks = cellule.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
+                const blockedTasks = cellule.tasks.filter(t => t.status === '🚫 Bloqué').length
+                const inProgressTasks = cellule.tasks.filter(t => t.status === '🔄 En cours').length
+                const healthScore = totalTasks === 0 ? 100 : Math.min(100, Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3))))
+                const scoreColor = healthScore >= 70 ? 'text-green-500' : healthScore >= 40 ? 'text-yellow-500' : 'text-red-400'
+                const scoreBg   = healthScore >= 70 ? 'bg-green-500'   : healthScore >= 40 ? 'bg-yellow-500'   : 'bg-red-400'
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé de la cellule</p>
+                        <p className={`text-3xl font-bold ${scoreColor}`}>{healthScore}/100</p>
+                      </div>
+                      <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${healthScore}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
+                        {healthScore >= 70 ? '✅ Cellule en bonne santé' : healthScore >= 40 ? '⚠️ Attention requise' : '🔴 Cellule en difficulté'}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
+                        { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
+                      ].map(k => (
+                        <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                          <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                      <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Membres ({cellule.cellule_members.length})</p>
+                      <div className="space-y-2">
+                        {cellule.cellule_members.map(m => (
+                          <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
+                            <div className="w-7 h-7 rounded-lg bg-[#F0A500]/20 text-[#F0A500] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                              {initials(m.profiles?.full_name || '?')}
+                            </div>
+                            <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
+                            <span className="text-xs text-gray-400 dark:text-slate-500">{m.cellule_positions?.position_name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
@@ -537,60 +590,6 @@ export default function CelluleDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Santé */}
-      {tab === 4 && isAdmin && (() => {
-        const overdueTasks = cellule.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
-        const blockedTasks = cellule.tasks.filter(t => t.status === '🚫 Bloqué').length
-        const inProgressTasks = cellule.tasks.filter(t => t.status === '🔄 En cours').length
-        const healthScore = totalTasks === 0 ? 100 : Math.min(100, Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3))))
-        const scoreColor = healthScore >= 70 ? 'text-green-500' : healthScore >= 40 ? 'text-yellow-500' : 'text-red-400'
-        const scoreBg = healthScore >= 70 ? 'bg-green-500' : healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
-        const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        return (
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Score de santé global</p>
-                <p className={`text-3xl font-bold ${scoreColor}`}>{healthScore}/100</p>
-              </div>
-              <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${healthScore}%` }} />
-              </div>
-              <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
-                {healthScore >= 70 ? '✅ Cellule en bonne santé' : healthScore >= 40 ? '⚠️ Attention requise' : '🔴 Cellule en difficulté'}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
-                { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
-              ].map(k => (
-                <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                  <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-                  <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-              <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Membres ({cellule.cellule_members.length})</p>
-              <div className="space-y-2">
-                {cellule.cellule_members.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
-                    <div className="w-7 h-7 rounded-lg bg-[#F0A500]/20 text-[#F0A500] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                      {initials(m.profiles?.full_name || '?')}
-                    </div>
-                    <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
-                    <span className="text-xs text-gray-400 dark:text-slate-500">{m.cellule_positions?.position_name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
     </div>
   )

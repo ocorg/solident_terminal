@@ -7,7 +7,7 @@ export async function PATCH(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { full_name, username, email_enabled } = await req.json()
+  const { full_name, username, email_enabled, avatar_url } = await req.json()
   const admin = createAdminClient()
 
   // Check username not taken by someone else
@@ -18,8 +18,10 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Update profile
+  const updatePayload: Record<string, unknown> = { full_name, username }
+  if (avatar_url !== undefined) updatePayload.avatar_url = avatar_url
   const { error: profileError } = await admin.from('profiles')
-    .update({ full_name, username }).eq('id', user.id)
+    .update(updatePayload).eq('id', user.id)
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
 
   // Update email prefs

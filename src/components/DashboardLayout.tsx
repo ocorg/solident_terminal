@@ -11,6 +11,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [fullName,     setFullName]     = useState('')
   const [isAdmin,      setIsAdmin]      = useState(false)
+  const [avatarUrl,    setAvatarUrl]    = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isMobile,     setIsMobile]     = useState(false)
 
   useEffect(() => {
@@ -29,13 +31,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!user) return
       const { data } = await supabase
         .from('profiles')
-        .select('full_name, is_admin')
+        .select('full_name, is_admin, avatar_url')
         .eq('id', user.id)
         .single()
       if (data) {
         setFullName(data.full_name)
         setIsAdmin(data.is_admin)
+        setAvatarUrl(data.avatar_url || null)
       }
+      setCurrentUserId(user.id)
     }
     loadProfile()
   }, [])
@@ -72,6 +76,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fullName={fullName}
         isAdmin={isAdmin}
         isMobile={isMobile}
+        avatarUrl={avatarUrl}
+        userId={currentUserId}
       />
 
       <main

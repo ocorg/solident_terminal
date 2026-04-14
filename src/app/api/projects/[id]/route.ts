@@ -59,7 +59,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   // Fetch task stats
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('id, status')
+    .select('id, status, title, priority, due_date')
     .eq('context_id', id)
 
   return NextResponse.json({ ...data, sub_activities: subActivities || [], tasks: tasks || [] })

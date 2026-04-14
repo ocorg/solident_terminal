@@ -21,7 +21,7 @@ interface Event {
 interface Profile { id: string; full_name: string; username: string }
 
 // ─── Constants ───────────────────────────────────────────────
-const EVENT_TYPES   = ['Réunion', 'Événement', 'Sport', 'NGO', 'Social']
+const EVENT_TYPES   = ['Activité', 'Action', 'Réunion', 'Événement']
 const CONTEXT_TYPES = ['global', 'project', 'cellule']
 const RSVP_STYLES: Record<string, string> = {
   'Oui':        'bg-green-50  dark:bg-green-500/20  text-green-600  dark:text-green-400',
@@ -29,7 +29,7 @@ const RSVP_STYLES: Record<string, string> = {
   'En attente': 'bg-yellow-50 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
 }
 const TYPE_ICONS: Record<string, string> = {
-  'Réunion': '🗣️', 'Événement': '🎉', 'Sport': '⚽', 'NGO': '🤝', 'Social': '🌍',
+  'Activité': '🏃', 'Action': '⚡', 'Réunion': '🗣️', 'Événement': '🎉',
 }
 const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
 

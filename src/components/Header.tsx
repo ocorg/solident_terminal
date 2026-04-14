@@ -14,9 +14,11 @@ interface HeaderProps {
   collapsed: boolean; onToggle: () => void
   fullName: string; isAdmin: boolean
   isMobile: boolean
+  avatarUrl?: string | null
+  userId?: string | null
 }
 
-export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobile }: HeaderProps) {
+export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobile, avatarUrl, userId }: HeaderProps) {
   const supabase = createClient()
   const router   = useRouter()
 
@@ -198,8 +200,11 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
         <div ref={profileRef} className="relative">
           <button onClick={() => { setShowProfile(!showProfile); setShowNotifs(false) }}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition">
-            <div className="w-7 h-7 rounded-lg bg-[#1E5F7A] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {fullName?.[0]?.toUpperCase() ?? 'U'}
+            <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#1E5F7A] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {avatarUrl
+                ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                : <span>{fullName?.[0]?.toUpperCase() ?? 'U'}</span>
+              }
             </div>
             <span className="text-gray-700 dark:text-slate-300 text-sm hidden sm:block">{fullName}</span>
             {isAdmin && (
@@ -208,14 +213,35 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 top-12 w-44 bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-              <Link href="/settings" className="flex items-center gap-2 px-4 py-3 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition">
-                ⚙️ Paramètres
+            <div className="absolute right-0 top-12 w-72 bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Identity card */}
+              <div className="p-4">
+                <div className="relative w-full aspect-[2.5/1] rounded-xl overflow-hidden bg-gradient-to-br from-[#1E5F7A] to-[#2a7a9a] flex flex-col items-center justify-center mb-3">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white/30 bg-white/20 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {avatarUrl
+                      ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                      : <span>{fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? 'U'}</span>
+                    }
+                  </div>
+                  {isAdmin && (
+                    <span className="absolute top-2 right-2 text-[10px] bg-[#F0A500]/30 text-[#F0A500] border border-[#F0A500]/40 px-2 py-0.5 rounded-full font-semibold">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-900 dark:text-white font-bold text-sm text-center leading-tight">{fullName}</p>
+                <p className="text-gray-400 dark:text-slate-500 text-xs text-center mt-0.5 truncate">Solidarité Dentaires</p>
+              </div>
+              <div className="border-t border-gray-100 dark:border-white/5" />
+              <Link href="/settings" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition">
+                <span className="text-base">⚙️</span>
+                <span>Paramètres</span>
               </Link>
               <div className="border-t border-gray-100 dark:border-white/5" />
               <button onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition">
-                🚪 Déconnexion
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition">
+                <span className="text-base">🚪</span>
+                <span>Déconnexion</span>
               </button>
             </div>
           )}

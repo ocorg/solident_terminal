@@ -20,7 +20,7 @@ interface Project {
 }
 interface Profile { id: string; full_name: string; username: string }
 
-const TABS = ['Vue d\'ensemble', 'Tâches', 'Membres', 'Positions', 'Sous-activités', 'Santé']
+const TABS = ['Vue d\'ensemble', 'Tâches', 'Membres', 'Positions', 'Sous-activités']
 
 const STATUS_STYLES: Record<string, string> = {
   'Actif':    'bg-green-50  dark:bg-green-500/20  text-green-600  dark:text-green-400  border border-green-200  dark:border-green-500/30',
@@ -402,32 +402,55 @@ export default function ProjectDetailPage() {
                   </div>
                 ))}
               </div>
-              {totalTasks > 0 && (canManage || isAdmin) && (() => {
-                const overdue = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
-                const blocked = project.tasks.filter(t => t.status === '🚫 Bloqué').length
-                const score = Math.min(100, Math.max(0, Math.round(100 - (overdue * 20) - (blocked * 15) + (progress * 0.3))))
-                const scoreBg = score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-400'
-                const scoreColor = score >= 70 ? 'text-green-500' : score >= 40 ? 'text-yellow-500' : 'text-red-400'
+              {(canManage || isAdmin) && (() => {
+                const overdueTasks = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
+                const blockedTasks = project.tasks.filter(t => t.status === '🚫 Bloqué').length
+                const inProgressTasks = project.tasks.filter(t => t.status === '🔄 En cours').length
+                const healthScore = totalTasks === 0 ? 100 : Math.min(100, Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3))))
+                const scoreBg = healthScore >= 70 ? 'bg-green-500' : healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
+                const scoreColor = healthScore >= 70 ? 'text-green-500' : healthScore >= 40 ? 'text-yellow-500' : 'text-red-400'
                 return (
-                  <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé du projet</p>
-                      <p className={`text-2xl font-bold ${scoreColor}`}>{score}/100</p>
+                  <div className="space-y-3">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé du projet</p>
+                        <p className={`text-3xl font-bold ${scoreColor}`}>{healthScore}/100</p>
+                      </div>
+                      <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${healthScore}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
+                        {healthScore >= 70 ? '✅ Projet en bonne santé' : healthScore >= 40 ? '⚠️ Attention requise' : '🔴 Projet en difficulté'}
+                      </p>
                     </div>
-                    <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${score}%` }} />
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
-                        { label: 'En retard', value: overdue, color: overdue > 0 ? 'text-red-400' : 'text-green-500' },
-                        { label: 'Bloquées',  value: blocked, color: blocked > 0 ? 'text-red-400' : 'text-green-500' },
-                        { label: 'Terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-[#5bbcde]' },
+                        { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
+                        { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
+                        { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
                       ].map(k => (
-                        <div key={k.label} className="text-center">
-                          <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
-                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-0.5">{k.label}</p>
+                        <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                          <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
                         </div>
                       ))}
+                    </div>
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                      <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Charge des membres</p>
+                      <div className="space-y-2">
+                        {project.project_members.length === 0 ? (
+                          <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun membre</p>
+                        ) : project.project_members.map(m => (
+                          <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
+                            <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                              {initials(m.profiles?.full_name || '?')}
+                            </div>
+                            <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
+                            <span className="text-xs text-gray-400 dark:text-slate-500">{m.project_positions?.position_name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )
@@ -746,62 +769,6 @@ export default function ProjectDetailPage() {
           )}
         </div>
       )}
-
-      {/* ── Santé ── */}
-      {tab === 5 && (canManage || isAdmin) && (() => {
-        const overdueTasks = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
-        const blockedTasks = project.tasks.filter(t => t.status === '🚫 Bloqué').length
-        const inProgressTasks = project.tasks.filter(t => t.status === '🔄 En cours').length
-        const healthScore = totalTasks === 0 ? 100 : Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3)))
-        const clampedScore = Math.min(100, healthScore)
-        const scoreColor = clampedScore >= 70 ? 'text-green-500' : clampedScore >= 40 ? 'text-yellow-500' : 'text-red-400'
-        const scoreBg = clampedScore >= 70 ? 'bg-green-500' : clampedScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
-        return (
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Score de santé global</p>
-                <p className={`text-3xl font-bold ${scoreColor}`}>{clampedScore}/100</p>
-              </div>
-              <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${clampedScore}%` }} />
-              </div>
-              <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
-                {clampedScore >= 70 ? '✅ Projet en bonne santé' : clampedScore >= 40 ? '⚠️ Attention requise' : '🔴 Projet en difficulté'}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
-                { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
-              ].map(k => (
-                <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                  <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-                  <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-              <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Charge des membres</p>
-              <div className="space-y-2">
-                {project.project_members.length === 0 ? (
-                  <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun membre</p>
-                ) : project.project_members.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
-                    <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                      {initials(m.profiles?.full_name || '?')}
-                    </div>
-                    <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
-                    <span className="text-xs text-gray-400 dark:text-slate-500">{m.project_positions?.position_name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
     </div>
   )

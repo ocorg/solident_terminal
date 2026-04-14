@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Profile {
-  full_name: string; username: string; is_admin: boolean
+  full_name: string; username: string; is_admin: boolean; avatar_url?: string
 }
 
 function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
@@ -26,6 +26,9 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
 
   const [profile,       setProfile]       = useState<Profile | null>(null)
+  const [avatarUrl,     setAvatarUrl]     = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [userId,        setUserId]        = useState<string | null>(null)
   const [emailEnabled,  setEmailEnabled]  = useState(true)
   const [loading,       setLoading]       = useState(true)
   const { toast, toastLeaving, showToast } = useToast()
@@ -46,6 +49,7 @@ export default function SettingsPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      setUserId(user.id)
 
       const { data: prof } = await supabase
         .from('profiles').select('*').eq('id', user.id).single()
@@ -53,6 +57,7 @@ export default function SettingsPage() {
         setProfile(prof)
         setFullName(prof.full_name)
         setUsername(prof.username)
+        setAvatarUrl(prof.avatar_url || null)
       }
 
       const { data: prefs } = await supabase
@@ -63,6 +68,27 @@ export default function SettingsPage() {
     }
     load()
   }, [])
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    if (file.size > 204800) { showToast('Image trop lourde — maximum 200 Ko', false); return }
+    if (!file.type.startsWith('image/')) { showToast('Format invalide — images uniquement', false); return }
+    setUploadingAvatar(true)
+    const { error: uploadError } = await supabase.storage
+      .from('avatars').upload(userId, file, { upsert: true, contentType: file.type })
+    if (uploadError) { showToast(uploadError.message, false); setUploadingAvatar(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(userId)
+    const newUrl = `${publicUrl}?t=${Date.now()}`
+    await fetch('/api/settings/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: fullName, username, avatar_url: newUrl }),
+    })
+    setAvatarUrl(newUrl)
+    setUploadingAvatar(false)
+    showToast('Photo de profil mise à jour !')
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -137,9 +163,18 @@ export default function SettingsPage() {
       <SectionCard title="Mon profil" icon="👤">
         <form onSubmit={saveProfile} className="space-y-4">
           <div className="flex items-center gap-4 mb-5">
-            <div className="w-14 h-14 rounded-2xl bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-lg flex items-center justify-center flex-shrink-0">
-              {fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-            </div>
+            <label className="relative cursor-pointer group flex-shrink-0">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-lg flex items-center justify-center">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  : <span>{fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}</span>
+                }
+                <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <span className="text-white text-xs font-semibold">{uploadingAvatar ? '…' : '📷'}</span>
+                </div>
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+            </label>
             <div>
               <p className="text-gray-900 dark:text-white font-semibold">{fullName}</p>
               <p className="text-gray-400 dark:text-slate-500 text-sm">@{username}</p>

@@ -131,7 +131,10 @@ export default function TasksPage() {
       const ctxs: ContextOption[] = [
         ...(projRes.data || []).map(p => ({ id: p.id, name: p.name, type: 'project' })),
         ...(celRes.data  || []).map(c => ({ id: c.id, name: c.name, type: 'cellule' })),
-      ].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+      ].sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'project' ? -1 : 1
+        return a.name.localeCompare(b.name, 'fr')
+      })
       setContexts(ctxs)
       if (ctxs.length > 0) setForm(f => ({ ...f, context_id: ctxs[0].id, context_type: ctxs[0].type }))
     }

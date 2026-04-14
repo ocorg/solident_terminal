@@ -11,6 +11,7 @@ interface Member {
   username: string
   is_admin: boolean
   last_login: string | null
+  avatar_url?: string | null
 }
 
 interface Badge {
@@ -43,9 +44,19 @@ export default function MembersPage() {
   const { toast, toastLeaving, showToast } = useToast()
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
   const [memberBadges, setMemberBadges] = useState<Record<string, Badge[]>>({})
+  const [currentIsAdmin, setCurrentIsAdmin] = useState(false)
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null)
 
   const [form, setForm] = useState({ email: '', full_name: '', username: '', is_admin: false })
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+        .then(({ data }) => { if (data) setCurrentIsAdmin(data.is_admin) })
+    })
+  }, [])
 
   async function loadMembers() {
     const { data } = await supabase.from('profiles').select('*').order('full_name')
@@ -175,6 +186,22 @@ export default function MembersPage() {
 
   const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
+  async function handleAdminAvatarUpload(memberId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 204800) { showToast('Image trop lourde — maximum 200 Ko', false); return }
+    setUploadingFor(memberId)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/members/${memberId}/avatar`, { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) { showToast(data.error, false); setUploadingFor(null); return }
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, avatar_url: data.avatar_url } : m))
+    if (detail?.member.id === memberId) setDetail(d => d ? { ...d, member: { ...d.member, avatar_url: data.avatar_url } } : d)
+    showToast('Photo mise à jour !')
+    setUploadingFor(null)
+  }
+
   return (
     <div className="space-y-6">
 
@@ -253,8 +280,11 @@ export default function MembersPage() {
               className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#1E5F7A]/50 hover:shadow-lg hover:shadow-[#1E5F7A]/10 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0">
-                  {initials(member.full_name)}
+                <div className="w-12 h-12 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0 overflow-hidden">
+                  {member.avatar_url
+                    ? <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+                    : <span>{initials(member.full_name)}</span>
+                  }
                 </div>
                 <div className="flex flex-wrap gap-1 justify-end max-w-[140px]">
                   {member.is_admin && (
@@ -314,8 +344,21 @@ export default function MembersPage() {
 
             {/* Profile */}
             <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl">
-              <div className="w-14 h-14 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold">
-                {initials(detail.member.full_name)}
+              <div className="relative flex-shrink-0">
+                <div className="w-16 h-16 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold overflow-hidden">
+                  {detail.member.avatar_url
+                    ? <img src={detail.member.avatar_url} alt={detail.member.full_name} className="w-full h-full object-cover" />
+                    : <span>{initials(detail.member.full_name)}</span>
+                  }
+                </div>
+                {currentIsAdmin && (
+                  <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1E5F7A] rounded-lg flex items-center justify-center cursor-pointer hover:bg-[#2a7a9a] transition shadow">
+                    <span className="text-white text-[10px]">{uploadingFor === detail.member.id ? '…' : '📷'}</span>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => handleAdminAvatarUpload(detail.member.id, e)}
+                      disabled={uploadingFor === detail.member.id} />
+                  </label>
+                )}
               </div>
               <div>
                 <p className="text-gray-900 dark:text-white font-semibold">{detail.member.full_name}</p>
