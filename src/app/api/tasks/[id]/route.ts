@@ -12,6 +12,16 @@ async function getPermissions(userId: string, taskId: string) {
     .single()
   if (!task) return { isManager: false, isAssigned: false }
 
+  // Also fetch secondary contexts to check manager status there too
+  const { data: secContexts } = await admin
+    .from('task_secondary_contexts')
+    .select('context_type, context_id')
+    .eq('task_id', taskId)
+  const allContexts = [
+    { context_type: task.context_type, context_id: task.context_id },
+    ...(secContexts || []),
+  ]
+
   const { data: profile } = await admin
     .from('profiles').select('is_admin').eq('id', userId).single()
   if (profile?.is_admin) return { isManager: true, isAssigned: true }
@@ -21,24 +31,27 @@ async function getPermissions(userId: string, taskId: string) {
   const isAssigned = !!assignment
 
   let isManager = false
-  if (task.context_type === 'project') {
-    const { data: membership } = await admin
-      .from('project_members')
-      .select('project_positions(position_name)')
-      .eq('project_id', task.context_id)
-      .eq('user_id', userId)
-      .single()
-    const pos = (membership?.project_positions as any)?.position_name ?? ''
-    isManager = pos !== '' && !pos.toLowerCase().includes('membre')
-  } else if (task.context_type === 'cellule') {
-    const { data: membership } = await admin
-      .from('cellule_members')
-      .select('cellule_positions(position_name)')
-      .eq('cellule_id', task.context_id)
-      .eq('user_id', userId)
-      .single()
-    const pos = (membership?.cellule_positions as any)?.position_name ?? ''
-    isManager = pos !== '' && !pos.toLowerCase().includes('membre')
+  for (const ctx of allContexts) {
+    if (isManager) break
+    if (ctx.context_type === 'project') {
+      const { data: membership } = await admin
+        .from('project_members')
+        .select('project_positions(position_name)')
+        .eq('project_id', ctx.context_id)
+        .eq('user_id', userId)
+        .single()
+      const pos = (membership?.project_positions as any)?.position_name ?? ''
+      if (pos !== '' && !pos.toLowerCase().includes('membre')) isManager = true
+    } else if (ctx.context_type === 'cellule') {
+      const { data: membership } = await admin
+        .from('cellule_members')
+        .select('cellule_positions(position_name)')
+        .eq('cellule_id', ctx.context_id)
+        .eq('user_id', userId)
+        .single()
+      const pos = (membership?.cellule_positions as any)?.position_name ?? ''
+      if (pos !== '' && !pos.toLowerCase().includes('membre')) isManager = true
+    }
   }
 
   return { isManager, isAssigned }
@@ -83,6 +96,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.assignee_ids.length > 0) {
       await admin.from('task_assignees').insert(
         body.assignee_ids.map((uid: string) => ({ task_id: id, user_id: uid }))
+      )
+    }
+  }
+
+  // Update secondary contexts if provided
+  if (Array.isArray(body.secondary_contexts)) {
+    await admin.from('task_secondary_contexts').delete().eq('task_id', id)
+    if (body.secondary_contexts.length > 0) {
+      await admin.from('task_secondary_contexts').insert(
+        body.secondary_contexts.map((sc: { context_type: string; context_id: string }) => ({
+          task_id: id, context_type: sc.context_type, context_id: sc.context_id,
+        }))
       )
     }
   }

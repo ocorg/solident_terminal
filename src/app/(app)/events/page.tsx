@@ -58,7 +58,18 @@ export default function EventsPage() {
   const [calMonth,    setCalMonth]    = useState(new Date().getMonth())
   const [filterType,  setFilterType]  = useState('Tous')
   const [search,      setSearch]      = useState('')
-  const [inviteeSearch, setInviteeSearch] = useState('')
+  const [inviteeSearch,       setInviteeSearch]       = useState('')
+  const [contexts,            setContexts]            = useState<Array<{id: string; name: string; type: string}>>([])
+  const [inviteContextId,     setInviteContextId]     = useState('')
+  const [inviteContextType,   setInviteContextType]   = useState('project')
+  const [inviteContextMembers,setInviteContextMembers]= useState<Array<{id: string; full_name: string; avatar_url?: string | null}>>([])
+  const [inviteContextSearch, setInviteContextSearch] = useState('')
+  const [editInviteeIds,      setEditInviteeIds]      = useState<string[]>([])
+  // Same for edit form
+  const [editInviteContextId,      setEditInviteContextId]      = useState('')
+  const [editInviteContextType,    setEditInviteContextType]    = useState('project')
+  const [editInviteContextMembers, setEditInviteContextMembers] = useState<Array<{id: string; full_name: string; avatar_url?: string | null}>>([])
+  const [editInviteContextSearch,  setEditInviteContextSearch]  = useState('')
   const { toast, toastLeaving, showToast } = useToast()
   const [editEvent, setEditEvent] = useState<Partial<typeof form> | null>(null)
   const [savingEvent, setSavingEvent] = useState(false)
@@ -107,12 +118,39 @@ export default function EventsPage() {
         setCanCreate(positions.some(p => !p.toLowerCase().includes('membre')))
       }
 
-      const { data: profs } = await supabase.from('profiles').select('id, full_name, username')
+      const { data: profs } = await supabase.from('profiles').select('id, full_name, username, avatar_url')
       if (profs) setProfiles(profs)
+
+      const [{ data: projData }, { data: celData }] = await Promise.all([
+        supabase.from('projects').select('id, name'),
+        supabase.from('cellules').select('id, name'),
+      ])
+      setContexts([
+        ...(projData || []).map(p => ({ id: p.id, name: p.name, type: 'project' })),
+        ...(celData  || []).map(c => ({ id: c.id, name: c.name, type: 'cellule' })),
+      ].sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'project' ? -1 : 1
+        return a.name.localeCompare(b.name, 'fr')
+      }))
     }
     init()
     loadEvents()
   }, [])
+
+  async function loadEventContextMembers(contextId: string, contextType: string) {
+    if (!contextId) return []
+    let memberIds: string[] = []
+    if (contextType === 'project') {
+      const { data } = await supabase.from('project_members').select('user_id').eq('project_id', contextId)
+      memberIds = (data || []).map(r => r.user_id)
+    } else {
+      const { data } = await supabase.from('cellule_members').select('user_id').eq('cellule_id', contextId)
+      memberIds = (data || []).map(r => r.user_id)
+    }
+    if (memberIds.length === 0) return []
+    const { data: profs } = await supabase.from('profiles').select('id, full_name, avatar_url').in('id', memberIds)
+    return profs || []
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -138,7 +176,10 @@ export default function EventsPage() {
     const res = await fetch(`/api/events/${detail.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editEvent),
+      body: JSON.stringify({
+        ...editEvent,
+        invitee_ids: editEvent.visibility === 'Invités seulement' ? editInviteeIds : [],
+      }),
     })
     const data = await res.json()
     setSavingEvent(false)
@@ -389,15 +430,27 @@ export default function EventsPage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 {(isAdmin || detail.created_by === currentId) && (
                   <>
-                    <button onClick={() => setEditEvent(editEvent ? null : {
-                      title: detail.title,
-                      description: detail.description || '',
-                      type: detail.type,
-                      location: detail.location || '',
-                      start_at: detail.start_at?.slice(0, 16),
-                      end_at: detail.end_at?.slice(0, 16) || '',
-                      visibility: detail.visibility,
-                    })}
+                    <button onClick={() => {
+                      if (editEvent) {
+                        setEditEvent(null)
+                        setEditInviteeIds([])
+                        setEditInviteContextMembers([])
+                        setEditInviteContextId('')
+                      } else {
+                        setEditEvent({
+                          title: detail.title,
+                          description: detail.description || '',
+                          type: detail.type,
+                          location: detail.location || '',
+                          start_at: detail.start_at?.slice(0, 16),
+                          end_at: detail.end_at?.slice(0, 16) || '',
+                          visibility: detail.visibility,
+                        })
+                        if (detail.visibility === 'Invités seulement') {
+                          setEditInviteeIds(detail.event_attendees.map(a => a.user_id))
+                        }
+                      }
+                    }}
                       className="text-xs px-3 py-1.5 rounded-lg bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition">
                       {editEvent ? 'Annuler' : 'Modifier'}
                     </button>
@@ -426,6 +479,31 @@ export default function EventsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Type</label>
+                      <select value={editEvent.type || ''} onChange={e => setEditEvent(f => ({ ...f, type: e.target.value }))} className={inputCls}>
+                        {EVENT_TYPES.map(t => <option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Visibilité</label>
+                      <select value={editEvent.visibility || 'Tous'}
+                        onChange={e => {
+                          setEditEvent(f => ({ ...f, visibility: e.target.value }))
+                          if (e.target.value !== 'Invités seulement') {
+                            setEditInviteeIds([])
+                            setEditInviteContextMembers([])
+                          } else {
+                            setEditInviteeIds((detail?.event_attendees || []).map(a => a.user_id))
+                          }
+                        }}
+                        className={inputCls}>
+                        <option value="Tous">Tous</option>
+                        <option value="Invités seulement">Invités seulement</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
                       <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Début</label>
                       <input type="datetime-local" value={editEvent.start_at || ''} onChange={e => setEditEvent(f => ({ ...f, start_at: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
                     </div>
@@ -438,11 +516,78 @@ export default function EventsPage() {
                     <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Lieu</label>
                     <input value={editEvent.location || ''} onChange={e => setEditEvent(f => ({ ...f, location: e.target.value }))} className={inputCls} />
                   </div>
+                  {/* Invitees for edit */}
+                  {editEvent.visibility === 'Invités seulement' && (
+                    <div className="space-y-3">
+                      <label className="block text-xs text-gray-500 dark:text-slate-400">Invités ({editInviteeIds.length})</label>
+                      {/* Context picker for bulk selection */}
+                      <div className="border border-[#1E5F7A]/20 rounded-xl p-3 space-y-2">
+                        <p className="text-[10px] text-gray-400 dark:text-slate-500 font-medium uppercase tracking-wider">Inviter par contexte</p>
+                        <select value={editInviteContextId}
+                          onChange={async e => {
+                            const ctx = contexts.find(c => c.id === e.target.value)
+                            setEditInviteContextId(e.target.value)
+                            setEditInviteContextType(ctx?.type || 'project')
+                            setEditInviteContextMembers(await loadEventContextMembers(e.target.value, ctx?.type || 'project'))
+                          }}
+                          className={inputCls}>
+                          <option value="">— Choisir un contexte —</option>
+                          {contexts.filter(c => c.type === 'project').map(c => <option key={c.id} value={c.id}>[Projet] {c.name}</option>)}
+                          {contexts.filter(c => c.type === 'cellule').map(c => <option key={c.id} value={c.id}>[Cellule] {c.name}</option>)}
+                        </select>
+                        {editInviteContextMembers.length > 0 && (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] text-gray-400">{editInviteContextMembers.length} membres</span>
+                              <button type="button"
+                                onClick={() => setEditInviteeIds(prev => [...new Set([...prev, ...editInviteContextMembers.map(m => m.id)])])}
+                                className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline font-semibold">Tout sélectionner</button>
+                            </div>
+                            <input value={editInviteContextSearch} onChange={e => setEditInviteContextSearch(e.target.value)}
+                              placeholder="Rechercher dans ce contexte…"
+                              className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#1E5F7A] transition text-gray-900 dark:text-white" />
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {editInviteContextMembers.filter(m => m.full_name.toLowerCase().includes(editInviteContextSearch.toLowerCase())).map(m => {
+                                const selected = editInviteeIds.includes(m.id)
+                                return (
+                                  <button type="button" key={m.id}
+                                    onClick={() => setEditInviteeIds(prev => selected ? prev.filter(id => id !== m.id) : [...prev, m.id])}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition text-left text-xs ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10'}`}>
+                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
+                                      {m.avatar_url
+                                        ? <img src={m.avatar_url} className="w-full h-full object-cover" alt={m.full_name} />
+                                        : <span className="text-[#1E5F7A] text-[8px] font-bold">{m.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2)}</span>
+                                      }
+                                    </div>
+                                    <span className="flex-1 truncate text-gray-800 dark:text-slate-200">{m.full_name}</span>
+                                    {selected && <span className="text-[#1E5F7A] text-[10px]">✓</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {/* Manual search from all profiles */}
+                      <input value={inviteeSearch} onChange={e => setInviteeSearch(e.target.value)}
+                        placeholder="Ou rechercher dans tous les membres…" className={inputCls} />
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+                        {profiles.filter(p => p.full_name.toLowerCase().includes(inviteeSearch.toLowerCase())).map(p => {
+                          const selected = editInviteeIds.includes(p.id)
+                          return (
+                            <button type="button" key={p.id}
+                              onClick={() => setEditInviteeIds(prev => selected ? prev.filter(id => id !== p.id) : [...prev, p.id])}
+                              className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
+                              {p.full_name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <button type="submit" disabled={savingEvent}
                     className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
-                    {savingEvent ? (
-                      <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Enregistrement…</>
-                    ) : 'Enregistrer'}
+                    {savingEvent ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Enregistrement…</> : 'Enregistrer'}
                   </button>
                 </form>
               )}
@@ -589,32 +734,71 @@ export default function EventsPage() {
                   placeholder="Adresse ou lien de réunion" className={inputCls} />
               </div>
               {form.visibility === 'Invités seulement' && (
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Inviter des membres</label>
-                  <input
-                    value={inviteeSearch}
-                    onChange={e => setInviteeSearch(e.target.value)}
-                    placeholder="Rechercher un membre..."
-                    className="w-full mb-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#1E5F7A] transition"
-                  />
-                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
-                    {profiles
-                      .filter(p => p.full_name.toLowerCase().includes(inviteeSearch.toLowerCase()))
-                      .map(p => {
-                        const selected = form.invitee_ids.includes(p.id)
-                        return (
-                          <button type="button" key={p.id}
-                            onClick={() => setForm(f => ({
-                              ...f,
-                              invitee_ids: selected
-                                ? f.invitee_ids.filter(id => id !== p.id)
-                                : [...f.invitee_ids, p.id]
-                            }))}
-                            className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
-                            {p.full_name}
-                          </button>
-                        )
-                      })}
+                <div className="space-y-3">
+                  <label className="block text-sm text-gray-500 dark:text-slate-400">Invités ({form.invitee_ids.length})</label>
+                  {/* Context picker */}
+                  <div className="border border-[#1E5F7A]/20 rounded-xl p-3 space-y-2">
+                    <p className="text-[10px] text-gray-400 dark:text-slate-500 font-medium uppercase tracking-wider">Inviter par contexte</p>
+                    <select value={inviteContextId}
+                      onChange={async e => {
+                        const ctx = contexts.find(c => c.id === e.target.value)
+                        setInviteContextId(e.target.value)
+                        setInviteContextType(ctx?.type || 'project')
+                        setInviteContextMembers(await loadEventContextMembers(e.target.value, ctx?.type || 'project'))
+                        setInviteContextSearch('')
+                      }}
+                      className={inputCls}>
+                      <option value="">— Choisir un contexte —</option>
+                      {contexts.filter(c => c.type === 'project').map(c => <option key={c.id} value={c.id}>[Projet] {c.name}</option>)}
+                      {contexts.filter(c => c.type === 'cellule').map(c => <option key={c.id} value={c.id}>[Cellule] {c.name}</option>)}
+                    </select>
+                    {inviteContextMembers.length > 0 && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-gray-400">{inviteContextMembers.length} membres disponibles</span>
+                          <button type="button"
+                            onClick={() => setForm(f => ({ ...f, invitee_ids: [...new Set([...f.invitee_ids, ...inviteContextMembers.map(m => m.id)])] }))}
+                            className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline font-semibold">Tout sélectionner</button>
+                        </div>
+                        <input value={inviteContextSearch} onChange={e => setInviteContextSearch(e.target.value)}
+                          placeholder="Rechercher dans ce contexte…"
+                          className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#1E5F7A] transition text-gray-900 dark:text-white" />
+                        <div className="space-y-1 max-h-36 overflow-y-auto">
+                          {inviteContextMembers.filter(m => m.full_name.toLowerCase().includes(inviteContextSearch.toLowerCase())).map(m => {
+                            const selected = form.invitee_ids.includes(m.id)
+                            return (
+                              <button type="button" key={m.id}
+                                onClick={() => setForm(f => ({ ...f, invitee_ids: selected ? f.invitee_ids.filter(id => id !== m.id) : [...f.invitee_ids, m.id] }))}
+                                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition text-left text-xs ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10'}`}>
+                                <div className="w-5 h-5 rounded-full overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
+                                  {m.avatar_url
+                                    ? <img src={m.avatar_url} className="w-full h-full object-cover" alt={m.full_name} />
+                                    : <span className="text-[#1E5F7A] text-[8px] font-bold">{m.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2)}</span>
+                                  }
+                                </div>
+                                <span className="flex-1 truncate text-gray-800 dark:text-slate-200">{m.full_name}</span>
+                                {selected && <span className="text-[#1E5F7A] text-[10px]">✓</span>}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {/* Manual search */}
+                  <input value={inviteeSearch} onChange={e => setInviteeSearch(e.target.value)}
+                    placeholder="Ou rechercher dans tous les membres…" className={inputCls} />
+                  <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+                    {profiles.filter(p => p.full_name.toLowerCase().includes(inviteeSearch.toLowerCase())).map(p => {
+                      const selected = form.invitee_ids.includes(p.id)
+                      return (
+                        <button type="button" key={p.id}
+                          onClick={() => setForm(f => ({ ...f, invitee_ids: selected ? f.invitee_ids.filter(id => id !== p.id) : [...f.invitee_ids, p.id] }))}
+                          className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${selected ? 'bg-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]'}`}>
+                          {p.full_name}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}

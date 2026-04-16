@@ -15,7 +15,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       *,
       cellule_members(
         id, user_id,
-        profiles(id, full_name, username),
+        profiles(id, full_name, username, avatar_url),
         cellule_positions(id, position_name)
       ),
       cellule_positions(id, position_name)

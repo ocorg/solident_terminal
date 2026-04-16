@@ -18,15 +18,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
   const admin = createAdminClient()
 
-  const { error } = await admin.from('profiles')
-    .update({
-      full_name: body.full_name,
-      username:  body.username,
-      is_admin:  body.is_admin,
-    })
-    .eq('id', id)
+  const profileUpdate: Record<string, unknown> = {}
+  if (body.full_name !== undefined) profileUpdate.full_name = body.full_name
+  if (body.username  !== undefined) profileUpdate.username  = body.username
+  if (body.is_admin  !== undefined) profileUpdate.is_admin  = body.is_admin
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (Object.keys(profileUpdate).length > 0) {
+    const { error } = await admin.from('profiles').update(profileUpdate).eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Admin can also toggle email pref for any user
+  if (body.email_enabled !== undefined) {
+    await admin.from('user_email_prefs').upsert({ user_id: id, email_enabled: body.email_enabled })
+  }
+
   return NextResponse.json({ status: 'updated' })
 }
 

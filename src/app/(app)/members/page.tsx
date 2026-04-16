@@ -12,6 +12,7 @@ interface Member {
   is_admin: boolean
   last_login: string | null
   avatar_url?: string | null
+  email_enabled?: boolean
 }
 
 interface Badge {
@@ -45,7 +46,9 @@ export default function MembersPage() {
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
   const [memberBadges, setMemberBadges] = useState<Record<string, Badge[]>>({})
   const [currentIsAdmin, setCurrentIsAdmin] = useState(false)
-  const [uploadingFor, setUploadingFor] = useState<string | null>(null)
+  const [uploadingFor,     setUploadingFor]     = useState<string | null>(null)
+  const [togglingEmailFor, setTogglingEmailFor] = useState<string | null>(null)
+  const [emailPrefs,       setEmailPrefs]       = useState<Record<string, boolean>>({})
 
   const [form, setForm] = useState({ email: '', full_name: '', username: '', is_admin: false })
   const [submitting, setSubmitting] = useState(false)
@@ -61,6 +64,14 @@ export default function MembersPage() {
   async function loadMembers() {
     const { data } = await supabase.from('profiles').select('*').order('full_name')
     if (data) { setMembers(data); setFiltered(data) }
+
+    // Fetch email prefs for all members
+    const { data: prefs } = await supabase.from('user_email_prefs').select('user_id, email_enabled')
+    if (prefs) {
+      const map: Record<string, boolean> = {}
+      prefs.forEach(p => { map[p.user_id] = p.email_enabled })
+      setEmailPrefs(map)
+    }
 
     // Fetch all non-membre positions across projects and cellules
     const [{ data: pmData }, { data: cmData }] = await Promise.all([
@@ -186,6 +197,24 @@ export default function MembersPage() {
 
   const initials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
+  async function toggleMemberEmailPref(memberId: string) {
+    if (!currentIsAdmin) return
+    const current = emailPrefs[memberId] !== false // default to true if not set
+    const next = !current
+    setTogglingEmailFor(memberId)
+    const res = await fetch(`/api/members/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_enabled: next }),
+    })
+    if (res.ok) {
+      setEmailPrefs(prev => ({ ...prev, [memberId]: next }))
+      showToast(next ? 'Emails activés pour ce membre' : 'Emails désactivés pour ce membre')
+    } else {
+      showToast('Erreur lors de la mise à jour', false)
+    }
+    setTogglingEmailFor(null)
+  }
   async function handleAdminAvatarUpload(memberId: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -312,6 +341,15 @@ export default function MembersPage() {
                   Dernière connexion: {new Date(member.last_login).toLocaleDateString('fr-MA')}
                 </p>
               )}
+              {currentIsAdmin && (
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-white/10">
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500">Emails</span>
+                      <div onClick={e => { e.stopPropagation(); toggleMemberEmailPref(member.id) }}
+                        className={`w-8 h-4 rounded-full transition-colors duration-200 relative cursor-pointer flex-shrink-0 ${emailPrefs[member.id] !== false ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'} ${togglingEmailFor === member.id ? 'opacity-50' : ''}`}>
+                        <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all duration-200 ${emailPrefs[member.id] !== false ? 'left-4' : 'left-0.5'}`} />
+                      </div>
+                    </div>
+                  )}
               {/* Actions on hover */}
               <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button
@@ -365,6 +403,16 @@ export default function MembersPage() {
                 <p className="text-gray-400 dark:text-slate-500 text-sm">@{detail.member.username}</p>
                 {detail.member.is_admin && (
                   <span className="text-[10px] bg-[#F0A500]/20 text-[#F0A500] px-2 py-0.5 rounded-full font-semibold border border-[#F0A500]/20 mt-1 inline-block">Administrateur</span>
+                )}
+                {currentIsAdmin && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-gray-400 dark:text-slate-500">Notifications email</span>
+                    <div onClick={() => toggleMemberEmailPref(detail.member.id)}
+                      className={`w-9 h-5 rounded-full transition-colors duration-200 relative cursor-pointer flex-shrink-0 ${emailPrefs[detail.member.id] !== false ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${emailPrefs[detail.member.id] !== false ? 'left-4' : 'left-0.5'}`} />
+                    </div>
+                    <span className="text-[10px] text-gray-400">{emailPrefs[detail.member.id] !== false ? 'Activé' : 'Désactivé'}</span>
+                  </div>
                 )}
               </div>
             </div>

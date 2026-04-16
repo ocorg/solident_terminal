@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from('tasks')
-    .select(`*, task_assignees(user_id, profiles(full_name, username))`)
+    .select(`*, task_assignees(user_id, profiles(full_name, username, avatar_url)), task_secondary_contexts(context_type, context_id)`)
     .eq('archived', showArchived)
     .order('created_at', { ascending: false })
 
@@ -42,11 +42,32 @@ export async function GET(req: Request) {
   const projectMap = Object.fromEntries((projects || []).map(p => [p.id, p.name]))
   const celluleMap = Object.fromEntries((cellules || []).map(c => [c.id, c.name]))
 
+  // Collect all secondary context IDs for name lookup
+  const allSecProj = [...new Set(tasks.flatMap(t =>
+    (t.task_secondary_contexts || []).filter((s: any) => s.context_type === 'project').map((s: any) => s.context_id)
+  ))]
+  const allSecCel = [...new Set(tasks.flatMap(t =>
+    (t.task_secondary_contexts || []).filter((s: any) => s.context_type === 'cellule').map((s: any) => s.context_id)
+  ))]
+  const [{ data: secProjects }, { data: secCellules }] = await Promise.all([
+    allSecProj.length > 0 ? supabase.from('projects').select('id, name').in('id', allSecProj) : { data: [] },
+    allSecCel.length > 0  ? supabase.from('cellules').select('id, name').in('id', allSecCel)  : { data: [] },
+  ])
+  const secProjectMap = Object.fromEntries((secProjects || []).map(p => [p.id, p.name]))
+  const secCelluleMap = Object.fromEntries((secCellules || []).map(c => [c.id, c.name]))
+
   const enriched = tasks.map(t => ({
     ...t,
     context_name: t.context_type === 'project'
       ? (projectMap[t.context_id] ?? t.context_type)
       : (celluleMap[t.context_id] ?? t.context_type),
+    secondary_contexts: (t.task_secondary_contexts || []).map((s: any) => ({
+      context_type: s.context_type,
+      context_id:   s.context_id,
+      context_name: s.context_type === 'project'
+        ? (secProjectMap[s.context_id] ?? s.context_id)
+        : (secCelluleMap[s.context_id] ?? s.context_id),
+    })),
   }))
 
   return NextResponse.json(enriched)
@@ -57,17 +78,27 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const admin = createAdminClient()
   const body = await req.json()
-  const { title, description, context_type, context_id, priority, due_date, assignee_ids } = body
+  const { title, description, context_type, context_id, priority, due_date, assignee_ids, secondary_contexts } = body
 
   if (!title || !context_type || !context_id) {
+    // Insert secondary contexts if provided
+  if (Array.isArray(secondary_contexts) && secondary_contexts.length > 0) {
+    await admin.from('task_secondary_contexts').insert(
+      secondary_contexts.map((sc: { context_type: string; context_id: string }) => ({
+        task_id: task.id,
+        context_type: sc.context_type,
+        context_id:   sc.context_id,
+      }))
+    )
+  }
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
   }
 
   // Check permission: admin or manager in the target context
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) {
-    const admin = createAdminClient()
     let isManager = false
     if (context_type === 'project') {
       const { data: membership } = await admin
@@ -90,8 +121,6 @@ export async function POST(req: NextRequest) {
     }
     if (!isManager) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
   }
-
-  const admin = createAdminClient()
 
   const { data: task, error } = await admin.from('tasks').insert({
     title,

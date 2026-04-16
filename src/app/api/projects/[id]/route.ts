@@ -40,7 +40,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       *,
       project_members(
         id, user_id,
-        profiles(id, full_name, username),
+        profiles(id, full_name, username, avatar_url),
         project_positions(id, position_name)
       ),
       project_positions(id, position_name)

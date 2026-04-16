@@ -16,7 +16,7 @@ interface Project {
   is_multi_activite: boolean; approval_status: string
   parent_project_id: string | null
   project_members: Member[]; project_positions: Position[]
-  sub_activities: SubActivity[]; tasks: Task[]
+  sub_activities: SubActivity[]; tasks: Task[]; image_url?: string | null
 }
 interface Profile { id: string; full_name: string; username: string }
 
@@ -65,6 +65,22 @@ export default function ProjectDetailPage() {
   const [addingTask,      setAddingTask]      = useState(false)
   const [memberWorkloads, setMemberWorkloads] = useState<Record<string, { taskCount: number; contextCount: number }>>({})
   const [showAddSub,      setShowAddSub]      = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 204800) { showToast('Image trop lourde — max 200 Ko', false); return }
+    setUploadingCover(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/projects/${id}/cover`, { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) { showToast(data.error, false); setUploadingCover(false); return }
+    setProject(p => p ? { ...p, image_url: data.image_url } : p)
+    showToast('Image du projet mise à jour !')
+    setUploadingCover(false)
+  }
   const [subForm,         setSubForm]         = useState({ name: '', description: '', status: 'Actif' })
   const [addingSub,       setAddingSub]       = useState(false)
 
