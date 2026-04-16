@@ -9,16 +9,10 @@ export async function POST(req: NextRequest) {
     const { email } = body
     if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
 
-    const allowed = rateLimit(`forgot:${email}`, 3, 15 * 60 * 1000)
+    const allowed = await rateLimit(`forgot:${email}`, 3, 15 * 60 * 1000)
     if (!allowed) return NextResponse.json({ error: 'Trop de tentatives.' }, { status: 429 })
 
     const admin = createAdminClient()
-
-    const { data: usersData, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    if (listError) return NextResponse.json({ error: `listUsers failed: ${listError.message}` }, { status: 500 })
-
-    const exists = usersData?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase())
-    if (!exists) return NextResponse.json({ status: 'sent' })
 
     const { data, error: linkError } = await admin.auth.admin.generateLink({
       type: 'recovery',
@@ -27,7 +21,8 @@ export async function POST(req: NextRequest) {
         redirectTo: 'https://solident-terminal.vercel.app/auth/callback',
       },
     })
-    if (linkError) return NextResponse.json({ error: `generateLink failed: ${linkError.message}` }, { status: 500 })
+    // If email doesn't exist, generateLink returns an error — we silently ignore it (no user enumeration)
+    if (linkError || !data?.properties?.action_link) return NextResponse.json({ status: 'sent' })
     if (!data?.properties?.action_link) return NextResponse.json({ error: 'No action_link returned' }, { status: 500 })
 
     await emailPasswordReset(email, data.properties.action_link)

@@ -145,6 +145,7 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
+              disabled={loading}
               className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-[#1E5F7A]/30 hover:shadow-[#1E5F7A]/50 active:scale-[0.98]"
             >
               {loading ? 'Connexion en cours…' : 'Se connecter'}

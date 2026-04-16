@@ -43,6 +43,13 @@ export default function AuthCallbackPage() {
             return
           }
 
+          // Log login for non-auth flows
+          if (type !== 'invite' && type !== 'recovery') {
+            try {
+              await fetch('/api/login-log', { method: 'POST' })
+            } catch { /* non-blocking */ }
+          }
+
           // Route based on type
           if (type === 'invite') {
             router.replace('/set-password')

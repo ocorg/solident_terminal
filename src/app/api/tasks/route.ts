@@ -83,16 +83,6 @@ export async function POST(req: NextRequest) {
   const { title, description, context_type, context_id, priority, due_date, assignee_ids, secondary_contexts } = body
 
   if (!title || !context_type || !context_id) {
-    // Insert secondary contexts if provided
-  if (Array.isArray(secondary_contexts) && secondary_contexts.length > 0) {
-    await admin.from('task_secondary_contexts').insert(
-      secondary_contexts.map((sc: { context_type: string; context_id: string }) => ({
-        task_id: task.id,
-        context_type: sc.context_type,
-        context_id:   sc.context_id,
-      }))
-    )
-  }
     return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
   }
 
@@ -144,24 +134,33 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Insert secondary contexts if provided
+  if (Array.isArray(secondary_contexts) && secondary_contexts.length > 0) {
+    await admin.from('task_secondary_contexts').insert(
+      secondary_contexts.map((sc: { context_type: string; context_id: string }) => ({
+        task_id: task.id,
+        context_type: sc.context_type,
+        context_id:   sc.context_id,
+      }))
+    )
+  }
+
   // Queue digest notifications for assignees
   if (assignee_ids?.length > 0) {
     const { queueDigest } = await import('@/lib/digest')
-    const { data: authUsersData } = await admin.auth.admin.listUsers()
     const { data: assigneeProfiles } = await admin
       .from('profiles').select('id, full_name').in('id', assignee_ids)
     const { data: emailPrefs } = await admin
       .from('user_email_prefs').select('user_id, email_enabled').in('user_id', assignee_ids)
-
     const prefMap: Record<string, boolean> = {}
     ;(emailPrefs || []).forEach((p: any) => { prefMap[p.user_id] = p.email_enabled })
-
     for (const assigneeId of assignee_ids) {
       if (prefMap[assigneeId] === false) continue
-      const authUser = authUsersData?.users?.find((u: any) => u.id === assigneeId)
-      const profile  = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
-      if (authUser?.email && profile?.full_name) {
-        await queueDigest(assigneeId, authUser.email, profile.full_name, 'task_assigned', { title })
+      const profile = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
+      if (!profile?.full_name) continue
+      const { data: authUser } = await admin.auth.admin.getUserById(assigneeId)
+      if (authUser?.user?.email) {
+        await queueDigest(assigneeId, authUser.user.email, profile.full_name, 'task_assigned', { title })
       }
     }
   }

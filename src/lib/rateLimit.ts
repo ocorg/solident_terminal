@@ -1,23 +1,22 @@
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+import { createAdminClient } from '@/lib/supabase/admin'
 
-/**
- * Simple in-memory rate limiter.
- * @param key     Unique identifier (e.g. IP + route)
- * @param limit   Max requests allowed in the window
- * @param windowMs Time window in milliseconds
- * @returns true if request is allowed, false if rate limited
- */
-export function rateLimit(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(key)
+export async function rateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
+  try {
+    const admin = createAdminClient()
+    const windowStart = new Date(Date.now() - windowMs).toISOString()
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs })
+    // Count recent attempts
+    const { count } = await admin
+      .from('rate_limit_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('key', key)
+      .gte('created_at', windowStart)
+
+    if ((count ?? 0) >= limit) return false
+
+    await admin.from('rate_limit_log').insert({ key, created_at: new Date().toISOString() })
     return true
+  } catch {
+    return true // fail open — don't block users if rate limit check fails
   }
-
-  if (entry.count >= limit) return false
-
-  entry.count++
-  return true
 }

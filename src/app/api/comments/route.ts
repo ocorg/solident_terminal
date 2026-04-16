@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
     const { queueDigest } = await import('@/lib/digest')
     const assigneeIds = assignees.map((a: any) => a.user_id)
 
-    const { data: authUsersData } = await admin.auth.admin.listUsers()
     const { data: assigneeProfiles } = await admin
       .from('profiles').select('id, full_name').in('id', assigneeIds)
     const { data: emailPrefs } = await admin
@@ -44,10 +43,16 @@ export async function POST(req: NextRequest) {
 
     for (const assigneeId of assigneeIds) {
       if (prefMap[assigneeId] === false) continue
-      const authUser = authUsersData?.users?.find((u: any) => u.id === assigneeId)
-      const profile  = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
-      if (authUser?.email && profile?.full_name) {
-        await queueDigest(assigneeId, authUser.email, profile.full_name, 'task_comment', {
+      
+      const profile = (assigneeProfiles || []).find((p: any) => p.id === assigneeId)
+      if (!profile?.full_name) continue
+
+      // 2. Targeted lookup for the specific user
+      const { data: authUser } = await admin.auth.admin.getUserById(assigneeId)
+
+      // 3. Use the correct email path: authUser.user.email
+      if (authUser?.user?.email) {
+        await queueDigest(assigneeId, authUser.user.email, profile.full_name, 'task_comment', {
           title: task.title,
           detail: `par ${authorProfile?.full_name || 'un membre'}`,
         })

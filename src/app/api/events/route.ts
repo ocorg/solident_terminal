@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
   // Queue email digest for invited attendees
   if (attendeeIds.length > 0) {
     const { queueDigest } = await import('@/lib/digest')
-    const { data: authUsersData } = await admin.auth.admin.listUsers()
+    
     const { data: attendeeProfiles } = await admin
       .from('profiles').select('id, full_name').in('id', attendeeIds)
     const { data: emailPrefs } = await admin
@@ -103,10 +103,14 @@ export async function POST(req: NextRequest) {
 
     for (const uid of attendeeIds) {
       if (prefMap[uid] === false) continue
-      const authUser = authUsersData?.users?.find((u: any) => u.id === uid)
-      const profile  = (attendeeProfiles || []).find((p: any) => p.id === uid)
-      if (authUser?.email && profile?.full_name) {
-        await queueDigest(uid, authUser.email, profile.full_name, 'event_invited', { title })
+      
+      const profile = (attendeeProfiles || []).find((p: any) => p.id === uid)
+      if (!profile?.full_name) continue
+
+      const { data: authUser } = await admin.auth.admin.getUserById(uid)
+
+      if (authUser?.user?.email) {
+        await queueDigest(uid, authUser.user.email, profile.full_name, 'event_invited', { title })
       }
     }
   }

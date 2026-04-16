@@ -18,7 +18,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json()
   const admin = createAdminClient()
-  const { data, error } = await admin.from('events').update(body).eq('id', id).select().single()
+
+  const allowed = ['title','description','type','context_type','context_id','start_at','end_at','location','visibility']
+  const patch: Record<string,unknown> = {}
+  for (const key of allowed) {
+    if (key in body) patch[key] = body[key]
+  }
+
+  const { data, error } = await admin.from('events').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }

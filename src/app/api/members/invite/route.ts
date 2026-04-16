@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     .from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const allowed = rateLimit(`invite:${user.id}`, 10, 60 * 60 * 1000)
+  const allowed = await rateLimit(`invite:${user.id}`, 10, 60 * 60 * 1000)
   if (!allowed) return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une heure.' }, { status: 429 })
 
   const { email, full_name, username, is_admin } = await req.json()
@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
 
   await emailInvite(email, full_name, data.properties.action_link)
 
-  if (is_admin && data.user) {
-    await admin.from('profiles')
-      .update({ is_admin: true, full_name, username })
-      .eq('id', data.user.id)
+  if (data.user) {
+    const profilePatch: Record<string, unknown> = { full_name, username }
+    if (is_admin) profilePatch.is_admin = true
+    await admin.from('profiles').update(profilePatch).eq('id', data.user.id)
   }
 
   return NextResponse.json({ status: 'invited' })

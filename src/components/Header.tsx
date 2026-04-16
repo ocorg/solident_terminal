@@ -253,24 +253,25 @@ export default function Header({ collapsed, onToggle, fullName, isAdmin, isMobil
 
 // ─── Theme toggle extracted to avoid re-rendering Header ─────
 function ThemeToggle() {
-  const [theme, setThemeState] = useState<string>('light')
+  const [mounted, setMounted] = useState(false)
+  // Read from the DOM directly — works with next-themes attribute="class"
+  const isDark = mounted && document.documentElement.classList.contains('dark')
 
-  useEffect(() => {
-    setThemeState(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   function toggle() {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setThemeState(next)
+    const next = isDark ? 'light' : 'dark'
     document.documentElement.classList.toggle('dark', next === 'dark')
     localStorage.setItem('theme', next)
   }
+
+  if (!mounted) return <div className="w-9 h-9" />
 
   return (
     <button onClick={toggle}
       className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white"
       title="Changer le thème">
-      {theme === 'dark' ? '☀️' : '🌙'}
+      {isDark ? '☀️' : '🌙'}
     </button>
   )
 }
