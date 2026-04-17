@@ -462,10 +462,12 @@ export default function ProposalsPage() {
                 <div>
                   <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Type *</label>
                   <select value={form.type}
-                    onChange={e => setForm(f => ({ ...f, type: e.target.value, is_activity: e.target.value === 'Activité' }))}
-                    className={inputCls}>
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value, is_activity: e.target.value === 'Activité' }))}
+                      className={inputCls}>
                     <option>Projet</option>
                     <option>Activité</option>
+                    <option>Action</option>
+                    <option>Événement</option>
                   </select>
                 </div>
                 <div>

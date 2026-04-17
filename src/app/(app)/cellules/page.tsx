@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Cellule {
-  id: string; name: string; description: string | null
+  id: string; name: string; description: string | null; image_url: string | null
   cellule_members: { user_id: string; profiles: { full_name: string } }[]
 }
 
@@ -125,9 +125,28 @@ export default function CellulesPage() {
                 onClick={() => router.push(`/cellules/${cellule.id}`)}
                 className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#F0A500]/50 hover:shadow-lg hover:shadow-[#F0A500]/10 transition-all duration-200 group">
 
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#F0A500]/20 flex items-center justify-center text-[#F0A500] font-bold text-sm flex-shrink-0">
-                    {letters}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0 group/cover">
+                    {cellule.image_url
+                      ? <img src={cellule.image_url} className="w-full h-full object-cover" alt={cellule.name} />
+                      : <span>{letters}</span>
+                    }
+                    {isAdmin && (
+                      <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/cover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded-xl"
+                        onClick={e => e.stopPropagation()}>
+                        <span className="text-white text-[10px]">📷</span>
+                        <input type="file" accept="image/*" className="hidden"
+                          onChange={async e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            const fd = new FormData(); fd.append('file', file)
+                            const res = await fetch(`/api/cellules/${cellule.id}/cover`, { method: 'POST', body: fd })
+                            const d = await res.json()
+                            if (res.ok) setCellules(prev => prev.map(p => p.id === cellule.id ? { ...p, image_url: d.image_url } : p))
+                            else showToast(d.error, false)
+                          }} />
+                      </label>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-gray-900 dark:text-white font-semibold text-sm truncate">{cellule.name}</h3>

@@ -785,10 +785,11 @@ export default function TasksPage() {
                       </div>
                       <select value={sc.contextId}
                         onChange={async e => {
-                          const ctx = contexts.find(c => c.id === e.target.value)
-                          const members = await loadMembersForContext(e.target.value, ctx?.type || 'project')
+                          const selectedId = e.target.value   // capture before await
+                          const ctx = contexts.find(c => c.id === selectedId)
+                          const members = await loadMembersForContext(selectedId, ctx?.type || 'project')
                           setEditSecondaryContexts(prev => prev.map((s, i) => i === idx
-                            ? { ...s, contextId: e.target.value, contextType: ctx?.type || 'project', assigneeIds: [], members }
+                            ? { ...s, contextId: selectedId, contextType: ctx?.type || 'project', assigneeIds: [], members }
                             : s))
                         }}
                         className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
@@ -1054,85 +1055,93 @@ export default function TasksPage() {
                   </div>
                 )}
               </div>
-              {/* Multi-context toggle */}
-              <div className="border-t border-gray-100 dark:border-white/10 pt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs text-gray-600 dark:text-slate-400 font-medium">Multi-contexte</label>
-                  <div onClick={() => {
-                    setMultiCtxEnabled(k => !k)
-                    if (multiCtxEnabled) setSecondaryContexts([])
-                  }}
-                    className={`w-9 h-5 rounded-full transition-colors duration-200 relative flex-shrink-0 cursor-pointer ${multiCtxEnabled ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${multiCtxEnabled ? 'left-4' : 'left-0.5'}`} />
-                  </div>
-                </div>
-                {multiCtxEnabled && (
-                  <div className="space-y-3">
-                    {secondaryContexts.map((sc, idx) => (
-                      <div key={idx} className="border border-[#1E5F7A]/20 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-[#1E5F7A] dark:text-[#5bbcde] font-medium">Contexte {idx + 2}</span>
-                          <button type="button" onClick={() => setSecondaryContexts(prev => prev.filter((_, i) => i !== idx))}
-                            className="text-red-400 text-xs hover:text-red-500 transition">✕</button>
-                        </div>
-                        <select value={sc.contextId}
-                          onChange={async e => {
-                            const ctx = contexts.find(c => c.id === e.target.value)
-                            const members = await loadMembersForContext(e.target.value, ctx?.type || 'project')
-                            setSecondaryContexts(prev => prev.map((s, i) => i === idx
-                              ? { ...s, contextId: e.target.value, contextType: ctx?.type || 'project', assigneeIds: [], members }
-                              : s))
-                          }}
-                          className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
-                          {contexts
-                            .filter(c => c.id !== form.context_id && !secondaryContexts.some((s, i) => i !== idx && s.contextId === c.id))
-                            .map(c => <option key={c.id} value={c.id}>[{c.type === 'project' ? 'Projet' : 'Cellule'}] {c.name}</option>)}
-                        </select>
-                        <input value={sc.search} onChange={e => setSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, search: e.target.value } : s))}
-                          placeholder="Rechercher…"
-                          className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#1E5F7A] transition text-gray-900 dark:text-white" />
-                        <div className="flex justify-end">
-                          <button type="button" onClick={() => setSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: s.members.map(m => m.id) } : s))}
-                            className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">Tout sélectionner</button>
-                        </div>
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {sc.members.filter(m => m.full_name.toLowerCase().includes(sc.search.toLowerCase())).map(m => {
-                            const selected = sc.assigneeIds.includes(m.id)
-                            return (
-                              <button type="button" key={m.id}
-                                onClick={() => setSecondaryContexts(prev => prev.map((s, i) => i === idx
-                                  ? { ...s, assigneeIds: selected ? s.assigneeIds.filter(id => id !== m.id) : [...s.assigneeIds, m.id] }
-                                  : s))}
-                                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition text-left text-xs ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10'}`}>
-                                <div className="w-5 h-5 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
-                                  {(m as any).avatar_url
-                                    ? <img src={(m as any).avatar_url} className="w-full h-full object-cover" alt={m.full_name} />
-                                    : <span className="text-[#1E5F7A] text-[8px] font-bold">{initials(m.full_name)}</span>
-                                  }
-                                </div>
-                                <span className="flex-1 truncate text-gray-800 dark:text-slate-200">{m.full_name}</span>
-                                {selected && <span className="text-[#1E5F7A] text-[10px]">✓</span>}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                    {secondaryContexts.length < 4 && contexts.length > secondaryContexts.length + 1 && (
-                      <button type="button"
-                        onClick={async () => {
-                          const available = contexts.find(c => c.id !== form.context_id && !secondaryContexts.some(s => s.contextId === c.id))
-                          if (!available) return
-                          const members = await loadMembersForContext(available.id, available.type)
-                          setSecondaryContexts(prev => [...prev, { contextId: available.id, contextType: available.type, assigneeIds: [], members, search: '' }])
-                        }}
-                        className="w-full border-2 border-dashed border-[#1E5F7A]/30 text-[#1E5F7A] dark:text-[#5bbcde] text-xs py-2 rounded-xl hover:border-[#1E5F7A]/60 transition">
-                        + Ajouter un contexte ({secondaryContexts.length + 1}/4)
-                      </button>
+              {/* ── Contextes additionnels ── */}
+              {contexts.filter(c => c.id !== form.context_id).length > 0 && (
+                <div className="border-t border-gray-100 dark:border-white/10 pt-3 space-y-2">
+                  <label className="block text-xs text-gray-600 dark:text-slate-400 font-medium">
+                    Choisir des contextes secondaires à associer (optionnel)
+                    {secondaryContexts.length > 0 && (
+                      <span className="ml-2 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{secondaryContexts.length}</span>
                     )}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {contexts.filter(c => c.id !== form.context_id).map(c => {
+                      const isSelected = secondaryContexts.some(s => s.contextId === c.id)
+                      return (
+                        <button type="button" key={c.id}
+                          onClick={async () => {
+                            if (isSelected) {
+                              setSecondaryContexts(prev => prev.filter(s => s.contextId !== c.id))
+                            } else {
+                              const members = await loadMembersForContext(c.id, c.type)
+                              setSecondaryContexts(prev => [...prev, { contextId: c.id, contextType: c.type, assigneeIds: [], members, search: '' }])
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            isSelected
+                              ? 'bg-[#1E5F7A] text-white border-[#1E5F7A] shadow-sm'
+                              : 'bg-white dark:bg-white/5 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/50'
+                          }`}>
+                          <span className="text-[10px] opacity-60">{c.type === 'project' ? '📁' : '🏛️'}</span>
+                          {c.name}
+                          {isSelected && <span className="opacity-70">✓</span>}
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
+                  {/* Merged assignee list for secondary contexts */}
+                  {secondaryContexts.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider font-semibold">
+                        Membres supplémentaires à assigner
+                      </p>
+                      {secondaryContexts.map((sc, idx) => {
+                        const ctxName = contexts.find(c => c.id === sc.contextId)?.name || sc.contextId
+                        const filtered = sc.members.filter(m =>
+                          !form.assignee_ids.includes(m.id) &&
+                          m.full_name.toLowerCase().includes(sc.search.toLowerCase())
+                        )
+                        if (sc.members.length === 0) return null
+                        return (
+                          <div key={sc.contextId} className="border border-[#1E5F7A]/15 rounded-xl p-2.5 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] font-semibold">{ctxName}</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button"
+                                  onClick={() => setSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: s.members.map(m => m.id) } : s))}
+                                  className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">Tout</button>
+                                <button type="button"
+                                  onClick={() => setSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: [] } : s))}
+                                  className="text-[10px] text-gray-400 hover:underline">Aucun</button>
+                              </div>
+                            </div>
+                            <input value={sc.search}
+                              onChange={e => setSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, search: e.target.value } : s))}
+                              placeholder="Chercher avec nom..."
+                              className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-[#1E5F7A] transition text-gray-900 dark:text-white" />
+                            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                              {filtered.map(m => {
+                                const sel = sc.assigneeIds.includes(m.id)
+                                return (
+                                  <button type="button" key={m.id}
+                                    onClick={() => setSecondaryContexts(prev => prev.map((s, i) => i === idx
+                                      ? { ...s, assigneeIds: sel ? s.assigneeIds.filter(id => id !== m.id) : [...s.assigneeIds, m.id] }
+                                      : s))}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition ${sel ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40 text-[#1E5F7A] dark:text-[#5bbcde]' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]/40'}`}>
+                                    {sel && <span className="text-[8px]">✓</span>}
+                                    {m.full_name.split(' ')[0]}
+                                  </button>
+                                )
+                              })}
+                              {filtered.length === 0 && <p className="text-[10px] text-gray-400">Aucun membre additionnel</p>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               <label className="flex items-center gap-3 cursor-pointer py-1">
                 <div onClick={() => setKeepCreating(k => !k)}
                   className={`w-9 h-5 rounded-full transition-colors duration-200 relative flex-shrink-0 ${keepCreating ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>

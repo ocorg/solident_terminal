@@ -7,7 +7,9 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data, error } = await supabase
+  // Use admin client so RLS on event_attendees doesn't filter to current user only
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('events')
     .select(`
       *,

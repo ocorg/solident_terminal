@@ -9,6 +9,7 @@ interface Project {
   id: string; name: string; description: string | null
   status: string; start_date: string | null; end_date: string | null
   is_multi_activite: boolean; approval_status: string
+  image_url?: string | null
   project_members: { user_id: string; profiles: { full_name: string } }[]
 }
 
@@ -163,8 +164,27 @@ export default function ProjectsPage() {
                 className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#1E5F7A]/50 hover:shadow-lg hover:shadow-[#1E5F7A]/10 transition-all duration-200 group">
 
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0">
-                    {letters}
+                  <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0 group/cover">
+                    {project.image_url
+                      ? <img src={project.image_url} className="w-full h-full object-cover" alt={project.name} />
+                      : <span>{letters}</span>
+                    }
+                    {isAdmin && (
+                      <label className="absolute inset-0 bg-black/50 opacity-0 group-hover/cover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded-xl"
+                        onClick={e => e.stopPropagation()}>
+                        <span className="text-white text-[10px]">📷</span>
+                        <input type="file" accept="image/*" className="hidden"
+                          onChange={async e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            const fd = new FormData(); fd.append('file', file)
+                            const res = await fetch(`/api/projects/${project.id}/cover`, { method: 'POST', body: fd })
+                            const d = await res.json()
+                            if (res.ok) setProjects(prev => prev.map(p => p.id === project.id ? { ...p, image_url: d.image_url } : p))
+                            else showToast(d.error, false)
+                          }} />
+                      </label>
+                    )}
                   </div>
                   <div className="flex gap-2 items-center flex-wrap justify-end">
                     {project.is_multi_activite && (

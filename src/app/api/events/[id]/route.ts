@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json()
   const admin = createAdminClient()
-
+  
   const allowed = ['title','description','type','context_type','context_id','start_at','end_at','location','visibility']
   const patch: Record<string,unknown> = {}
   for (const key of allowed) {
@@ -27,7 +27,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { data, error } = await admin.from('events').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Update attendees if invitee_ids was sent
+  if (Array.isArray(body.invitee_ids)) {
+    await admin.from('event_attendees').delete().eq('event_id', id)
+    if (body.invitee_ids.length > 0) {
+      await admin.from('event_attendees').insert(
+        body.invitee_ids.map((uid: string) => ({
+          event_id: id, user_id: uid, rsvp_status: 'En attente'
+        }))
+      )
+    }
+  }
+
   return NextResponse.json(data)
+
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,6 +58,9 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const admin = createAdminClient()
+  // Manually cascade-delete child records first (in case FK CASCADE isn't set in DB)
+  await admin.from('event_attendees').delete().eq('event_id', id)
+  await admin.from('event_context_invites').delete().eq('event_id', id)
   const { error } = await admin.from('events').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ status: 'deleted' })
