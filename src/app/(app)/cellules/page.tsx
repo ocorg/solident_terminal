@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { SkeletonCard } from '@/components/Skeleton'
 import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Cellule {
@@ -110,8 +111,8 @@ export default function CellulesPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400 dark:text-slate-600">Aucune cellule trouvée</div>
@@ -125,7 +126,7 @@ export default function CellulesPage() {
                 onClick={() => router.push(`/cellules/${cellule.id}`)}
                 className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 cursor-pointer hover:border-[#F0A500]/50 hover:shadow-lg hover:shadow-[#F0A500]/10 transition-all duration-200 group">
 
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start gap-3 mb-3">
                   <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] font-bold text-sm flex-shrink-0 group/cover">
                     {cellule.image_url
                       ? <img src={cellule.image_url} className="w-full h-full object-cover" alt={cellule.name} />

@@ -30,10 +30,8 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 const PRIORITY_STRIP: Record<string, string> = {
-  '🔴 Urgent': '#f87171',
-  '🟠 Élevé':  '#fb923c',
-  '🟡 Moyen':  '#facc15',
-  '🟢 Faible': '#4ade80',
+  '🔴 Urgent': '#f87171', '🟠 Élevé': '#fb923c',
+  '🟡 Moyen':  '#facc15', '🟢 Faible': '#4ade80',
 }
 
 export default function ProjectDetailPage() {
@@ -50,30 +48,32 @@ export default function ProjectDetailPage() {
   const [allProfiles, setAllProfiles] = useState<Profile[]>([])
   const [confirm,     setConfirm]     = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
 
-  const [editMode, setEditMode] = useState(false)
-  const [editForm, setEditForm] = useState<Partial<Project>>({})
+  // ── Edit slide-over (replaces inline editMode) ────────────
+  const [showEditPanel, setShowEditPanel] = useState(false)
+  const [editForm,      setEditForm]      = useState<Partial<Project>>({})
+  const [savingEdit,    setSavingEdit]    = useState(false)
 
   const [addMemberUserId,   setAddMemberUserId]   = useState('')
   const [addMemberPosition, setAddMemberPosition] = useState('')
   const [addingMember,      setAddingMember]      = useState(false)
-
-  const [newPositionName, setNewPositionName] = useState('')
-  const [addingPosition,  setAddingPosition]  = useState(false)
-  const [parentMembers,   setParentMembers]   = useState<Member[]>([])
-  const [showAddTask,     setShowAddTask]     = useState(false)
-  const [taskForm,        setTaskForm]        = useState({ title: '', description: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[] })
-  const [addingTask,      setAddingTask]      = useState(false)
-  const [memberWorkloads, setMemberWorkloads] = useState<Record<string, { taskCount: number; contextCount: number }>>({})
-  const [showAddSub,      setShowAddSub]      = useState(false)
-  const [uploadingCover, setUploadingCover] = useState(false)
+  const [newPositionName,   setNewPositionName]   = useState('')
+  const [addingPosition,    setAddingPosition]    = useState(false)
+  const [parentMembers,     setParentMembers]     = useState<Member[]>([])
+  const [showAddTask,       setShowAddTask]       = useState(false)
+  const [taskForm,          setTaskForm]          = useState({ title: '', description: '', priority: '🟡 Moyen', due_date: '', assignee_ids: [] as string[] })
+  const [addingTask,        setAddingTask]        = useState(false)
+  const [memberWorkloads,   setMemberWorkloads]   = useState<Record<string, { taskCount: number; contextCount: number }>>({})
+  const [showAddSub,        setShowAddSub]        = useState(false)
+  const [uploadingCover,    setUploadingCover]    = useState(false)
+  const [subForm,           setSubForm]           = useState({ name: '', description: '', status: 'Actif' })
+  const [addingSub,         setAddingSub]         = useState(false)
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 204800) { showToast('Image trop lourde — max 200 Ko', false); return }
     setUploadingCover(true)
-    const formData = new FormData()
-    formData.append('file', file)
+    const formData = new FormData(); formData.append('file', file)
     const res = await fetch(`/api/projects/${id}/cover`, { method: 'POST', body: formData })
     const data = await res.json()
     if (!res.ok) { showToast(data.error, false); setUploadingCover(false); return }
@@ -81,8 +81,6 @@ export default function ProjectDetailPage() {
     showToast('Image du projet mise à jour !')
     setUploadingCover(false)
   }
-  const [subForm,         setSubForm]         = useState({ name: '', description: '', status: 'Actif' })
-  const [addingSub,       setAddingSub]       = useState(false)
 
   async function loadProject() {
     const res = await fetch(`/api/projects/${id}`)
@@ -103,22 +101,15 @@ export default function ProjectDetailPage() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
-      const { data: profile } = await supabase
-        .from('profiles').select('is_admin').eq('id', user.id).single()
+      const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
       const admin = !!profile?.is_admin
       setIsAdmin(admin)
-
       const { data: profiles } = await supabase.from('profiles').select('id, full_name, username')
       if (profiles) setAllProfiles(profiles)
-
       await loadProject()
-
       if (!admin) {
-        const { data: positions } = await supabase
-          .from('project_positions').select('id, position_name').eq('project_id', id)
-        const { data: membership } = await supabase
-          .from('project_members').select('position_id').eq('project_id', id).eq('user_id', user.id).single()
+        const { data: positions } = await supabase.from('project_positions').select('id, position_name').eq('project_id', id)
+        const { data: membership } = await supabase.from('project_members').select('position_id').eq('project_id', id).eq('user_id', user.id).single()
         const mgmtIds = new Set((positions || []).filter(p => !p.position_name.toLowerCase().includes('membre')).map(p => p.id))
         setCanManage(membership ? mgmtIds.has(membership.position_id) : false)
       } else {
@@ -126,10 +117,16 @@ export default function ProjectDetailPage() {
       }
     }
     init()
-  }, [id])
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function openEditPanel() {
+    if (project) setEditForm({ ...project })
+    setShowEditPanel(true)
+  }
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
+    setSavingEdit(true)
     const res = await fetch(`/api/projects/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -143,9 +140,10 @@ export default function ProjectDetailPage() {
       }),
     })
     const data = await res.json()
+    setSavingEdit(false)
     if (!res.ok) { showToast(data.error, false); return }
     showToast('Projet mis à jour !')
-    setEditMode(false)
+    setShowEditPanel(false)
     loadProject()
   }
 
@@ -153,8 +151,7 @@ export default function ProjectDetailPage() {
     e.preventDefault()
     setAddingMember(true)
     const res = await fetch(`/api/projects/${id}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: addMemberUserId, position_id: addMemberPosition }),
     })
     const data = await res.json()
@@ -169,8 +166,7 @@ export default function ProjectDetailPage() {
     e.preventDefault()
     setAddingPosition(true)
     const res = await fetch(`/api/projects/${id}/positions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ position_name: newPositionName }),
     })
     const data = await res.json()
@@ -183,9 +179,7 @@ export default function ProjectDetailPage() {
 
   async function openAddTask() {
     setShowAddTask(true)
-    const sourceMembers = (project?.parent_project_id && parentMembers.length > 0)
-      ? parentMembers
-      : (project?.project_members || [])
+    const sourceMembers = (project?.parent_project_id && parentMembers.length > 0) ? parentMembers : (project?.project_members || [])
     const memberIds = sourceMembers.map(m => m.user_id)
     if (memberIds.length === 0) return
     const [{ data: assigneeRows }, { data: projRows }, { data: celRows }] = await Promise.all([
@@ -206,17 +200,8 @@ export default function ProjectDetailPage() {
     e.preventDefault()
     setAddingTask(true)
     const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title:        taskForm.title,
-        description:  taskForm.description || null,
-        priority:     taskForm.priority,
-        due_date:     taskForm.due_date || null,
-        context_type: 'project',
-        context_id:   id,
-        assignee_ids: taskForm.assignee_ids,
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: taskForm.title, description: taskForm.description || null, priority: taskForm.priority, due_date: taskForm.due_date || null, context_type: 'project', context_id: id, assignee_ids: taskForm.assignee_ids }),
     })
     const data = await res.json()
     setAddingTask(false)
@@ -231,8 +216,7 @@ export default function ProjectDetailPage() {
     e.preventDefault()
     setAddingSub(true)
     const res = await fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...subForm, parent_project_id: id }),
     })
     const data = await res.json()
@@ -244,11 +228,7 @@ export default function ProjectDetailPage() {
     loadProject()
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
+  if (loading) return null // loading.tsx skeleton handles this
 
   if (!project) return (
     <div className="text-center py-16 text-gray-400 dark:text-slate-600">Projet introuvable</div>
@@ -280,14 +260,79 @@ export default function ProjectDetailPage() {
       )}
 
       {confirm && (
-        <ConfirmModal
-          title={confirm.title}
-          message={confirm.message}
-          confirmLabel="Supprimer"
-          danger
+        <ConfirmModal title={confirm.title} message={confirm.message} confirmLabel="Supprimer" danger
           onConfirm={() => { confirm.onConfirm(); setConfirm(null) }}
-          onCancel={() => setConfirm(null)}
-        />
+          onCancel={() => setConfirm(null)} />
+      )}
+
+      {/* ── Edit slide-over panel ── */}
+      {showEditPanel && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setShowEditPanel(false)} />
+          <div className="w-full max-w-lg bg-white dark:bg-[#0e1628] border-l border-gray-200 dark:border-white/10 h-full flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
+              <div>
+                <h2 className="text-gray-900 dark:text-white font-bold text-lg">Modifier le projet</h2>
+                <p className="text-gray-400 dark:text-slate-500 text-xs mt-0.5 truncate max-w-[280px]">{project.name}</p>
+              </div>
+              <button onClick={() => setShowEditPanel(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-xl">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={saveEdit} className="space-y-5">
+                <div>
+                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5 font-medium">Nom du projet *</label>
+                  <input value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={inputCls} required />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5 font-medium">Description</label>
+                  <textarea rows={4} value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none`} placeholder="Décrivez l'objectif de ce projet..." />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-2 font-medium">Statut</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Actif', 'En pause', 'Bloqué', 'Terminé'].map(s => (
+                      <button key={s} type="button" onClick={() => setEditForm(f => ({ ...f, status: s }))}
+                        className={`py-2.5 rounded-xl text-sm font-medium border transition text-center ${editForm.status === s ? 'bg-[#1E5F7A] border-[#1E5F7A] text-white' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]/50'}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5 font-medium">Date début</label>
+                    <input type="date" value={editForm.start_date?.slice(0, 10) || ''} onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5 font-medium">Date fin</label>
+                    <input type="date" value={editForm.end_date?.slice(0, 10) || ''} onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 dark:bg-white/5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition">
+                  <div onClick={() => setEditForm(f => ({ ...f, is_multi_activite: !f.is_multi_activite }))}
+                    className={`w-9 h-5 rounded-full transition-colors duration-200 relative flex-shrink-0 ${editForm.is_multi_activite ? 'bg-[#1E5F7A]' : 'bg-gray-200 dark:bg-white/10'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200 ${editForm.is_multi_activite ? 'left-4' : 'left-0.5'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-800 dark:text-slate-200 font-medium">Multi-activité</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Active les sous-activités pour ce projet</p>
+                  </div>
+                </label>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setShowEditPanel(false)}
+                    className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={savingEdit}
+                    className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
+                    {savingEdit ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Enregistrement…</> : 'Enregistrer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Back + Header */}
@@ -306,26 +351,20 @@ export default function ProjectDetailPage() {
             <div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-gray-900 dark:text-white text-2xl font-bold">{project.name}</h1>
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_STYLES[project.status] || ''}`}>
-                  {project.status}
-                </span>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_STYLES[project.status] || ''}`}>{project.status}</span>
                 {project.is_multi_activite && (
-                  <span className="text-xs bg-purple-500/20 text-purple-500 dark:text-purple-400 px-3 py-1 rounded-full font-semibold border border-purple-500/20">
-                    Multi-activité
-                  </span>
+                  <span className="text-xs bg-purple-500/20 text-purple-500 dark:text-purple-400 px-3 py-1 rounded-full font-semibold border border-purple-500/20">Multi-activité</span>
                 )}
               </div>
-              {project.description && (
-                <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">{project.description}</p>
-              )}
+              {project.description && <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">{project.description}</p>}
             </div>
           </div>
 
           {canManage && (
             <div className="flex gap-2">
-              <button onClick={() => setEditMode(!editMode)}
-                className="text-xs px-4 py-2 rounded-xl bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
-                {editMode ? 'Annuler' : '✏️ Modifier'}
+              <button onClick={openEditPanel}
+                className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] hover:bg-[#1E5F7A]/20 transition font-medium">
+                ✏️ Modifier
               </button>
               {isAdmin && (
                 <button onClick={() => setConfirm({
@@ -373,106 +412,72 @@ export default function ProjectDetailPage() {
       {/* ── Vue d'ensemble ── */}
       {tab === 0 && (
         <div className="space-y-4">
-          {editMode ? (
-            <form onSubmit={saveEdit} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 space-y-4">
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Nom</label>
-                <input value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={inputCls} required />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Statut',      value: project.status },
+              { label: 'Membres',     value: `${project.project_members.length}` },
+              { label: 'Tâches',      value: `${totalTasks}` },
+              { label: 'Progression', value: `${progress}%` },
+            ].map(s => (
+              <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
+                <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
               </div>
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
-                <textarea rows={3} value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none`} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Statut</label>
-                  <select value={editForm.status || ''} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} className={inputCls}>
-                    {['Actif', 'En pause', 'Bloqué', 'Terminé'].map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Date début</label>
-                  <input type="date" value={editForm.start_date?.slice(0, 10) || ''} onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))} className={inputCls} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Date fin</label>
-                <input type="date" value={editForm.end_date?.slice(0, 10) || ''} onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))} className={inputCls} />
-              </div>
-              <button type="submit" className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition">
-                Enregistrer
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Statut',      value: project.status },
-                  { label: 'Membres',     value: `${project.project_members.length}` },
-                  { label: 'Tâches',      value: `${totalTasks}` },
-                  { label: 'Progression', value: `${progress}%` },
-                ].map(s => (
-                  <div key={s.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                    <p className="text-gray-900 dark:text-white font-bold text-xl">{s.value}</p>
-                    <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{s.label}</p>
+            ))}
+          </div>
+          {(canManage || isAdmin) && (() => {
+            const overdueTasks   = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
+            const blockedTasks   = project.tasks.filter(t => t.status === '🚫 Bloqué').length
+            const inProgressTasks = project.tasks.filter(t => t.status === '🔄 En cours').length
+            const healthScore = totalTasks === 0 ? 100 : Math.min(100, Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3))))
+            const scoreBg    = healthScore >= 70 ? 'bg-green-500' : healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
+            const scoreColor = healthScore >= 70 ? 'text-green-500' : healthScore >= 40 ? 'text-yellow-500' : 'text-red-400'
+            return (
+              <div className="space-y-3">
+                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé du projet</p>
+                    <p className={`text-3xl font-bold ${scoreColor}`}>{healthScore}/100</p>
                   </div>
-                ))}
-              </div>
-              {(canManage || isAdmin) && (() => {
-                const overdueTasks = project.tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== '✅ Terminé').length
-                const blockedTasks = project.tasks.filter(t => t.status === '🚫 Bloqué').length
-                const inProgressTasks = project.tasks.filter(t => t.status === '🔄 En cours').length
-                const healthScore = totalTasks === 0 ? 100 : Math.min(100, Math.max(0, Math.round(100 - (overdueTasks * 20) - (blockedTasks * 15) + (progress * 0.3))))
-                const scoreBg = healthScore >= 70 ? 'bg-green-500' : healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-400'
-                const scoreColor = healthScore >= 70 ? 'text-green-500' : healthScore >= 40 ? 'text-yellow-500' : 'text-red-400'
-                return (
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Santé du projet</p>
-                        <p className={`text-3xl font-bold ${scoreColor}`}>{healthScore}/100</p>
-                      </div>
-                      <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                        <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${healthScore}%` }} />
-                      </div>
-                      <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
-                        {healthScore >= 70 ? '✅ Projet en bonne santé' : healthScore >= 40 ? '⚠️ Attention requise' : '🔴 Projet en difficulté'}
-                      </p>
+                  <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div className={`h-full ${scoreBg} rounded-full transition-all duration-700`} style={{ width: `${healthScore}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-slate-600 mt-2">
+                    {healthScore >= 70 ? '✅ Projet en bonne santé' : healthScore >= 40 ? '⚠️ Attention requise' : '🔴 Projet en difficulté'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
+                    { label: 'En retard',        value: overdueTasks,   color: overdueTasks > 0  ? 'text-red-400'   : 'text-green-500' },
+                    { label: 'Bloquées',         value: blockedTasks,   color: blockedTasks > 0  ? 'text-red-400'   : 'text-green-500' },
+                    { label: 'En cours',         value: inProgressTasks, color: 'text-[#5bbcde]' },
+                  ].map(k => (
+                    <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
+                      <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                      <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { label: 'Tâches terminées', value: `${doneTasks}/${totalTasks}`, color: 'text-green-500' },
-                        { label: 'En retard',        value: overdueTasks,                 color: overdueTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                        { label: 'Bloquées',         value: blockedTasks,                 color: blockedTasks > 0 ? 'text-red-400' : 'text-green-500' },
-                        { label: 'En cours',         value: inProgressTasks,              color: 'text-[#5bbcde]' },
-                      ].map(k => (
-                        <div key={k.label} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-center">
-                          <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">{k.label}</p>
+                  ))}
+                </div>
+                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
+                  <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Charge des membres</p>
+                  <div className="space-y-2">
+                    {project.project_members.length === 0 ? (
+                      <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun membre</p>
+                    ) : project.project_members.map(m => (
+                      <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
+                        <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                          {initials(m.profiles?.full_name || '?')}
                         </div>
-                      ))}
-                    </div>
-                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5">
-                      <p className="text-gray-900 dark:text-white text-sm font-semibold mb-3">Charge des membres</p>
-                      <div className="space-y-2">
-                        {project.project_members.length === 0 ? (
-                          <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun membre</p>
-                        ) : project.project_members.map(m => (
-                          <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
-                            <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                              {initials(m.profiles?.full_name || '?')}
-                            </div>
-                            <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
-                            <span className="text-xs text-gray-400 dark:text-slate-500">{m.project_positions?.position_name}</span>
-                          </div>
-                        ))}
+                        <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
+                        <span className="text-xs text-gray-400 dark:text-slate-500">{m.project_positions?.position_name}</span>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                )
-              })()}
-            </div>
-          )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -491,23 +496,14 @@ export default function ProjectDetailPage() {
             {project.tasks.length === 0 ? (
               <div className="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-12 text-center">
                 <p className="text-gray-400 dark:text-slate-600 text-sm">Aucune tâche pour ce projet</p>
-                {canManage && (
-                  <button onClick={openAddTask} className="mt-3 text-xs text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">
-                    + Créer une tâche
-                  </button>
-                )}
+                {canManage && <button onClick={openAddTask} className="mt-3 text-xs text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">+ Créer une tâche</button>}
               </div>
             ) : project.tasks.map(task => (
               <div key={task.id} className="relative flex items-center gap-3 pl-4 pr-5 py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-[3px]"
-                  style={{ background: PRIORITY_STRIP[task.priority] || '#94a3b8' }} />
+                <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: PRIORITY_STRIP[task.priority] || '#94a3b8' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{task.title}</p>
-                  {task.due_date && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                      📅 {new Date(task.due_date).toLocaleDateString('fr-MA')}
-                    </p>
-                  )}
+                  {task.due_date && <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">📅 {new Date(task.due_date).toLocaleDateString('fr-MA')}</p>}
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-lg flex-shrink-0 ${
                   task.status === '✅ Terminé'  ? 'bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400' :
@@ -525,19 +521,16 @@ export default function ProjectDetailPage() {
               <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvelle tâche</h2>
-                  <button onClick={() => setShowAddTask(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
+                  <button onClick={() => setShowAddTask(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
                 </div>
                 <form onSubmit={addTask} className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Titre *</label>
-                    <input required value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))}
-                      placeholder="Titre de la tâche" className={inputCls} />
+                    <input required value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre de la tâche" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
-                    <textarea rows={2} value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Description optionnelle..." className={`${inputCls} resize-none`} />
+                    <textarea rows={2} value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))} placeholder="Description optionnelle..." className={`${inputCls} resize-none`} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -548,20 +541,13 @@ export default function ProjectDetailPage() {
                     </div>
                     <div>
                       <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Échéance</label>
-                      <input type="datetime-local" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))}
-                        className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
+                      <input type="datetime-local" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} className={`${inputCls} [color-scheme:light] dark:[color-scheme:dark]`} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">
-                      Assigner à {taskForm.assignee_ids.length > 0 && (
-                        <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{taskForm.assignee_ids.length}</span>
-                      )}
-                    </label>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Assigner à {taskForm.assignee_ids.length > 0 && <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{taskForm.assignee_ids.length}</span>}</label>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                      {[...(project.parent_project_id && parentMembers.length > 0 ? parentMembers : project.project_members || [])].sort((a, b) =>
-                        (memberWorkloads[a.user_id]?.taskCount || 0) - (memberWorkloads[b.user_id]?.taskCount || 0)
-                      ).map(m => {
+                      {[...(project.parent_project_id && parentMembers.length > 0 ? parentMembers : project.project_members || [])].sort((a, b) => (memberWorkloads[a.user_id]?.taskCount || 0) - (memberWorkloads[b.user_id]?.taskCount || 0)).map(m => {
                         const selected = taskForm.assignee_ids.includes(m.user_id)
                         const wl = memberWorkloads[m.user_id] || { taskCount: 0, contextCount: 0 }
                         const label = wl.taskCount >= 6 ? 'Chargé 🔴' : wl.taskCount >= 3 ? 'Modéré 🟡' : 'Disponible 🟢'
@@ -569,17 +555,12 @@ export default function ProjectDetailPage() {
                         const ini = (m.profiles?.full_name || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
                         return (
                           <button type="button" key={m.user_id}
-                            onClick={() => setTaskForm(f => ({
-                              ...f,
-                              assignee_ids: selected
-                                ? f.assignee_ids.filter(i => i !== m.user_id)
-                                : [...f.assignee_ids, m.user_id]
-                            }))}
+                            onClick={() => setTaskForm(f => ({ ...f, assignee_ids: selected ? f.assignee_ids.filter(i => i !== m.user_id) : [...f.assignee_ids, m.user_id] }))}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
                             <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">{ini}</div>
                             <div className="flex-1 min-w-0">
                               <p className="text-gray-900 dark:text-white text-xs font-medium truncate">{m.profiles?.full_name}</p>
-                              <p className="text-gray-400 dark:text-slate-500 text-[10px]">{wl.contextCount} contexte{wl.contextCount !== 1 ? 's' : ''} · {wl.taskCount} tâche{wl.taskCount !== 1 ? 's' : ''} active{wl.taskCount !== 1 ? 's' : ''}</p>
+                              <p className="text-gray-400 dark:text-slate-500 text-[10px]">{wl.contextCount} contexte{wl.contextCount !== 1 ? 's' : ''} · {wl.taskCount} tâche{wl.taskCount !== 1 ? 's' : ''}</p>
                             </div>
                             <span className={`text-[10px] font-semibold flex-shrink-0 ${labelColor}`}>{label}</span>
                           </button>
@@ -589,12 +570,8 @@ export default function ProjectDetailPage() {
                   </div>
                   <p className="text-xs text-gray-400 dark:text-slate-500">Contexte : <strong>{project.name}</strong> (projet)</p>
                   <div className="flex gap-3 pt-2">
-                    <button type="button" onClick={() => setShowAddTask(false)}
-                      className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
-                      Annuler
-                    </button>
-                    <button type="submit" disabled={addingTask}
-                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => setShowAddTask(false)} className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">Annuler</button>
+                    <button type="submit" disabled={addingTask} className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
                       {addingTask ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Création…</> : 'Créer la tâche'}
                     </button>
                   </div>
@@ -624,8 +601,7 @@ export default function ProjectDetailPage() {
                   {project.project_positions.map(p => <option key={p.id} value={p.id}>{p.position_name}</option>)}
                 </select>
               </div>
-              <button type="submit" disabled={addingMember}
-                className="bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50">
+              <button type="submit" disabled={addingMember} className="bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50">
                 {addingMember ? '…' : '+ Ajouter'}
               </button>
             </form>
@@ -643,40 +619,25 @@ export default function ProjectDetailPage() {
                   <p className="text-gray-400 dark:text-slate-500 text-xs">@{m.profiles?.username}</p>
                 </div>
                 {canManage ? (
-                  <select
-                    defaultValue={m.project_positions?.id || ''}
+                  <select defaultValue={m.project_positions?.id || ''}
                     onChange={async e => {
-                      await fetch(`/api/projects/${id}/members`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: m.user_id, position_id: e.target.value }),
-                      })
-                      showToast('Rôle mis à jour !')
-                      loadProject()
+                      await fetch(`/api/projects/${id}/members`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: m.user_id, position_id: e.target.value }) })
+                      showToast('Rôle mis à jour !'); loadProject()
                     }}
                     className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-2 py-1 rounded-lg font-medium border-0 focus:outline-none cursor-pointer">
-                    {project.project_positions.map((p: Position) => (
-                      <option key={p.id} value={p.id}>{p.position_name}</option>
-                    ))}
+                    {project.project_positions.map((p: Position) => <option key={p.id} value={p.id}>{p.position_name}</option>)}
                   </select>
                 ) : (
-                  <span className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-3 py-1 rounded-lg font-medium">
-                    {m.project_positions?.position_name}
-                  </span>
+                  <span className="text-xs bg-[#1E5F7A]/10 text-[#1E5F7A] dark:text-[#5bbcde] px-3 py-1 rounded-lg font-medium">{m.project_positions?.position_name}</span>
                 )}
                 {canManage && (
                   <button onClick={() => setConfirm({
                     title: 'Retirer le membre',
                     message: `Retirer ${m.profiles?.full_name} du projet ?`,
                     onConfirm: async () => {
-                      const res = await fetch(`/api/projects/${id}/members`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: m.user_id }),
-                      })
+                      const res = await fetch(`/api/projects/${id}/members`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: m.user_id }) })
                       if (!res.ok) { showToast('Erreur', false); return }
-                      showToast('Membre retiré.')
-                      loadProject()
+                      showToast('Membre retiré.'); loadProject()
                     }
                   })}
                     className="text-xs text-red-400 hover:text-red-500 transition ml-1 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">✕</button>
@@ -691,11 +652,8 @@ export default function ProjectDetailPage() {
       {tab === 3 && (canManage || isAdmin) && (
         <div className="space-y-4">
           <form onSubmit={addPosition} className="flex gap-3">
-            <input value={newPositionName} onChange={e => setNewPositionName(e.target.value)}
-              placeholder="Nom de la position (ex: Chef de Projet)"
-              className={`${inputCls} flex-1`} required />
-            <button type="submit" disabled={addingPosition}
-              className="bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 flex-shrink-0">
+            <input value={newPositionName} onChange={e => setNewPositionName(e.target.value)} placeholder="Nom de la position (ex: Chef de Projet)" className={`${inputCls} flex-1`} required />
+            <button type="submit" disabled={addingPosition} className="bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 flex-shrink-0">
               {addingPosition ? '…' : '+ Ajouter'}
             </button>
           </form>
@@ -709,14 +667,9 @@ export default function ProjectDetailPage() {
                   title: 'Supprimer la position',
                   message: `Supprimer la position "${p.position_name}" ?`,
                   onConfirm: async () => {
-                    const res = await fetch(`/api/projects/${id}/positions`, {
-                      method: 'DELETE',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ position_id: p.id }),
-                    })
+                    const res = await fetch(`/api/projects/${id}/positions`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ position_id: p.id }) })
                     if (!res.ok) { showToast('Erreur', false); return }
-                    showToast('Position supprimée.')
-                    loadProject()
+                    showToast('Position supprimée.'); loadProject()
                   }
                 })}
                   className="text-xs text-red-400 hover:text-red-500 transition px-3 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
@@ -732,8 +685,7 @@ export default function ProjectDetailPage() {
       {tab === 4 && project.is_multi_activite && (
         <div className="space-y-4">
           {canManage && (
-            <button onClick={() => setShowAddSub(true)}
-              className="flex items-center gap-2 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#1E5F7A]/30">
+            <button onClick={() => setShowAddSub(true)} className="flex items-center gap-2 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#1E5F7A]/30">
               + Nouvelle sous-activité
             </button>
           )}
@@ -761,8 +713,7 @@ export default function ProjectDetailPage() {
               <div className="relative w-full max-w-md bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-gray-900 dark:text-white font-bold text-lg">Nouvelle sous-activité</h2>
-                  <button onClick={() => setShowAddSub(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
+                  <button onClick={() => setShowAddSub(false)} className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition text-lg">×</button>
                 </div>
                 <form onSubmit={addSubActivity} className="space-y-4">
                   <div>

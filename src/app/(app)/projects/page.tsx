@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { SkeletonCard } from '@/components/Skeleton'
 import { useToast, ToastStyle } from '@/hooks/useToast'
 
 interface Project {
@@ -148,8 +149,8 @@ export default function ProjectsPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400 dark:text-slate-600">Aucun projet trouvé</div>

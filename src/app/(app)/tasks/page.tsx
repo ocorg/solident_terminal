@@ -395,6 +395,8 @@ export default function TasksPage() {
     setEditMemberSearch('')
     loadComments(task.id)
     setForm(f => ({ ...f, context_id: task.context_id, context_type: task.context_type }))
+    // Pre-load member workloads for the view panel (same data the edit panel uses)
+    loadMembersForContext(task.context_id, task.context_type).then(setEditContextMembers)
   }
 
   // ─── Render ────────────────────────────────────────────────
@@ -488,9 +490,33 @@ export default function TasksPage() {
 
       {/* ── Kanban / List ── */}
       {loading ? (
-        // Inline shimmer spinner while data loads (full skeleton is in loading.tsx for SSR)
-        <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
+        // Match the loading.tsx skeleton exactly so there's no visual flash between the two
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {(['#94a3b8','#1E5F7A','#f87171','#4ade80']).map((accent, ci) => (
+            <div key={ci} className="bg-[#F8FAFC] dark:bg-white/5 rounded-2xl p-3 min-h-[300px]"
+              style={{ borderTop: `4px solid ${accent}` }}>
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <div className="h-3 w-20 rounded-lg bg-gray-200 dark:bg-white/10 animate-pulse" />
+                <div className="h-4 w-6 rounded-full bg-gray-200 dark:bg-white/10 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className="bg-white dark:bg-[#161B22] rounded-xl p-3 relative overflow-hidden animate-pulse">
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl bg-gray-200 dark:bg-white/10" />
+                    <div className="pl-2 space-y-2">
+                      <div className="h-4 w-3/4 rounded-lg bg-gray-200 dark:bg-white/10" />
+                      <div className="h-3 w-1/2 rounded-lg bg-gray-100 dark:bg-white/5" />
+                      <div className="h-3 w-24 rounded-lg bg-gray-100 dark:bg-white/5 mt-1" />
+                      <div className="flex mt-2">
+                        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-white/10 border-2 border-white dark:border-[#161B22]" />
+                        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-white/10 border-2 border-white dark:border-[#161B22] -ml-1.5" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
       ) : view === 'kanban' ? (
@@ -848,6 +874,8 @@ export default function TasksPage() {
 
               ) : (
                 <div className="p-6 space-y-5">
+
+                  {/* ── Status + Priority badges ── */}
                   <div className="flex gap-2 flex-wrap">
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                       detail.status === '📋 À faire'  ? 'bg-slate-100  dark:bg-slate-500/20 text-slate-600 dark:text-slate-300' :
@@ -861,70 +889,109 @@ export default function TasksPage() {
                     )}
                   </div>
 
+                  {/* ── Description ── */}
                   {detail.description && (
-                    <div>
-                      <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Description</p>
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-100 dark:border-white/5">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Description</p>
                       <p className="text-gray-700 dark:text-slate-300 text-sm leading-relaxed">{detail.description}</p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-gray-400 dark:text-slate-500 mb-1">Contexte</p>
-                      <p className="text-gray-700 dark:text-slate-300 font-medium">{detail.context_name || detail.context_type}</p>
+                  {/* ── Meta grid: Contexte + Échéance ── */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-white/5">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-1.5 font-semibold uppercase tracking-wider">Contexte</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs">{detail.context_type === 'project' ? '📁' : '🏛️'}</span>
+                        <p className="text-gray-800 dark:text-slate-200 text-xs font-semibold truncate">{detail.context_name || detail.context_type}</p>
+                      </div>
                     </div>
-                    {detail.due_date && (
-                      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                        <p className="text-gray-400 dark:text-slate-500 mb-1">Échéance</p>
-                        <p className={`font-medium ${isOverdue(detail.due_date) && detail.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-700 dark:text-slate-300'}`}>
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-white/5">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-1.5 font-semibold uppercase tracking-wider">Échéance</p>
+                      {detail.due_date ? (
+                        <p className={`text-xs font-semibold ${isOverdue(detail.due_date) && detail.status !== '✅ Terminé' ? 'text-red-400' : 'text-gray-800 dark:text-slate-200'}`}>
                           {new Date(detail.due_date).toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Changer le statut</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {STATUSES.map(s => (
-                        <button key={s} onClick={() => updateTask(detail.id, { status: s } as Partial<Task>)}
-                          className={`text-xs px-3 py-1.5 rounded-lg transition font-medium ${detail.status === s ? 'bg-[#1E5F7A] text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}>
-                          {s}
-                        </button>
-                      ))}
+                      ) : (
+                        <p className="text-gray-300 dark:text-slate-700 text-xs italic">Non définie</p>
+                      )}
                     </div>
                   </div>
 
-                  {detail.task_assignees?.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Assignés</p>
-                      <div className="flex flex-wrap gap-2">
-                        {detail.task_assignees.map(a => (
-                          <div key={a.user_id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-xl px-3 py-1.5">
-                            <div className="w-6 h-6 rounded-full overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
-                              {a.profiles?.avatar_url
-                                ? <img src={a.profiles.avatar_url} className="w-full h-full object-cover" alt={a.profiles.full_name} />
-                                : <span className="text-[#1E5F7A] dark:text-[#5bbcde] text-[9px] font-bold">{initials(a.profiles?.full_name || '?')}</span>
-                              }
-                            </div>
-                            <span className="text-gray-700 dark:text-slate-300 text-xs">{a.profiles?.full_name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* ── Contextes secondaires ── */}
                   {detail.secondary_contexts && detail.secondary_contexts.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Contextes secondaires</p>
-                      <div className="flex flex-wrap gap-2">
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Contextes secondaires</p>
+                      <div className="flex flex-wrap gap-1.5">
                         {detail.secondary_contexts.map(sc => (
-                          <span key={sc.context_id} className="text-xs px-3 py-1 rounded-full bg-[#F0A500]/10 text-[#F0A500] border border-[#F0A500]/20 font-medium">
+                          <span key={sc.context_id} className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-[#F0A500]/10 text-[#F0A500] border border-[#F0A500]/20 font-medium">
+                            <span className="text-[10px] opacity-60">{sc.context_type === 'project' ? '📁' : '🏛️'}</span>
                             {sc.context_name}
                           </span>
                         ))}
                       </div>
                     </div>
                   )}
+
+                  {/* ── Assignés — workload cards ── */}
+                  {detail.task_assignees?.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">
+                        Assignés ({detail.task_assignees.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {detail.task_assignees.map(a => {
+                          const wl = editContextMembers.find(m => m.id === a.user_id)
+                          const label      = !wl ? null
+                            : wl.taskCount >= 6 ? 'Chargé 🔴'
+                            : wl.taskCount >= 3 ? 'Modéré 🟡'
+                            : 'Disponible 🟢'
+                          const labelColor = !wl ? ''
+                            : wl.taskCount >= 6 ? 'text-red-400'
+                            : wl.taskCount >= 3 ? 'text-yellow-500'
+                            : 'text-green-500'
+                          return (
+                            <div key={a.user_id}
+                              className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                              <div className="w-7 h-7 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
+                                {a.profiles?.avatar_url
+                                  ? <img src={a.profiles.avatar_url} className="w-full h-full object-cover" alt={a.profiles.full_name} />
+                                  : <span className="text-[#1E5F7A] dark:text-[#5bbcde] text-[9px] font-bold">{initials(a.profiles?.full_name || '?')}</span>
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-gray-800 dark:text-slate-200 text-xs font-semibold truncate">{a.profiles?.full_name}</p>
+                                {wl && (
+                                  <p className="text-gray-400 dark:text-slate-500 text-[10px]">
+                                    {wl.taskCount} tâche{wl.taskCount !== 1 ? 's' : ''} active{wl.taskCount !== 1 ? 's' : ''}
+                                  </p>
+                                )}
+                              </div>
+                              {label && <span className={`text-[10px] font-semibold flex-shrink-0 ${labelColor}`}>{label}</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Changer le statut ── */}
+                  <div>
+                    <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 font-semibold">Changer le statut</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {STATUSES.map(s => (
+                        <button key={s} onClick={() => updateTask(detail.id, { status: s } as Partial<Task>)}
+                          className={`text-xs px-3 py-2 rounded-xl transition font-medium text-center border ${
+                            detail.status === s
+                              ? 'bg-[#1E5F7A] border-[#1E5F7A] text-white shadow-sm'
+                              : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]/50 hover:text-[#1E5F7A] dark:hover:text-[#5bbcde]'
+                          }`}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
               )}
 
