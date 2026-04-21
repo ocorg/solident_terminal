@@ -6,7 +6,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ taskId
   const { taskId } = await params
   const { data, error } = await supabase
     .from('comments')
-    .select('*, profiles(full_name, username)')
+    .select('*, profiles(full_name, username, avatar_url)')
     .eq('task_id', taskId)
     .order('created_at', { ascending: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

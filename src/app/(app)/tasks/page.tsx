@@ -22,8 +22,8 @@ interface MemberWorkload {
   taskCount: number; contextCount: number
   label: string; labelColor: string
 }
-interface Comment { id: string; content: string; created_at: string; profiles: { full_name: string; username: string } }
-interface Profile { id: string; full_name: string; username: string }
+interface Comment { id: string; content: string; created_at: string; profiles: { full_name: string; username: string; avatar_url?: string | null } }
+interface Profile { id: string; full_name: string; username: string; avatar_url?: string | null }
 interface ContextOption { id: string; name: string; type: string }
 
 // ─── Constants ───────────────────────────────────────────────
@@ -157,7 +157,7 @@ export default function TasksPage() {
       }
 
       const [profsRes, projRes, celRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, username'),
+        supabase.from('profiles').select('id, full_name, username, avatar_url'),
         supabase.from('projects').select('id, name'),
         supabase.from('cellules').select('id, name'),
       ])
@@ -316,50 +316,46 @@ export default function TasksPage() {
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!detail || !editForm) return
+
     const secondaryCtxPayload = editSecondaryContexts.map(sc => ({
-      context_type: sc.contextType, context_id: sc.contextId
+      context_type: sc.contextType, context_id: sc.contextId,
     }))
-    const allAssigneeIds = [
+    const allAssigneeIds = [...new Set([
       ...editAssigneeIds,
       ...editSecondaryContexts.flatMap(sc => sc.assigneeIds),
-    ]
-    await updateTask(detail.id, {
-      title:              editForm.title,
-      description:        editForm.description,
-      status:             editForm.status,
-      priority:           editForm.priority,
-      due_date:           editForm.due_date,
-      context_type:       editContextType,
-      context_id:         editContextId,
-      assignee_ids:       [...new Set(allAssigneeIds)],
-      secondary_contexts: secondaryCtxPayload,
-    } as any)
-    // Bug 3 fix: manually rebuild task_assignees for the detail panel
-    const newAssignees = [...new Set(allAssigneeIds)].map(uid => {
-      const found = profiles.find(p => p.id === uid)
-      return { user_id: uid, profiles: { full_name: found?.full_name || '?', username: found?.username || '', avatar_url: (found as any)?.avatar_url || null } }
+    ])]
+
+    const res = await fetch(`/api/tasks/${detail.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title:              editForm.title,
+        description:        editForm.description,
+        status:             editForm.status,
+        priority:           editForm.priority,
+        due_date:           editForm.due_date,
+        context_type:       editContextType,
+        context_id:         editContextId,
+        assignee_ids:       allAssigneeIds,
+        secondary_contexts: secondaryCtxPayload,
+      }),
     })
-    const updatedCtxName = contexts.find(c => c.id === editContextId)?.name || editContextType
-    setDetail(d => d ? {
-      ...d,
-      title: editForm.title || d.title,
-      description: editForm.description ?? d.description,
-      status: editForm.status || d.status,
-      priority: editForm.priority || d.priority,
-      due_date: editForm.due_date ?? d.due_date,
-      context_id: editContextId,
-      context_type: editContextType,
-      context_name: updatedCtxName,
-      task_assignees: newAssignees,
-      secondary_contexts: secondaryCtxPayload.map(sc => ({
-        ...sc, context_name: contexts.find(c => c.id === sc.context_id)?.name || sc.context_type
-      })),
-    } : d)
+    const saved = await res.json()
+    if (!res.ok) { showToast(saved.error, false); return }
+
+    // Reload the full tasks list (with proper joins including avatar_url)
+    const freshRes = await fetch(`/api/tasks?archived=${showArchived}`)
+    const freshTasks = await freshRes.json()
+    if (Array.isArray(freshTasks)) {
+      setTasks(freshTasks)
+      const freshTask = freshTasks.find((t: Task) => t.id === detail.id)
+      if (freshTask) setDetail(freshTask)
+    }
+
     setEditForm(null)
     setEditAssigneeIds([])
     setEditSecondaryContexts([])
     showToast('Tâche mise à jour !')
-    await loadTasks()
   }
 
   // ─── Drag & Drop ───────────────────────────────────────────
@@ -675,8 +671,14 @@ export default function TasksPage() {
                         setEditContextId(detail.context_id)
                         setEditContextType(detail.context_type)
                         setEditAssigneeIds(detail.task_assignees?.map(a => a.user_id) || [])
-                        // Restore secondary contexts
+                        setEditMemberSearch('')
+                        // Force-load members immediately (don't rely on useEffect which only fires on context change)
+                        setEditContextMembers([])
+                        loadMembersForContext(detail.context_id, detail.context_type)
+                          .then(setEditContextMembers)
+                        // Restore secondary contexts with their current assignees
                         const secCtxs = detail.secondary_contexts || []
+                        setEditSecondaryContexts([])
                         Promise.all(secCtxs.map(async sc => {
                           const members = await loadMembersForContext(sc.context_id, sc.context_type)
                           return { contextId: sc.context_id, contextType: sc.context_type, assigneeIds: [], members, search: '' }
@@ -713,48 +715,33 @@ export default function TasksPage() {
                 <form onSubmit={saveEdit} className="p-6 space-y-4">
                   {/* Title */}
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Titre</label>
-                    <input value={editForm.title || ''} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} required
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Titre *</label>
+                    <input required value={editForm.title || ''}
+                      onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="Titre de la tâche"
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
                   </div>
+
                   {/* Description */}
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
-                    <textarea rows={3} value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Description</label>
+                    <textarea rows={3} value={editForm.description || ''}
+                      onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Description optionnelle..."
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition resize-none" />
                   </div>
-                  {/* Status + Priority */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Statut</label>
-                      <select value={editForm.status || ''} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
-                        {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Priorité</label>
-                      <select value={editForm.priority || ''} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
-                        {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  {/* Due date */}
+
+                  {/* Context */}
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Échéance</label>
-                    <input type="datetime-local" value={editForm.due_date?.slice(0, 16) || ''} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition [color-scheme:light] dark:[color-scheme:dark]" />
-                  </div>
-                  {/* Context selector */}
-                  <div>
-                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">Contexte principal</label>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Contexte principal *</label>
                     <select value={editContextId}
                       onChange={e => {
                         const ctx = contexts.find(c => c.id === e.target.value)
                         setEditContextId(e.target.value)
                         setEditContextType(ctx?.type || 'project')
                         setEditAssigneeIds([])
+                        setEditContextMembers([])
+                        loadMembersForContext(e.target.value, ctx?.type || 'project').then(setEditContextMembers)
                       }}
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
                       {contexts.filter(c => c.type === 'project').length > 0 && (
@@ -769,107 +756,171 @@ export default function TasksPage() {
                       )}
                     </select>
                   </div>
-                  {/* Primary context assignees */}
-                  <div>
-                    <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1.5">
-                      Assignés — contexte principal {editAssigneeIds.length > 0 && <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{editAssigneeIds.length}</span>}
-                    </label>
-                    <input value={editMemberSearch} onChange={e => setEditMemberSearch(e.target.value)}
-                      placeholder="Rechercher un membre…"
-                      className="w-full mb-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                      {editContextMembers.length === 0 ? (
-                        <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-2">Chargement…</p>
-                      ) : editContextMembers
-                          .filter(m => m.full_name.toLowerCase().includes(editMemberSearch.toLowerCase()))
-                          .map(m => {
-                            const selected = editAssigneeIds.includes(m.id)
-                            return (
-                              <button type="button" key={m.id}
-                                onClick={() => setEditAssigneeIds(prev => selected ? prev.filter(i => i !== m.id) : [...prev, m.id])}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
-                                <div className="w-6 h-6 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
-                                  {(m as any).avatar_url
-                                    ? <img src={(m as any).avatar_url} className="w-full h-full object-cover" alt={m.full_name} />
-                                    : <span className="text-[#1E5F7A] dark:text-[#5bbcde] text-[9px] font-bold">{initials(m.full_name)}</span>
-                                  }
-                                </div>
-                                <p className="text-gray-900 dark:text-white text-xs font-medium flex-1 truncate">{m.full_name}</p>
-                                <span className={`text-[10px] font-semibold flex-shrink-0 ${m.labelColor}`}>{m.label}</span>
-                              </button>
-                            )
-                          })}
+
+                  {/* Priority + Due date */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Priorité</label>
+                      <select value={editForm.priority || ''}
+                        onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
+                        {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Statut</label>
+                      <select value={editForm.status || ''}
+                        onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
+                        {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
                     </div>
                   </div>
-                  {/* Secondary contexts in edit */}
-                  {editSecondaryContexts.map((sc, idx) => (
-                    <div key={idx} className="border border-[#1E5F7A]/20 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs text-gray-500 dark:text-slate-400 font-medium">Contexte secondaire {idx + 1}</label>
-                        <button type="button" onClick={() => setEditSecondaryContexts(prev => prev.filter((_, i) => i !== idx))}
-                          className="text-red-400 hover:text-red-500 text-xs transition">✕ Retirer</button>
+
+                  {/* Due date */}
+                  <div>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">Échéance</label>
+                    <input type="datetime-local" value={editForm.due_date?.slice(0, 16) || ''}
+                      onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition [color-scheme:light] dark:[color-scheme:dark]" />
+                  </div>
+
+                  {/* Assignees — same card style as create form */}
+                  <div>
+                    <label className="block text-sm text-gray-500 dark:text-slate-400 mb-1.5">
+                      Assigner à {editAssigneeIds.length > 0 && (
+                        <span className="ml-1 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{editAssigneeIds.length}</span>
+                      )}
+                    </label>
+                    {editContextMembers.length === 0 ? (
+                      <div className="flex justify-center py-4">
+                        <div className="w-5 h-5 border-2 border-[#1E5F7A] border-t-transparent rounded-full animate-spin" />
                       </div>
-                      <select value={sc.contextId}
-                        onChange={async e => {
-                          const selectedId = e.target.value   // capture before await
-                          const ctx = contexts.find(c => c.id === selectedId)
-                          const members = await loadMembersForContext(selectedId, ctx?.type || 'project')
-                          setEditSecondaryContexts(prev => prev.map((s, i) => i === idx
-                            ? { ...s, contextId: selectedId, contextType: ctx?.type || 'project', assigneeIds: [], members }
-                            : s))
-                        }}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition">
-                        {contexts.filter(c => c.id !== editContextId && !editSecondaryContexts.some((s, i) => i !== idx && s.contextId === c.id)).map(c => (
-                          <option key={c.id} value={c.id}>[{c.type === 'project' ? 'Projet' : 'Cellule'}] {c.name}</option>
-                        ))}
-                      </select>
-                      <input value={sc.search} onChange={e => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, search: e.target.value } : s))}
-                        placeholder="Rechercher…"
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#1E5F7A] transition" />
-                      <div className="flex justify-end">
-                        <button type="button" onClick={() => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: s.members.map(m => m.id) } : s))}
-                          className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">Tout sélectionner</button>
-                      </div>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
-                        {sc.members.filter(m => m.full_name.toLowerCase().includes(sc.search.toLowerCase())).map(m => {
-                          const selected = sc.assigneeIds.includes(m.id)
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {editContextMembers.map(m => {
+                          const selected = editAssigneeIds.includes(m.id)
                           return (
                             <button type="button" key={m.id}
-                              onClick={() => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx
-                                ? { ...s, assigneeIds: selected ? s.assigneeIds.filter(id => id !== m.id) : [...s.assigneeIds, m.id] }
-                                : s))}
-                              className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition text-left text-xs ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10'}`}>
-                              <div className="w-5 h-5 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
+                              onClick={() => setEditAssigneeIds(prev => selected ? prev.filter(i => i !== m.id) : [...prev, m.id])}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition text-left ${selected ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/40'}`}>
+                              <div className="w-7 h-7 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center flex-shrink-0">
                                 {(m as any).avatar_url
                                   ? <img src={(m as any).avatar_url} className="w-full h-full object-cover" alt={m.full_name} />
-                                  : <span className="text-[#1E5F7A] text-[8px] font-bold">{initials(m.full_name)}</span>
+                                  : <span className="text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold">{initials(m.full_name)}</span>
                                 }
                               </div>
-                              <span className="flex-1 truncate text-gray-800 dark:text-slate-200">{m.full_name}</span>
-                              {selected && <span className="text-[#1E5F7A] dark:text-[#5bbcde] text-[10px]">✓</span>}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-gray-900 dark:text-white text-xs font-medium truncate">{m.full_name}</p>
+                                <p className="text-gray-400 dark:text-slate-500 text-[10px]">{m.contextCount} contexte{m.contextCount !== 1 ? 's' : ''} · {m.taskCount} tâche{m.taskCount !== 1 ? 's' : ''} active{m.taskCount !== 1 ? 's' : ''}</p>
+                              </div>
+                              <span className={`text-[10px] font-semibold flex-shrink-0 ${m.labelColor}`}>{m.label}</span>
                             </button>
                           )
                         })}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Secondary contexts — pill style matching create form */}
+                  {contexts.filter(c => c.id !== editContextId).length > 0 && (
+                    <div className="border-t border-gray-100 dark:border-white/10 pt-3 space-y-2">
+                      <label className="block text-xs text-gray-600 dark:text-slate-400 font-medium">
+                        Contextes secondaires (optionnel)
+                        {editSecondaryContexts.length > 0 && (
+                          <span className="ml-2 bg-[#1E5F7A] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{editSecondaryContexts.length}</span>
+                        )}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {contexts.filter(c => c.id !== editContextId).map(c => {
+                          const isSelected = editSecondaryContexts.some(s => s.contextId === c.id)
+                          return (
+                            <button type="button" key={c.id}
+                              onClick={async () => {
+                                if (isSelected) {
+                                  setEditSecondaryContexts(prev => prev.filter(s => s.contextId !== c.id))
+                                } else {
+                                  const members = await loadMembersForContext(c.id, c.type)
+                                  setEditSecondaryContexts(prev => [...prev, { contextId: c.id, contextType: c.type, assigneeIds: [], members, search: '' }])
+                                }
+                              }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                isSelected
+                                  ? 'bg-[#1E5F7A] text-white border-[#1E5F7A] shadow-sm'
+                                  : 'bg-white dark:bg-white/5 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-white/10 hover:border-[#1E5F7A]/50'
+                              }`}>
+                              <span className="text-[10px] opacity-60">{c.type === 'project' ? '📁' : '🏛️'}</span>
+                              {c.name}
+                              {isSelected && <span className="opacity-70">✓</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {editSecondaryContexts.length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider font-semibold">
+                            Membres supplémentaires à assigner
+                          </p>
+                          {editSecondaryContexts.map((sc, idx) => {
+                            const ctxName = contexts.find(c => c.id === sc.contextId)?.name || sc.contextId
+                            const filtered = sc.members.filter(m =>
+                              !editAssigneeIds.includes(m.id) &&
+                              m.full_name.toLowerCase().includes(sc.search.toLowerCase())
+                            )
+                            if (sc.members.length === 0) return null
+                            return (
+                              <div key={sc.contextId} className="border border-[#1E5F7A]/15 rounded-xl p-2.5 space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] font-semibold">{ctxName}</span>
+                                  <div className="flex items-center gap-2">
+                                    <button type="button"
+                                      onClick={() => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: s.members.map(m => m.id) } : s))}
+                                      className="text-[10px] text-[#1E5F7A] dark:text-[#5bbcde] hover:underline">Tout</button>
+                                    <button type="button"
+                                      onClick={() => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, assigneeIds: [] } : s))}
+                                      className="text-[10px] text-gray-400 hover:underline">Aucun</button>
+                                  </div>
+                                </div>
+                                <input value={sc.search}
+                                  onChange={e => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx ? { ...s, search: e.target.value } : s))}
+                                  placeholder="Chercher..."
+                                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-[#1E5F7A] transition text-gray-900 dark:text-white" />
+                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                                  {filtered.map(m => {
+                                    const sel = sc.assigneeIds.includes(m.id)
+                                    return (
+                                      <button type="button" key={m.id}
+                                        onClick={() => setEditSecondaryContexts(prev => prev.map((s, i) => i === idx
+                                          ? { ...s, assigneeIds: sel ? s.assigneeIds.filter(id => id !== m.id) : [...s.assigneeIds, m.id] }
+                                          : s))}
+                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition ${sel ? 'bg-[#1E5F7A]/10 border-[#1E5F7A]/40 text-[#1E5F7A] dark:text-[#5bbcde]' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-slate-400 hover:border-[#1E5F7A]/40'}`}>
+                                        {sel && <span className="text-[8px]">✓</span>}
+                                        {m.full_name.split(' ')[0]}
+                                      </button>
+                                    )
+                                  })}
+                                  {filtered.length === 0 && <p className="text-[10px] text-gray-400">Aucun membre additionnel</p>}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {/* Add secondary context button */}
-                  {editSecondaryContexts.length < 4 && contexts.length > editSecondaryContexts.length + 1 && (
-                    <button type="button"
-                      onClick={async () => {
-                        const available = contexts.find(c => c.id !== editContextId && !editSecondaryContexts.some(s => s.contextId === c.id))
-                        if (!available) return
-                        const members = await loadMembersForContext(available.id, available.type)
-                        setEditSecondaryContexts(prev => [...prev, { contextId: available.id, contextType: available.type, assigneeIds: [], members, search: '' }])
-                      }}
-                      className="w-full border-2 border-dashed border-[#1E5F7A]/30 text-[#1E5F7A] dark:text-[#5bbcde] text-xs py-2 rounded-xl hover:border-[#1E5F7A]/60 transition">
-                      + Ajouter un contexte secondaire
-                    </button>
                   )}
-                  <button type="submit"
-                    className="w-full bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
-                    Enregistrer
-                  </button>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-2">
+                    <button type="button"
+                      onClick={() => { setEditForm(null); setEditAssigneeIds([]); setEditSecondaryContexts([]) }}
+                      className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
+                      Annuler
+                    </button>
+                    <button type="submit"
+                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
+                      Enregistrer
+                    </button>
+                  </div>
                 </form>
 
               ) : (
@@ -1002,8 +1053,11 @@ export default function TasksPage() {
                     <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun commentaire</p>
                   ) : comments.map(c => (
                     <div key={c.id} className="flex gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                        {initials(c.profiles?.full_name || '?')}
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                        {(c.profiles as any)?.avatar_url
+                          ? <img src={(c.profiles as any).avatar_url} className="w-full h-full object-cover" alt={c.profiles?.full_name} />
+                          : <span>{initials(c.profiles?.full_name || '?')}</span>
+                        }
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">

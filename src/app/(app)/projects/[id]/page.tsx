@@ -7,7 +7,7 @@ import { useToast, ToastStyle } from '@/hooks/useToast'
 import ConfirmModal from '@/components/ConfirmModal'
 
 interface Position  { id: string; position_name: string }
-interface Member    { id: string; user_id: string; profiles: { id: string; full_name: string; username: string }; project_positions: Position }
+interface Member    { id: string; user_id: string; profiles: { id: string; full_name: string; username: string; avatar_url?: string | null }; project_positions: Position }
 interface Task      { id: string; title: string; status: string; priority: string; due_date: string | null }
 interface SubActivity { id: string; name: string; status: string; description: string | null }
 interface Project {
@@ -18,7 +18,7 @@ interface Project {
   project_members: Member[]; project_positions: Position[]
   sub_activities: SubActivity[]; tasks: Task[]; image_url?: string | null
 }
-interface Profile { id: string; full_name: string; username: string }
+interface Profile { id: string; full_name: string; username: string; avatar_url?: string | null }
 
 const TABS = ['Vue d\'ensemble', 'Tâches', 'Membres', 'Positions', 'Sous-activités']
 
@@ -104,7 +104,7 @@ export default function ProjectDetailPage() {
       const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
       const admin = !!profile?.is_admin
       setIsAdmin(admin)
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name, username')
+      const { data: profiles } = await supabase.from('profiles').select('id, full_name, username, avatar_url')
       if (profiles) setAllProfiles(profiles)
       await loadProject()
       if (!admin) {
@@ -466,8 +466,11 @@ export default function ProjectDetailPage() {
                       <p className="text-gray-400 dark:text-slate-600 text-xs text-center py-4">Aucun membre</p>
                     ) : project.project_members.map(m => (
                       <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5">
-                        <div className="w-7 h-7 rounded-lg bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                          {initials(m.profiles?.full_name || '?')}
+                        <div className="w-7 h-7 rounded-lg overflow-hidden bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                          {m.profiles?.avatar_url
+                            ? <img src={m.profiles.avatar_url} className="w-full h-full object-cover" alt={m.profiles.full_name} />
+                            : <span>{initials(m.profiles?.full_name || '?')}</span>
+                          }
                         </div>
                         <p className="text-gray-800 dark:text-slate-200 text-sm flex-1 truncate">{m.profiles?.full_name}</p>
                         <span className="text-xs text-gray-400 dark:text-slate-500">{m.project_positions?.position_name}</span>
@@ -611,8 +614,11 @@ export default function ProjectDetailPage() {
               <p className="text-center text-gray-400 dark:text-slate-600 py-8">Aucun membre</p>
             ) : project.project_members.map(m => (
               <div key={m.id} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
-                <div className="w-9 h-9 rounded-xl bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-xs font-bold flex items-center justify-center flex-shrink-0">
-                  {initials(m.profiles?.full_name || '?')}
+                <div className="w-9 h-9 rounded-xl overflow-hidden bg-[#1E5F7A]/20 text-[#1E5F7A] dark:text-[#5bbcde] text-xs font-bold flex items-center justify-center flex-shrink-0">
+                  {m.profiles?.avatar_url
+                    ? <img src={m.profiles.avatar_url} className="w-full h-full object-cover" alt={m.profiles.full_name} />
+                    : <span>{initials(m.profiles?.full_name || '?')}</span>
+                  }
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{m.profiles?.full_name}</p>
