@@ -24,7 +24,7 @@ export async function queueDigest(
   // Then add the 1 minute (60,000ms) for your grouping delay.
   // This ensures the DB stores a time that is "due" exactly 1 minute from now in your local time.
   const now = Date.now();
-  const adjustedBase = now - (60 * 60 * 1000); 
+  const adjustedBase = now + (60 * 60 * 1000); 
   const sendAfter = new Date(adjustedBase + 60 * 1000).toISOString();
 
   // Check if there's already a pending digest for this recipient
