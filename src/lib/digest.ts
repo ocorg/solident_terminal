@@ -20,7 +20,7 @@ export async function queueDigest(
 ) {
   const admin = createAdminClient()
   
-  // Back to standard: 1 minute from current server time
+  // Standard UTC + 1 minute grouping delay
   const sendAfter = new Date(Date.now() + 60 * 1000).toISOString() 
 
   // Check if there's already a pending digest for this recipient
@@ -32,7 +32,7 @@ export async function queueDigest(
     .limit(1)
 
   if (existing && existing.length > 0) {
-    // Reset the timer on all pending items for this recipient
+    // Update existing items to match the new sendAfter time
     await admin
       .from('email_digest_queue')
       .update({ send_after: sendAfter })
@@ -40,7 +40,7 @@ export async function queueDigest(
       .gt('send_after', new Date().toISOString())
   }
 
-  // Always insert the new action
+  // Insert the new action
   await admin.from('email_digest_queue').insert({
     recipient_id:     recipientId,
     recipient_email:  recipientEmail,

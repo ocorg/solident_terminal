@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
 
     const admin = createAdminClient()
 
-    // 61 MINUTES: 60 for Morocco (UTC+1) + 1 for your grouping logic
+    // THE BRIDGE: Look 61 minutes into the future to account for 
+    // Morocco (UTC+1) and your 1-minute grouping logic.
     const lookupTimestamp = new Date(Date.now() + 61 * 60 * 1000).toISOString();
 
     const { data: items, error: fetchError } = await admin
@@ -46,13 +47,13 @@ export async function GET(req: NextRequest) {
       try {
         await sendDigestEmail(first.recipient_email, first.recipient_name, actions)
         sentCount++
-      } catch (err) { console.error(err) }
+      } catch (err) { console.error(`Email error:`, err) }
     }
 
     const processedIds = items.map(i => i.id)
     await admin.from('email_digest_queue').delete().in('id', processedIds)
 
-    return NextResponse.json({ success: true, sent: sentCount })
+    return NextResponse.json({ success: true, sent: sentCount, total: items.length })
   } catch (error: any) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
