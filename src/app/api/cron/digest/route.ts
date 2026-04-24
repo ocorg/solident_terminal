@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
   try {
     // 1. Secure Header Check
     const authHeader = req.headers.get('authorization');
+    console.log("Received Header:", authHeader);
+    console.log("Expected Header:", `Bearer ${process.env.CRON_SECRET}`);
     
     // Validate the Bearer token against your CRON_SECRET environment variable
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
