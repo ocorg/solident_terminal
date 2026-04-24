@@ -71,6 +71,7 @@ export default function EventsPage() {
   const [editInviteContextMembers, setEditInviteContextMembers] = useState<Array<{id: string; full_name: string; avatar_url?: string | null}>>([])
   const [editInviteContextSearch,  setEditInviteContextSearch]  = useState('')
   const { toast, toastLeaving, showToast } = useToast()
+  const [leaveConfirm, setLeaveConfirm] = useState<{ onConfirm: () => void } | null>(null)
   const [editEvent, setEditEvent] = useState<Partial<typeof form> | null>(null)
   const [savingEvent, setSavingEvent] = useState(false)
   const [confirm, setConfirm] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null)
@@ -83,7 +84,10 @@ export default function EventsPage() {
   })
 
   function handleCloseCreate() {
-    if (form.title && !window.confirm('Vos données seront perdues. Quitter quand même ?')) return
+    if (form.title) {
+      setLeaveConfirm({ onConfirm: () => { setShowCreate(false); setLeaveConfirm(null) } })
+      return
+    }
     setShowCreate(false)
     setForm({ title: '', description: '', type: 'Réunion', context_type: 'global', context_id: '', start_at: '', end_at: '', location: '', visibility: 'Tous', invitee_ids: [] })
   }
@@ -261,6 +265,17 @@ export default function EventsPage() {
           className={`fixed top-6 left-0 right-0 mx-auto w-fit z-50 px-6 py-3 rounded-2xl text-sm font-semibold shadow-2xl border ${toast.ok ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white'}`}>
           {toast.msg}
         </div>
+      )}
+
+      {leaveConfirm && (
+        <ConfirmModal
+          title="Quitter le formulaire"
+          message="Vos données seront perdues. Quitter quand même ?"
+          confirmLabel="Quitter"
+          danger
+          onConfirm={leaveConfirm.onConfirm}
+          onCancel={() => setLeaveConfirm(null)}
+        />
       )}
 
       {confirm && (

@@ -17,11 +17,7 @@ const transporter = nodemailer.createTransport({
 
 // ─── Shared send wrapper ──────────────────────────────────────
 async function sendEmail(to: string, subject: string, html: string) {
-  try {
-    await transporter.sendMail({ from: FROM, to, subject, html })
-  } catch (e) {
-    console.error('Email send failed:', e)
-  }
+  await transporter.sendMail({ from: FROM, to, subject, html })
 }
 
 // ─── Template helpers ─────────────────────────────────────────

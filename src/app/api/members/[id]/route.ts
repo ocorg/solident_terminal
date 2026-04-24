@@ -30,7 +30,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // Admin can also toggle email pref for any user
   if (body.email_enabled !== undefined) {
-    await admin.from('user_email_prefs').upsert({ user_id: id, email_enabled: body.email_enabled })
+    const { error: prefError } = await admin
+      .from('user_email_prefs')
+      .upsert({ user_id: id, email_enabled: body.email_enabled }, { onConflict: 'user_id' })
+    if (prefError) return NextResponse.json({ error: prefError.message }, { status: 500 })
   }
 
   return NextResponse.json({ status: 'updated' })

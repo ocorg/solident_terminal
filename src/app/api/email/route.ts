@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    provider: 'Resend',
-    from: 'noreply@solident-terminal.vercel.app'
+    provider: 'Nodemailer / Gmail SMTP',
+    from: process.env.GMAIL_USER ?? '(not configured)'
   })
 }

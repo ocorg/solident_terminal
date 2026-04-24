@@ -30,29 +30,30 @@ async function getPermissions(userId: string, taskId: string) {
     .from('task_assignees').select('user_id').eq('task_id', taskId).eq('user_id', userId).single()
   const isAssigned = !!assignment
 
-  let isManager = false
-  for (const ctx of allContexts) {
-    if (isManager) break
+  const positionResults = await Promise.all(allContexts.map(ctx => {
     if (ctx.context_type === 'project') {
-      const { data: membership } = await admin
+      return admin
         .from('project_members')
         .select('project_positions(position_name)')
         .eq('project_id', ctx.context_id)
         .eq('user_id', userId)
         .single()
-      const pos = (membership?.project_positions as any)?.position_name ?? ''
-      if (pos !== '' && !pos.toLowerCase().includes('membre')) isManager = true
-    } else if (ctx.context_type === 'cellule') {
-      const { data: membership } = await admin
+    } else {
+      return admin
         .from('cellule_members')
         .select('cellule_positions(position_name)')
         .eq('cellule_id', ctx.context_id)
         .eq('user_id', userId)
         .single()
-      const pos = (membership?.cellule_positions as any)?.position_name ?? ''
-      if (pos !== '' && !pos.toLowerCase().includes('membre')) isManager = true
     }
-  }
+  }))
+
+  const isManager = positionResults.some(({ data: membership }) => {
+    const pos = (membership as { project_positions?: { position_name: any }[] })?.project_positions?.[0]?.position_name
+      ?? (membership as { cellule_positions?: { position_name: any }[] })?.cellule_positions?.[0]?.position_name
+      ?? ''
+    return pos !== '' && !pos.toLowerCase().includes('membre')
+  })
 
   return { isManager, isAssigned }
 }
@@ -79,11 +80,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const admin = createAdminClient()
   const updates: Record<string, unknown> = {
-    ...body,
     last_updated_by: user.id,
     last_updated_at: new Date().toISOString(),
   }
-
+  // Whitelist only columns that exist on the tasks table
+  if (body.title       !== undefined) updates.title       = body.title
+  if (body.description !== undefined) updates.description = body.description
+  if (body.status      !== undefined) updates.status      = body.status
+  if (body.priority    !== undefined) updates.priority    = body.priority
+  if (body.due_date    !== undefined) updates.due_date    = body.due_date || null
+  if (body.context_type !== undefined) updates.context_type = body.context_type
+  if (body.context_id  !== undefined) updates.context_id  = body.context_id
+  if (body.archived    !== undefined) updates.archived    = body.archived
   if (body.status === '🔄 En cours' && !body.started_at)   updates.started_at   = new Date().toISOString()
   if (body.status === '✅ Terminé'  && !body.completed_at) updates.completed_at = new Date().toISOString()
 

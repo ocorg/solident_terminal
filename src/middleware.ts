@@ -63,7 +63,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
       }
     } catch {
-      // If profile check fails, allow through
+      // If profile check fails, deny access (fail-closed)
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
     }
   }
 

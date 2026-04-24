@@ -199,7 +199,7 @@ export default function MembersPage() {
 
   async function toggleMemberEmailPref(memberId: string) {
     if (!currentIsAdmin) return
-    const current = emailPrefs[memberId] !== false // default to true if not set
+    const current = emailPrefs[memberId] === true
     const next = !current
     setTogglingEmailFor(memberId)
     const res = await fetch(`/api/members/${memberId}`, {
@@ -210,6 +210,7 @@ export default function MembersPage() {
     if (res.ok) {
       setEmailPrefs(prev => ({ ...prev, [memberId]: next }))
       showToast(next ? 'Emails activés pour ce membre' : 'Emails désactivés pour ce membre')
+      await loadMembers()
     } else {
       showToast('Erreur lors de la mise à jour', false)
     }

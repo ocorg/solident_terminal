@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await admin.from('comments').insert({
     task_id, content: content.trim(), author_id: user.id,
-  }).select('*, profiles(full_name, username)').single()
+  }).select('*, profiles(full_name, username, avatar_url)').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

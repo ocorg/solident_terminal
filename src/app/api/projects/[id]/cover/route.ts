@@ -14,6 +14,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const file = formData.get('file') as File
   if (!file) return NextResponse.json({ error: 'Aucun fichier' }, { status: 400 })
   if (file.size > 204800) return NextResponse.json({ error: 'Image trop lourde (max 200 Ko)' }, { status: 400 })
+  const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp']
+  if (!ALLOWED_MIME.includes(file.type)) {
+    return NextResponse.json({ error: 'Format non autorisé — JPEG, PNG ou WebP uniquement' }, { status: 400 })
+  }
 
   const admin = createAdminClient()
   const path = `projects/${id}`

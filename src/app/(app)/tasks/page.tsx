@@ -19,6 +19,7 @@ interface Task {
 }
 interface MemberWorkload {
   id: string; full_name: string; username: string
+  avatar_url?: string | null
   taskCount: number; contextCount: number
   label: string; labelColor: string
 }
@@ -69,7 +70,7 @@ async function loadMembersForContext(contextId: string, contextType: string): Pr
       const count = taskCountMap[p.id] || 0
       const label = count >= 6 ? 'Chargé 🔴' : count >= 3 ? 'Modéré 🟡' : 'Disponible 🟢'
       const labelColor = count >= 6 ? 'text-red-400' : count >= 3 ? 'text-yellow-500' : 'text-green-500'
-      return { id: p.id, full_name: p.full_name, username: p.username, taskCount: count, contextCount: 0, label, labelColor }
+      return { id: p.id, full_name: p.full_name, username: p.username, avatar_url: p.avatar_url ?? null, taskCount: count, contextCount: 0, label, labelColor }
     }).sort((a, b) => a.taskCount - b.taskCount)
   }
 
@@ -113,6 +114,7 @@ export default function TasksPage() {
   const [multiCtxEnabled,    setMultiCtxEnabled]    = useState(false)
   const [secondaryContexts,  setSecondaryContexts]  = useState<Array<{ contextId: string; contextType: string; assigneeIds: string[]; members: MemberWorkload[]; search: string }>>([])
   const [editSecondaryContexts, setEditSecondaryContexts] = useState<Array<{ contextId: string; contextType: string; assigneeIds: string[]; members: MemberWorkload[]; search: string }>>([])
+  const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
     title: '', description: '', context_type: 'project',
@@ -315,7 +317,8 @@ export default function TasksPage() {
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
-    if (!detail || !editForm) return
+    if (!detail || !editForm || saving) return
+    setSaving(true)
 
     const secondaryCtxPayload = editSecondaryContexts.map(sc => ({
       context_type: sc.contextType, context_id: sc.contextId,
@@ -341,7 +344,7 @@ export default function TasksPage() {
       }),
     })
     const saved = await res.json()
-    if (!res.ok) { showToast(saved.error, false); return }
+    if (!res.ok) { showToast(saved.error || 'Erreur lors du sauvegarde', false); setSaving(false); return }
 
     // Reload the full tasks list (with proper joins including avatar_url)
     const freshRes = await fetch(`/api/tasks?archived=${showArchived}`)
@@ -356,6 +359,7 @@ export default function TasksPage() {
     setEditAssigneeIds([])
     setEditSecondaryContexts([])
     showToast('Tâche mise à jour !')
+    setSaving(false)
   }
 
   // ─── Drag & Drop ───────────────────────────────────────────
@@ -916,9 +920,9 @@ export default function TasksPage() {
                       className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-400 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition">
                       Annuler
                     </button>
-                    <button type="submit"
-                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98]">
-                      Enregistrer
+                    <button type="submit" disabled={saving}
+                      className="flex-1 bg-[#1E5F7A] hover:bg-[#2a7a9a] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2">
+                      {saving ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Enregistrement…</> : 'Enregistrer'}
                     </button>
                   </div>
                 </form>
