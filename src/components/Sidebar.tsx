@@ -14,7 +14,11 @@ const navItems = [
 ]
 
 const adminItems = [
-  { href: '/members',    icon: '👥', label: 'Membres'      },
+  { href: '/members',     icon: '👥', label: 'Membres'     },
+]
+
+const backofficeItems = [
+  { href: '/maintenance', icon: '🛠️', label: 'Maintenance' },
 ]
 
 const bottomItems = [
@@ -22,29 +26,34 @@ const bottomItems = [
 ]
 
 interface SidebarProps {
-  collapsed: boolean
-  isAdmin: boolean
-  mobileOpen: boolean
-  isMobile: boolean
+  collapsed:    boolean
+  isAdmin:      boolean
+  isBackoffice: boolean
+  mobileOpen:   boolean
+  isMobile:     boolean
 }
 
-export default function Sidebar({ collapsed, isAdmin, mobileOpen, isMobile }: SidebarProps) {
+export default function Sidebar({ collapsed, isAdmin, isBackoffice, mobileOpen, isMobile }: SidebarProps) {
   const pathname = usePathname()
 
-  // On mobile: show as drawer when mobileOpen, hide when closed
-  // On desktop: show collapsed (icons only) or expanded
-  const isVisible = isMobile ? mobileOpen : true
+  const isVisible  = isMobile ? mobileOpen : true
   const showLabels = isMobile ? true : !collapsed
 
-  const NavLink = ({ href, icon, label }: { href: string; icon: string; label: string }) => {
-    const active = pathname === href
+  const NavLink = ({ href, icon, label, accent = false }: {
+    href: string; icon: string; label: string; accent?: boolean
+  }) => {
+    const active = pathname === href || pathname.startsWith(href + '/')
     return (
       <Link href={href}
         className={`
           flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
           ${active
-            ? 'bg-[#1E5F7A] text-white shadow-lg shadow-[#1E5F7A]/30'
-            : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
+            ? accent
+              ? 'bg-[#F0A500]/15 text-[#F0A500] border border-[#F0A500]/20'
+              : 'bg-[#1E5F7A] text-white shadow-lg shadow-[#1E5F7A]/30'
+            : accent
+              ? 'text-[#F0A500]/60 hover:text-[#F0A500] hover:bg-[#F0A500]/10'
+              : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
           }
           ${!showLabels ? 'justify-center' : ''}
         `}>
@@ -86,6 +95,21 @@ export default function Sidebar({ collapsed, isAdmin, mobileOpen, isMobile }: Si
           <>
             <div className={`my-2 border-t border-gray-100 dark:border-white/5 ${!showLabels ? '' : 'mx-2'}`} />
             {adminItems.map(item => <NavLink key={item.href} {...item} />)}
+          </>
+        )}
+
+        {/* Backoffice section — visible to both is_backoffice AND is_admin */}
+        {(isBackoffice || isAdmin) && (
+          <>
+            <div className={`my-2 border-t border-gray-100 dark:border-white/5 ${!showLabels ? '' : 'mx-2'}`} />
+            {showLabels && (
+              <p className="text-[9px] uppercase tracking-widest text-gray-400 dark:text-slate-600 px-3 pb-1 font-semibold">
+                Backoffice
+              </p>
+            )}
+            {backofficeItems.map(item => (
+              <NavLink key={item.href} {...item} accent />
+            ))}
           </>
         )}
       </nav>

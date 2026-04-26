@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_ROUTES = ['/members']
+const ADMIN_ROUTES      = ['/members']
+const BACKOFFICE_ROUTES = ['/maintenance']
 
 const PUBLIC_PATHS = [
   '/login',
@@ -11,6 +12,7 @@ const PUBLIC_PATHS = [
   '/auth',
   '/api/auth',
   '/api/cron',
+  '/maintenance-active',   // ← public page shown when maintenance is ON
 ]
 
 export async function middleware(request: NextRequest) {
@@ -48,25 +50,64 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin-only routes
-  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+  // Fetch profile once for all permission checks
+  let profile: { is_admin: boolean; is_backoffice: boolean } | null = null
+  const needsProfileCheck =
+    ADMIN_ROUTES.some(r => pathname.startsWith(r)) ||
+    BACKOFFICE_ROUTES.some(r => pathname.startsWith(r)) ||
+    !pathname.startsWith('/api/maintenance') // maintenance mode check for non-API routes
+
+  if (needsProfileCheck) {
     try {
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_backoffice')
         .eq('id', user.id)
         .single()
-
-      if (!profile?.is_admin) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
-      }
+      profile = data
     } catch {
-      // If profile check fails, deny access (fail-closed)
+      profile = null
+    }
+  }
+
+  // ── Admin-only routes ─────────────────────────────────────
+  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+    if (!profile?.is_admin) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
+    }
+  }
+
+  // ── Backoffice-only routes ────────────────────────────────
+  if (BACKOFFICE_ROUTES.some(route => pathname.startsWith(route))) {
+    if (!profile?.is_admin && !profile?.is_backoffice) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // ── Maintenance mode check (non-API routes only) ──────────
+  // Skip for admins, backoffice, and API routes
+  const isPageRoute = !pathname.startsWith('/api/')
+  const isPrivileged = profile?.is_admin || profile?.is_backoffice
+
+  if (isPageRoute && !isPrivileged) {
+    try {
+      const { data: config } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'maintenance_mode')
+        .single()
+
+      if (config?.value === 'true') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/maintenance-active'
+        return NextResponse.redirect(url)
+      }
+    } catch {
+      // If check fails, allow through (fail-open for maintenance mode)
     }
   }
 

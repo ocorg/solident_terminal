@@ -3,7 +3,7 @@ import { sendDigestEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
-  if (token !== process.env.CRON_SECRET) {
+  if (token !== process.env.Cron_Key) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -145,6 +145,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Dispatch in-app notifications for assignees
+  if (assignee_ids?.length > 0) {
+    await admin.from('notifications').insert(
+      assignee_ids.map((uid: string) => ({
+        recipient_id: uid,
+        type:         'task_assigned',
+        target_id:    task.id,
+        message:      `Vous avez été assigné à la tâche "${title}".`,
+        status:       'Non lu',
+      }))
+    )
+  }
+
   // Queue digest notifications for assignees
   if (assignee_ids?.length > 0) {
     const { queueDigest } = await import('@/lib/digest')
