@@ -6,8 +6,8 @@ import Link from 'next/link'
 
 interface Profile { full_name: string; username: string; is_admin: boolean; avatar_url?: string | null }
 interface Task    { id: string; title: string; status: string; priority: string; due_date: string | null }
-interface Project { id: string; name: string; status: string }
-interface Cellule { id: string; name: string }
+interface Project { id: string; name: string; status: string; image_url?: string | null }
+interface Cellule { id: string; name: string; image_url?: string | null }
 interface Event   { id: string; title: string; type: string; start_at: string; location: string | null }
 interface Notification { id: string; message: string; status: string; created_at: string }
 interface Proposal { id: string; title: string; proposed_at: string; type: string }
@@ -84,8 +84,8 @@ export default function DashboardPage() {
       const isAdmin = !!prof?.is_admin
       if (isAdmin) {
         const [{ data: allProj }, { data: allCel }] = await Promise.all([
-          supabase.from('projects').select('id,name,status').neq('status', 'Terminé').order('name').limit(8),
-          supabase.from('cellules').select('id,name').order('name').limit(8),
+          supabase.from('projects').select('id,name,status,image_url').neq('status', 'Terminé').order('name').limit(8),
+          supabase.from('cellules').select('id,name,image_url').order('name').limit(8),
         ])
         if (allProj) setProjects(allProj)
         if (allCel)  setCellules(allCel)
@@ -95,11 +95,11 @@ export default function DashboardPage() {
           supabase.from('cellule_members').select('cellule_id').eq('user_id', user.id),
         ])
         if (pmRows?.length) {
-          const { data: projData } = await supabase.from('projects').select('id,name,status').in('id', pmRows.map(r => r.project_id)).limit(8)
+          const { data: projData } = await supabase.from('projects').select('id,name,status,image_url').in('id', pmRows.map(r => r.project_id)).limit(8)
           if (projData) setProjects(projData)
         }
         if (cmRows?.length) {
-          const { data: celData } = await supabase.from('cellules').select('id,name').in('id', cmRows.map(r => r.cellule_id)).limit(8)
+          const { data: celData } = await supabase.from('cellules').select('id,name,image_url').in('id', cmRows.map(r => r.cellule_id)).limit(8)
           if (celData) setCellules(celData)
         }
       }
@@ -248,8 +248,11 @@ export default function DashboardPage() {
                 {projects.map(p => (
                   <Link key={p.id} href={`/projects/${p.id}`}
                     className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition group">
-                    <div className="w-8 h-8 rounded-lg bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex-shrink-0">
-                      {initials(p.name)}
+                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#1E5F7A]/20 flex items-center justify-center text-[#1E5F7A] dark:text-[#5bbcde] text-[10px] font-bold flex-shrink-0">
+                      {p.image_url
+                        ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                        : initials(p.name)
+                      }
                     </div>
                     <p className="text-gray-800 dark:text-slate-200 text-sm font-medium flex-1 truncate group-hover:text-[#1E5F7A] dark:group-hover:text-[#5bbcde] transition">{p.name}</p>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${projectStatus[p.status] || ''}`}>{p.status}</span>
@@ -274,8 +277,11 @@ export default function DashboardPage() {
                 {cellules.map(c => (
                   <Link key={c.id} href={`/cellules/${c.id}`}
                     className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition group">
-                    <div className="w-8 h-8 rounded-lg bg-[#F0A500]/20 flex items-center justify-center text-[#F0A500] text-[10px] font-bold flex-shrink-0">
-                      {initials(c.name)}
+                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-[#F0A500]/20 flex items-center justify-center text-[#F0A500] text-[10px] font-bold flex-shrink-0">
+                      {c.image_url
+                        ? <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                        : initials(c.name)
+                      }
                     </div>
                     <p className="text-gray-800 dark:text-slate-200 text-sm font-medium flex-1 truncate group-hover:text-[#F0A500] transition">{c.name}</p>
                   </Link>

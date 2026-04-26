@@ -127,8 +127,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .from('task_assignees').select('user_id').eq('task_id', id).neq('user_id', user.id)
 
     if (task && assignees && assignees.length > 0) {
-      const { queueDigest } = await import('@/lib/digest')
       const assigneeIds = assignees.map((a: any) => a.user_id)
+      // In-app notifications
+      await admin.from('notifications').insert(
+        assigneeIds.map((uid: string) => ({
+          recipient_id: uid,
+          type:         'task_assigned',
+          target_id:    id,
+          message:      body.status
+            ? `La tâche "${task.title}" est passée à : ${body.status}.`
+            : `La tâche "${task.title}" a été mise à jour.`,
+          status:       'Non lu',
+        }))
+      )
+      const { queueDigest } = await import('@/lib/digest')
 
       const { data: profiles } = await admin.from('profiles').select('id, full_name').in('id', assigneeIds)
       const { data: emailPrefs } = await admin.from('user_email_prefs').select('user_id, email_enabled').in('user_id', assigneeIds)
