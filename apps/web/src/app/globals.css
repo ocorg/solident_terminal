@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Solident design tokens (docs/SPEC.md §8). Full design system in Phase 0 step 9. */
+/* ───────── Solident design tokens (docs/SPEC.md §8) ───────── */
 @theme {
   --color-navy-900: #123a4f;
   --color-navy-700: #1e5470;
@@ -13,8 +13,105 @@
   --color-danger: #c8553d;
   --color-solifun-sky: #2fa4d8;
 
-  --font-sans: var(--font-montserrat), system-ui, sans-serif;
-  --font-heading: var(--font-poppins), system-ui, sans-serif;
+  --radius-card: 12px;
+  --radius-btn: 10px;
 
   --shadow-card: 0 8px 24px rgba(18, 58, 79, 0.08);
+  --shadow-card-hover: 0 14px 32px rgba(18, 58, 79, 0.14);
+}
+
+/* Fonts switch with the language: Latin = Montserrat / Poppins, Arabic = IBM Plex Sans Arabic. */
+@theme inline {
+  --font-sans: var(--site-font-body);
+  --font-heading: var(--site-font-heading);
+}
+:root {
+  --site-font-body: var(--font-montserrat), system-ui, sans-serif;
+  --site-font-heading: var(--font-poppins), system-ui, sans-serif;
+}
+:root:lang(ar) {
+  --site-font-body: var(--font-plex-arabic), system-ui, sans-serif;
+  --site-font-heading: var(--font-plex-arabic), system-ui, sans-serif;
+}
+
+body {
+  line-height: 1.6;
+}
+
+/* ───────── Components (spec §8 "Components and feel") ───────── */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-btn);
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  transition: filter 150ms, transform 150ms, background-color 150ms;
+  &:hover {
+    filter: brightness(0.92);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+@utility btn-primary {
+  background-color: var(--color-navy-700);
+  color: white;
+}
+/* Gold CTA always carries navy text: gold is never used for small text on white (contrast). */
+@utility btn-cta {
+  background-color: var(--color-gold-500);
+  color: var(--color-navy-900);
+}
+@utility btn-ghost {
+  border: 1px solid var(--color-navy-100);
+  color: var(--color-navy-700);
+  &:hover {
+    filter: none;
+    background-color: var(--color-navy-100);
+  }
+}
+
+@utility card {
+  border-radius: var(--radius-card);
+  background-color: white;
+  box-shadow: var(--shadow-card);
+}
+@utility card-hover {
+  transition: transform 200ms, box-shadow 200ms;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+/* Dossier motif: navy line with a gold dot */
+@utility divider-dot {
+  position: relative;
+  height: 2px;
+  width: 4rem;
+  background-color: var(--color-navy-700);
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -0.75rem;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-gold-500);
+    transform: translateY(-50%);
+  }
+}
+
+/* Directional icons (arrows) mirror in Arabic */
+@utility flip-rtl {
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    transform: scaleX(-1);
+  }
 }

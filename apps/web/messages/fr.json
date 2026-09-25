@@ -1,0 +1,59 @@
+{
+  "Metadata": {
+    "title": "Association Solident",
+    "description": "Soins bucco-dentaires gratuits et prévention pour les communautés défavorisées du nord du Maroc."
+  },
+  "Nav": {
+    "home": "Accueil",
+    "about": "Qui sommes-nous",
+    "programmes": "Programmes",
+    "actions": "Actions",
+    "events": "Événements",
+    "solifun": "Solifun",
+    "support": "Nous soutenir",
+    "donate": "Faire un don",
+    "sponsoring": "Sponsoring",
+    "volunteer": "Bénévolat",
+    "partners": "Partenaires",
+    "contact": "Contact",
+    "members": "Espace membres",
+    "menu": "Menu",
+    "skip": "Aller au contenu"
+  },
+  "LocaleSwitcher": {
+    "label": "Langue"
+  },
+  "Home": {
+    "eyebrow": "Bridge de Solidarité des Médecins Dentistes",
+    "title": "Le sourire, un droit pour tous",
+    "intro": "Depuis 2024, de jeunes dentistes du nord du Maroc apportent soins gratuits et prévention bucco-dentaire aux communautés qui en ont le plus besoin.",
+    "ctaDonate": "Faire un don",
+    "ctaSponsor": "Devenir sponsor",
+    "ctaVolunteer": "Devenir bénévole",
+    "impactTitle": "Notre impact",
+    "nextEvent": "Prochain grand rendez-vous",
+    "nextEventCta": "Soutenir la caravane",
+    "missionTitle": "Mission",
+    "mission": "Promouvoir la santé bucco-dentaire par la sensibilisation, la prévention et des caravanes dentaires, avec un accès équitable aux soins.",
+    "visionTitle": "Vision",
+    "vision": "Faire de la santé bucco-dentaire une priorité dans la vie de chaque citoyen, et donner une nouvelle dimension au bénévolat.",
+    "valuesTitle": "Valeurs",
+    "values": "Solidarité · Bienveillance · Action collective · Bénévolat"
+  },
+  "Footer": {
+    "tagline": "Association marocaine de santé bucco-dentaire, fondée en 2024 à Larache – Ksar El Kébir.",
+    "contact": "Contact",
+    "follow": "Suivez-nous",
+    "rights": "Association Solident. Tous droits réservés."
+  },
+  "Placeholder": {
+    "soon": "Page en préparation",
+    "text": "Cette page arrive très bientôt. En attendant, suivez nos actions sur Instagram.",
+    "back": "Retour à l'accueil"
+  },
+  "NotFound": {
+    "title": "Page introuvable",
+    "text": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "back": "Retour à l'accueil"
+  }
+}

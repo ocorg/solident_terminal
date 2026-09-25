@@ -1,0 +1,59 @@
+{
+  "Metadata": {
+    "title": "Solident Association",
+    "description": "Free oral-health care and prevention for underserved communities in northern Morocco."
+  },
+  "Nav": {
+    "home": "Home",
+    "about": "About us",
+    "programmes": "Programmes",
+    "actions": "Actions",
+    "events": "Events",
+    "solifun": "Solifun",
+    "support": "Support us",
+    "donate": "Donate",
+    "sponsoring": "Sponsorship",
+    "volunteer": "Volunteer",
+    "partners": "Partners",
+    "contact": "Contact",
+    "members": "Members' area",
+    "menu": "Menu",
+    "skip": "Skip to content"
+  },
+  "LocaleSwitcher": {
+    "label": "Language"
+  },
+  "Home": {
+    "eyebrow": "Dentists' Solidarity Bridge",
+    "title": "A smile is everyone's right",
+    "intro": "Since 2024, young dentists from northern Morocco have brought free dental care and oral-health prevention to the communities that need it most.",
+    "ctaDonate": "Donate",
+    "ctaSponsor": "Become a sponsor",
+    "ctaVolunteer": "Volunteer",
+    "impactTitle": "Our impact",
+    "nextEvent": "Our next big event",
+    "nextEventCta": "Support the caravan",
+    "missionTitle": "Mission",
+    "mission": "Promote oral health through awareness, prevention and dental caravans, with fair access to care.",
+    "visionTitle": "Vision",
+    "vision": "Make oral health a priority in every citizen's life, and take the culture of volunteering further.",
+    "valuesTitle": "Values",
+    "values": "Solidarity · Kindness · Collective action · Volunteering"
+  },
+  "Footer": {
+    "tagline": "Moroccan oral-health association, founded in 2024 in Larache – Ksar El Kébir.",
+    "contact": "Contact",
+    "follow": "Follow us",
+    "rights": "Solident Association. All rights reserved."
+  },
+  "Placeholder": {
+    "soon": "Page coming soon",
+    "text": "This page is on its way. Meanwhile, follow our actions on Instagram.",
+    "back": "Back to home"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "text": "The page you are looking for does not exist or has moved.",
+    "back": "Back to home"
+  }
+}
