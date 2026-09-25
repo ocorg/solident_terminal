@@ -1,0 +1,60 @@
+# Solident monorepo — context for Claude Code
+
+This repo holds two Next.js apps for **Association Solident** (Moroccan dental NGO, see `docs/SPEC.md` §1):
+
+- `apps/terminal` — Solident Terminal, the existing internal mini-ERP. **Still on Supabase** until Phase 4. Has its own `CLAUDE.md` / `AGENTS.md`; read them before touching it.
+- `apps/web` — the new public trilingual website (FR / AR / EN) + `/admin`. Being built now.
+- `packages/db` — shared Prisma schema + client (`@solident/db`) on **Neon Postgres**. Not created yet.
+
+Full spec: **`docs/SPEC.md`** (architecture, site map, data model, flows, admin roles, design system, roadmap). Read it before any feature work.
+
+## Owner and working style
+
+- Owner: Oussama, sole developer/admin. Non-coder ("vibecoder") with a business background, works on **Windows + VS Code + PowerShell**.
+- Before writing code for a new feature: give a short summary of your understanding (architecture + data mapping), a flow outline (User action → client → server action → DB → UI feedback), and at least 3 targeted questions. Small fixes and setup commands can go straight ahead.
+- Explain what each command does in one line. Never print or commit secrets; values from `.env` files never go in chat or git.
+
+## Stack (decided)
+
+Next.js App Router + TypeScript · pnpm 10 workspaces · Neon Postgres + **Prisma** (`@prisma/adapter-neon`) · Auth.js (Prisma adapter, magic link via Nodemailer + the same Gmail SMTP account Terminal uses) · Pusher Channels · Cloudflare R2 · next-intl · Tailwind · Vercel Hobby (`*.vercel.app` for now) · cron-job.org for scheduled jobs.
+
+## Conventions (must follow)
+
+- Server actions / route handlers return `{ status: 'success', data }` or throw an `Error`; never return `null`.
+- Every client call: loading state (disabled button + spinner) and success/error toast.
+- Validate every input with Zod on the server before writing. Multi-step writes use `prisma.$transaction`.
+- No RLS on Neon: every admin action checks the role server-side (`requireRole`).
+- DB content columns are suffixed `_fr`, `_ar`, `_en`; UI strings live in next-intl JSON messages. Arabic uses `dir="rtl"`; use logical CSS properties.
+- Design: navy `#1E5470` / gold `#F4B223` / cream `#FBF8F2`, Poppins + Montserrat, IBM Plex Sans Arabic; 8–12 px radii, soft shadows, hover/active micro-interactions (spec §8).
+
+## Commands (run from repo root)
+
+```
+pnpm install
+pnpm dev:terminal   # http://localhost:3000
+pnpm dev:web        # http://localhost:3001
+pnpm build:terminal
+pnpm build:web
+pnpm db:migrate     # create + apply a migration on the dev branch (after editing schema.prisma)
+pnpm db:status      # is the DB in sync with the migrations?
+pnpm db:seed        # (re)load seed data, safe to re-run
+pnpm db:studio      # browse data in the browser
+pnpm db:generate    # rebuild the Prisma client
+```
+
+## Progress — Phase 0 (foundations)
+
+Work happens on branch **`monorepo-setup`**. Restore point: tag **`pre-monorepo`** (old single-app layout).
+
+- [x] Step 1 — safety tag + branch, pnpm 10.34.5 (pnpm 11 failed on Windows; stay on 10), Node 22.22.3
+- [x] Step 2 — Terminal moved to `apps/terminal` (its `.env.local` and `.vercel` moved with it, both git-ignored)
+- [x] Step 3 — root `package.json` + `pnpm-workspace.yaml`; Terminal runs from the monorepo
+- [x] Step 4 — `apps/web` scaffolded (Next 16.3.6, port 3001). Terminal is on Next 16.2.2; align in Phase 4
+- [x] Step 5 — Neon project `solident` (AWS Frankfurt, database `neondb`), branches `main` (prod, still empty) + `dev`. `packages/db` = `@solident/db` on **Prisma 7.10.0, pinned exactly** (npm's `latest` tag points at an 8.0 RC; don't upgrade by accident). `prisma.config.ts` gives `DIRECT_URL` to the CLI; `src/index.ts` exports `prisma` via `PrismaNeon` on pooled `DATABASE_URL`; client generated to `src/generated/prisma` (git-ignored, rebuilt on `postinstall`). Migration `init` applied on `dev`; seed (`prisma/seed.ts`, re-runnable) loaded 6 programmes, 22 partners, 21 actions (14 caravans), Jissr Attadamon event + campaign, 4 tiers, 11 board members, impact stats, admin user from `SEED_ADMIN_EMAIL`. Deviations from SPEC §5: `action_partners` join table (not `partner_ids[]`), `campaigns.raised_dh/donors_count` cache, `events.programme_id/created_by`, `team_members.phone/is_public_contact`, unique `(event_id, phone)` on registrations. AR/EN seed text and most map coordinates are drafts to review
+- [ ] Step 6 — Auth.js in `apps/web` (magic link, `users.role`), shared with Terminal later
+- [ ] Step 7 — Cloudflare R2: public bucket (media) + private bucket (donation proofs), API token, signed-upload test
+- [ ] Step 8 — Pusher app (EU cluster), server + client libs, test event
+- [ ] Step 9 — next-intl `/fr` `/ar` `/en` with RTL, design tokens in Tailwind
+- [ ] Step 10 — Vercel: new project for `apps/web` (Root Directory `apps/web`, function region `fra1`, env vars). **Before merging `monorepo-setup` into `main`**, change the existing Terminal Vercel project's Root Directory to `apps/terminal` and set its install command for pnpm, or the live Terminal breaks.
+
+Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026, Terminal migration Dec 2026–Jan 2027).
