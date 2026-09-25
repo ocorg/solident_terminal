@@ -1,7 +1,7 @@
 // Seed data from docs/SPEC.md §1. Safe to re-run: rows are upserted by slug/key.
 // Arabic and English texts are DRAFTS to be reviewed before publishing.
 // Map coordinates are only set where the place is known at town level; others stay null (fill in /admin).
-import 'dotenv/config'
+import '../load-env'
 import { prisma, type EventType, type PartnerType } from '../src/index'
 
 const d = (iso: string) => new Date(`${iso}T00:00:00Z`)

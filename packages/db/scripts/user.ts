@@ -3,7 +3,7 @@
 //   pnpm db:user approve <email> [role]       → activate, optionally set role (admin|treasurer|hr|media|member)
 //   pnpm db:user role <email> <role>          → change role
 //   pnpm db:user deactivate <email>           → block login and end all sessions
-import 'dotenv/config'
+import '../load-env'
 import { prisma, type Role } from '../src/index'
 
 const ROLES: Role[] = ['admin', 'treasurer', 'hr', 'media', 'member']

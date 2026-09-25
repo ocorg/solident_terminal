@@ -1,5 +1,6 @@
 import 'server-only'
 import nodemailer from 'nodemailer'
+import { siteUrl } from './site-url'
 
 // Same Gmail account and SMTP settings as Terminal (apps/terminal/src/lib/email.ts).
 const transporter = nodemailer.createTransport({
@@ -62,7 +63,7 @@ export function resetPasswordEmail(url: string, name: string) {
 }
 
 export function existingAccountEmail(name: string) {
-  const base = process.env.BETTER_AUTH_URL ?? ''
+  const base = siteUrl()
   const subject = 'Vous avez déjà un compte Solident'
   const text = `Bonjour ${name},\n\nQuelqu'un (sans doute vous) a essayé de créer un compte avec cette adresse, mais vous en avez déjà un.\nConnectez-vous : ${base}/connexion\nMot de passe oublié : ${base}/mot-de-passe-oublie\n\nAssociation Solident`
   const html = `<!doctype html>

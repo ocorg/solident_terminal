@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './load-env'
 import { defineConfig } from 'prisma/config'
 
 // Prisma CLI (migrate, studio, seed) uses the DIRECT (unpooled) Neon URL.

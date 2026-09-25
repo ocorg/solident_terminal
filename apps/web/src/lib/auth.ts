@@ -5,10 +5,13 @@ import { nextCookies } from 'better-auth/next-js'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { prisma } from '@solident/db'
 import { accessRequestEmail, existingAccountEmail, magicLinkEmail, resetPasswordEmail, sendMail } from './mail'
+import { siteUrl, vercelOrigins } from './site-url'
 
 const DAY = 60 * 60 * 24
 
 export const auth = betterAuth({
+  baseURL: siteUrl(),
+  trustedOrigins: vercelOrigins(),
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
   advanced: { database: { generateId: 'uuid' } },
   session: {
