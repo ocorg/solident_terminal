@@ -1,30 +1,30 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Spinner } from '@/components/spinner'
-import { requestAccess } from './actions'
-
-const inputClass =
-  'w-full rounded-[10px] border border-navy-100 bg-white px-4 py-3 outline-none transition focus:border-navy-700 focus:ring-2 focus:ring-navy-100'
+import { Field, inputClass, PasswordInput, SubmitButton } from '@/components/form-fields'
+import { authClient, authErrorMessage } from '@/lib/auth-client'
 
 export function RequestForm() {
-  const [form, setForm] = useState({ name: '', email: '', message: '', website: '' })
+  const [form, setForm] = useState({ name: '', email: '', password: '', website: '' })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (form.website) return setDone(true) // honeypot filled: a bot, pretend it worked
     setLoading(true)
     try {
-      await requestAccess({ ...form, message: form.message || undefined, website: form.website || undefined })
+      const { error } = await authClient.signUp.email({ name: form.name.trim(), email: form.email, password: form.password })
+      if (error) return void toast.error(authErrorMessage(error))
       setDone(true)
       toast.success('Compte créé, en attente de validation')
     } catch {
-      toast.error("La demande n'a pas pu être envoyée. Vérifiez les champs et réessayez.")
+      toast.error("Le compte n'a pas pu être créé. Réessayez.")
     } finally {
       setLoading(false)
     }
@@ -32,42 +32,33 @@ export function RequestForm() {
 
   if (done) {
     return (
-      <div className="space-y-2 text-center">
+      <div className="space-y-3 text-center">
         <p className="text-lg font-semibold text-navy-700">Compte créé</p>
         <p className="text-ink-600">
-          Un administrateur doit maintenant le valider. Vous recevrez l&apos;accès et pourrez vous connecter avec{' '}
-          <strong>{form.email}</strong>.
+          Un administrateur doit maintenant le valider. Ensuite, connectez-vous avec <strong>{form.email}</strong> et
+          votre mot de passe.
         </p>
+        <Link href="/connexion" className="text-sm text-navy-700 underline">
+          Aller à la connexion
+        </Link>
       </div>
     )
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <label htmlFor="req-name" className="block text-sm font-medium">Nom complet</label>
-        <input id="req-name" required minLength={2} maxLength={80} value={form.name} onChange={set('name')} className={inputClass} />
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="req-email" className="block text-sm font-medium">Adresse e-mail</label>
-        <input id="req-email" type="email" required autoComplete="email" value={form.email} onChange={set('email')} className={inputClass} />
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="req-message" className="block text-sm font-medium">
-          Message <span className="font-normal text-ink-600">(optionnel : votre rôle, votre cellule…)</span>
-        </label>
-        <textarea id="req-message" rows={3} maxLength={500} value={form.message} onChange={set('message')} className={inputClass} />
-      </div>
+      <Field id="reg-name" label="Nom complet">
+        <input id="reg-name" required minLength={2} maxLength={80} autoComplete="name" value={form.name} onChange={set('name')} className={inputClass} />
+      </Field>
+      <Field id="reg-email" label="Adresse e-mail">
+        <input id="reg-email" type="email" required autoComplete="email" value={form.email} onChange={set('email')} className={inputClass} />
+      </Field>
+      <Field id="reg-password" label={<>Mot de passe <span className="font-normal text-ink-600">(8 caractères minimum)</span></>}>
+        <PasswordInput id="reg-password" required minLength={8} maxLength={128} autoComplete="new-password" value={form.password} onChange={set('password')} />
+      </Field>
       {/* Honeypot, hidden from humans */}
       <input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} className="hidden" aria-hidden />
-      <button
-        type="submit"
-        disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-navy-700 px-4 py-3 font-semibold text-white transition hover:brightness-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {loading && <Spinner />}
-        Créer mon compte
-      </button>
+      <SubmitButton loading={loading}>Créer mon compte</SubmitButton>
     </form>
   )
 }

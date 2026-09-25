@@ -1,39 +1,52 @@
 'use client'
 
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Spinner } from '@/components/spinner'
-import { requestMagicLink } from './actions'
+import { Field, inputClass, PasswordInput, SubmitButton } from '@/components/form-fields'
+import { authClient, authErrorMessage } from '@/lib/auth-client'
 
 export function LoginForm() {
+  const router = useRouter()
+  const [mode, setMode] = useState<'password' | 'link'>('password')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [linkSentTo, setLinkSentTo] = useState<string | null>(null)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await requestMagicLink({ email })
-      setSentTo(res.data.email)
-      toast.success('Vérifiez votre boîte mail')
+      if (mode === 'password') {
+        const { error } = await authClient.signIn.email({ email, password, rememberMe: true })
+        if (error) return void toast.error(authErrorMessage(error))
+        toast.success('Connexion réussie')
+        router.replace('/admin')
+        router.refresh()
+      } else {
+        const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/admin', errorCallbackURL: '/connexion' })
+        if (error) return void toast.error(authErrorMessage(error))
+        setLinkSentTo(email)
+        toast.success('Vérifiez votre boîte mail')
+      }
     } catch {
-      toast.error("Impossible d'envoyer le lien. Vérifiez l'adresse et réessayez.")
+      toast.error('Connexion impossible. Vérifiez votre connexion internet et réessayez.')
     } finally {
       setLoading(false)
     }
   }
 
-  if (sentTo) {
+  if (linkSentTo) {
     return (
       <div className="space-y-3 text-center">
         <p className="text-lg font-semibold text-navy-700">Vérifiez votre boîte mail</p>
         <p className="text-ink-600">
-          Si <strong>{sentTo}</strong> a un compte validé, vous allez recevoir un lien pour vous connecter,
-          valable 24 heures.
+          Si <strong>{linkSentTo}</strong> a un compte validé, vous allez recevoir un lien de connexion valable 24 heures.
         </p>
-        <button type="button" onClick={() => setSentTo(null)} className="text-sm text-navy-700 underline">
-          Utiliser une autre adresse
+        <button type="button" onClick={() => setLinkSentTo(null)} className="text-sm text-navy-700 underline">
+          Retour
         </button>
       </div>
     )
@@ -41,26 +54,48 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <label htmlFor="login-email" className="block text-sm font-medium text-navy-900">
-        Adresse e-mail
-      </label>
-      <input
-        id="login-email"
-        type="email"
-        required
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-[10px] border border-navy-100 bg-white px-4 py-3 outline-none transition focus:border-navy-700 focus:ring-2 focus:ring-navy-100"
-        placeholder="prenom.nom@exemple.com"
-      />
+      <Field id="login-email" label="Adresse e-mail">
+        <input
+          id="login-email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+        />
+      </Field>
+
+      {mode === 'password' && (
+        <Field
+          id="login-password"
+          label={
+            <span className="flex items-center justify-between">
+              Mot de passe
+              <Link href="/mot-de-passe-oublie" className="font-normal text-navy-700 hover:underline">
+                Mot de passe oublié ?
+              </Link>
+            </span>
+          }
+        >
+          <PasswordInput
+            id="login-password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+      )}
+
+      <SubmitButton loading={loading}>{mode === 'password' ? 'Se connecter' : 'Recevoir un lien de connexion'}</SubmitButton>
+
       <button
-        type="submit"
-        disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-navy-700 px-4 py-3 font-semibold text-white transition hover:brightness-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
+        type="button"
+        onClick={() => setMode((m) => (m === 'password' ? 'link' : 'password'))}
+        className="block w-full text-center text-sm text-ink-600 hover:text-navy-700 hover:underline"
       >
-        {loading && <Spinner />}
-        Se connecter
+        {mode === 'password' ? 'Se connecter sans mot de passe (lien par e-mail)' : 'Se connecter avec mon mot de passe'}
       </button>
     </form>
   )

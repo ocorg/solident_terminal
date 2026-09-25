@@ -96,10 +96,10 @@ model User {
   email         String   @unique
   emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
-  role          Role      @default(member)
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  role          Role     @default(member)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   accounts           Account[]
   sessions           Session[]
@@ -158,6 +158,16 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// Login attempt counters (Better Auth rateLimit, storage: "database"), shared across serverless instances
+model RateLimit {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limits")
 }
 
 // ───────────────────────── Content ─────────────────────────
