@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/guards'
 import { LoginForm } from './login-form'
@@ -29,6 +30,12 @@ export default async function ConnexionPage({ searchParams }: PageProps<'/connex
           </p>
         )}
         <LoginForm />
+        <p className="mt-6 text-center text-sm text-ink-600">
+          Pas encore de compte ?{' '}
+          <Link href="/connexion/demande" className="text-navy-700 underline">
+            Demander un accès
+          </Link>
+        </p>
       </div>
     </main>
   )
