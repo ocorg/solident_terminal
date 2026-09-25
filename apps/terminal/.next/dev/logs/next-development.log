@@ -1,6 +1,4 @@
-{"timestamp":"00:00:06.661","source":"Server","level":"WARN","message":"⚠ The \"middleware\" file convention is deprecated. Please use \"proxy\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy"}
-{"timestamp":"00:00:07.464","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:18.435","source":"Server","level":"LOG","message":"○ Compiling middleware ..."}
-{"timestamp":"00:00:24.294","source":"Server","level":"LOG","message":"○ Compiling /login ..."}
-{"timestamp":"00:00:49.403","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:08:36.779","source":"Server","level":"LOG","message":"○ Compiling /api/notifications ..."}
+{"timestamp":"00:00:05.231","source":"Server","level":"WARN","message":"⚠ The \"middleware\" file convention is deprecated. Please use \"proxy\" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy"}
+{"timestamp":"00:00:06.264","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:16.751","source":"Server","level":"LOG","message":"○ Compiling /login ..."}
+{"timestamp":"00:00:24.115","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
