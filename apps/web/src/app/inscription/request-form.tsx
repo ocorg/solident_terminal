@@ -22,7 +22,7 @@ export function RequestForm() {
     try {
       await requestAccess({ ...form, message: form.message || undefined, website: form.website || undefined })
       setDone(true)
-      toast.success('Demande envoyée')
+      toast.success('Compte créé, en attente de validation')
     } catch {
       toast.error("La demande n'a pas pu être envoyée. Vérifiez les champs et réessayez.")
     } finally {
@@ -33,9 +33,9 @@ export function RequestForm() {
   if (done) {
     return (
       <div className="space-y-2 text-center">
-        <p className="text-lg font-semibold text-navy-700">Demande reçue</p>
+        <p className="text-lg font-semibold text-navy-700">Compte créé</p>
         <p className="text-ink-600">
-          Un administrateur va l&apos;examiner. Une fois votre accès validé, vous pourrez vous connecter avec{' '}
+          Un administrateur doit maintenant le valider. Vous recevrez l&apos;accès et pourrez vous connecter avec{' '}
           <strong>{form.email}</strong>.
         </p>
       </div>
@@ -66,7 +66,7 @@ export function RequestForm() {
         className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-navy-700 px-4 py-3 font-semibold text-white transition hover:brightness-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading && <Spinner />}
-        Envoyer la demande
+        Créer mon compte
       </button>
     </form>
   )

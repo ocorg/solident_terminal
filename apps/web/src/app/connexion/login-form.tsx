@@ -27,9 +27,9 @@ export function LoginForm() {
   if (sentTo) {
     return (
       <div className="space-y-3 text-center">
-        <p className="text-lg font-semibold text-navy-700">Lien envoyé</p>
+        <p className="text-lg font-semibold text-navy-700">Vérifiez votre boîte mail</p>
         <p className="text-ink-600">
-          Si <strong>{sentTo}</strong> correspond à un compte membre, vous allez recevoir un lien de connexion
+          Si <strong>{sentTo}</strong> a un compte validé, vous allez recevoir un lien pour vous connecter,
           valable 24 heures.
         </p>
         <button type="button" onClick={() => setSentTo(null)} className="text-sm text-navy-700 underline">
@@ -60,7 +60,7 @@ export function LoginForm() {
         className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-navy-700 px-4 py-3 font-semibold text-white transition hover:brightness-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading && <Spinner />}
-        Recevoir mon lien de connexion
+        Se connecter
       </button>
     </form>
   )
