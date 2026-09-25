@@ -11,6 +11,7 @@
     "db:migrate": "pnpm --filter @solident/db migrate:dev",
     "db:status": "pnpm --filter @solident/db migrate:status",
     "db:seed": "pnpm --filter @solident/db seed",
-    "db:studio": "pnpm --filter @solident/db studio"
+    "db:studio": "pnpm --filter @solident/db studio",
+    "db:user": "pnpm --filter @solident/db db:user"
   }
 }
