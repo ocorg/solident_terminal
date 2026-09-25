@@ -86,14 +86,15 @@ enum MediaOwnerType {
   partner
 }
 
-// ───────────────────────── Auth.js ─────────────────────────
-// Field names follow the @auth/prisma-adapter contract; do not rename them.
+// ───────────────────────── Auth (Better Auth) ─────────────────────────
+// Model and field names follow Better Auth's core schema (user/session/account/verification);
+// do not rename the Prisma fields. Better Auth generates UUID ids (advanced.database.generateId).
 
 model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String?
-  email         String    @unique
-  emailVerified DateTime? @map("email_verified") @db.Timestamptz(3)
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
   role          Role      @default(member)
   isActive      Boolean   @default(true) @map("is_active")
@@ -110,33 +111,35 @@ model User {
 }
 
 model Account {
-  userId            String   @map("user_id") @db.Uuid
-  type              String
-  provider          String
-  providerAccountId String   @map("provider_account_id")
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([provider, providerAccountId])
   @@index([userId])
   @@map("accounts")
 }
 
 model Session {
-  sessionToken String   @unique @map("session_token")
-  userId       String   @map("user_id") @db.Uuid
-  expires      DateTime @db.Timestamptz(3)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -144,13 +147,17 @@ model Session {
   @@map("sessions")
 }
 
-model VerificationToken {
+// Magic-link tokens (identifier = token, value = JSON with the email)
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
   identifier String
-  token      String
-  expires    DateTime @db.Timestamptz(3)
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@id([identifier, token])
-  @@map("verification_tokens")
+  @@index([identifier])
+  @@map("verifications")
 }
 
 // ───────────────────────── Content ─────────────────────────

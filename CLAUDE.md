@@ -16,7 +16,7 @@ Full spec: **`docs/SPEC.md`** (architecture, site map, data model, flows, admin 
 
 ## Stack (decided)
 
-Next.js App Router + TypeScript · pnpm 10 workspaces · Neon Postgres + **Prisma** (`@prisma/adapter-neon`) · Auth.js (Prisma adapter, magic link via Nodemailer + the same Gmail SMTP account Terminal uses) · Pusher Channels · Cloudflare R2 · next-intl · Tailwind · Vercel Hobby (`*.vercel.app` for now) · cron-job.org for scheduled jobs.
+Next.js App Router + TypeScript · pnpm 10 workspaces · Neon Postgres + **Prisma** (`@prisma/adapter-neon`) · **Better Auth** 1.7 (Prisma adapter, magic-link plugin via Nodemailer + the same Gmail SMTP account Terminal uses; chosen over Auth.js, which is in maintenance mode) · Pusher Channels · Cloudflare R2 · next-intl · Tailwind · Vercel Hobby (`*.vercel.app` for now) · cron-job.org for scheduled jobs.
 
 ## Conventions (must follow)
 
@@ -51,7 +51,7 @@ Work happens on branch **`monorepo-setup`**. Restore point: tag **`pre-monorepo`
 - [x] Step 3 — root `package.json` + `pnpm-workspace.yaml`; Terminal runs from the monorepo
 - [x] Step 4 — `apps/web` scaffolded (Next 16.3.6, port 3001). Terminal is on Next 16.2.2; align in Phase 4
 - [x] Step 5 — Neon project `solident` (AWS Frankfurt, database `neondb`), branches `main` (prod, still empty) + `dev`. `packages/db` = `@solident/db` on **Prisma 7.10.0, pinned exactly** (npm's `latest` tag points at an 8.0 RC; don't upgrade by accident). `prisma.config.ts` gives `DIRECT_URL` to the CLI; `src/index.ts` exports `prisma` via `PrismaNeon` on pooled `DATABASE_URL`; client generated to `src/generated/prisma` (git-ignored, rebuilt on `postinstall`). Migration `init` applied on `dev`; seed (`prisma/seed.ts`, re-runnable) loaded 6 programmes, 22 partners, 21 actions (14 caravans), Jissr Attadamon event + campaign, 4 tiers, 11 board members, impact stats, admin user from `SEED_ADMIN_EMAIL`. Deviations from SPEC §5: `action_partners` join table (not `partner_ids[]`), `campaigns.raised_dh/donors_count` cache, `events.programme_id/created_by`, `team_members.phone/is_public_contact`, unique `(event_id, phone)` on registrations. AR/EN seed text and most map coordinates are drafts to review
-- [ ] Step 6 — Auth.js in `apps/web` (magic link, `users.role`), shared with Terminal later
+- [x] Step 6 — Better Auth in `apps/web`: `src/lib/auth.ts` (invite-only: users are never created by login; unknown/inactive emails get no mail but the same UI answer; link 24 h; database sessions 30 days), `src/lib/guards.ts` (`requireRole` for actions, `requireRolePage` for pages), `/connexion`, `/admin` (staff roles only), `/acces-refuse`. Migration `better_auth` replaced the Auth.js tables. `apps/web/.env.local` needs `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GMAIL_USER`, `GMAIL_PASS`. New members are added by an admin (for now: Prisma Studio, later `/admin/utilisateurs`). Note: `prisma migrate dev` refuses to run in Claude's non-interactive shell; generate SQL with `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` into a new migration folder, then `prisma migrate deploy`
 - [ ] Step 7 — Cloudflare R2: public bucket (media) + private bucket (donation proofs), API token, signed-upload test
 - [ ] Step 8 — Pusher app (EU cluster), server + client libs, test event
 - [ ] Step 9 — next-intl `/fr` `/ar` `/en` with RTL, design tokens in Tailwind

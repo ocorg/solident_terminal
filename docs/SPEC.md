@@ -136,7 +136,7 @@ The website and Solident Terminal share one Neon database and one login system, 
 | Framework | Next.js (App Router, TypeScript) | Public site `apps/web`, internal ERP `apps/terminal` |
 | Languages | next-intl | `/fr`, `/ar`, `/en`; Arabic renders `dir="rtl"`; default locale `fr` |
 | Database | Neon Postgres + Prisma ORM (`@prisma/adapter-neon`) | One schema.prisma in `packages/db`, used by both apps; Neon branch per preview deploy |
-| Auth | Auth.js (Prisma adapter) | Email magic link via existing Nodemailer + Gmail; roles stored on `users` |
+| Auth | Better Auth (Prisma adapter, magic-link plugin) | Invite-only email magic link via existing Nodemailer + Gmail; database sessions (30 days); roles stored on `users` |
 | Authorisation | Server-side guards (`requireRole`) | Replaces Supabase RLS: every server action checks role before touching data |
 | Realtime | Pusher Channels | Live progress bar and registration counters; admin alerts |
 | Media | Cloudflare R2 | Photos, logos, dossier PDF, donation proofs (private) |
@@ -149,7 +149,7 @@ flowchart LR
   V[Visitor<br/>fr / ar / en] --> W[apps/web<br/>Next.js]
   M[Member / Admin] --> W
   M --> T[apps/terminal<br/>Next.js]
-  W --> A[Auth.js]
+  W --> A[Better Auth]
   T --> A
   W --> DB[(Neon Postgres<br/>packages/db)]
   T --> DB
@@ -205,7 +205,7 @@ The website adds 12 tables to the shared schema; `users` and `events` are shared
 
 | Table | Key columns | Used by |
 | --- | --- | --- |
-| `users` | id, name, email, image, role (`admin` / `treasurer` / `hr` / `media` / `member`), is_active (+ Auth.js `accounts`, `sessions`, `verification_tokens`) | Auth.js, both apps |
+| `users` | id, name, email, image, role (`admin` / `treasurer` / `hr` / `media` / `member`), is_active (+ Better Auth `accounts`, `sessions`, `verifications`) | Better Auth, both apps |
 | `programmes` | id, slug, title_fr/ar/en, summary_*, body_*, cover_url, order, is_active | Site |
 | `actions` | id, slug, programme_id, title_*, date_start, date_end, location, lat, lng, partner_ids[], beneficiaries_count, body_*, is_published | Site, Terminal |
 | `events` | id, slug, type (`caravane` / `scientifique` / `solifun` / `ambassadeurs` / `autre`), title_*, body_*, starts_at, ends_at, location, capacity, registration_open, cover_url, is_published | Site, Terminal |
@@ -286,7 +286,7 @@ sequenceDiagram
 
 ## 7. /admin back-office
 
-`/admin` lives in the website app, uses the same Auth.js login as Terminal, and gives each role only the screens it needs.
+`/admin` lives in the website app, uses the same Better Auth login as Terminal, and gives each role only the screens it needs.
 
 | Screen | Route | admin | treasurer | hr | media |
 | --- | --- | --- | --- | --- | --- |
@@ -362,7 +362,7 @@ The donation page and progress bar go live by 25 Oct 2026, giving about a month 
 
 | Phase | Dates | Scope | Done when |
 | --- | --- | --- | --- |
-| 0. Foundations | 28 Sep – 4 Oct 2026 | Monorepo, Neon project + branches, Prisma schema + first migration, Auth.js magic link, R2 buckets, Pusher app, next-intl with FR/AR/EN, design tokens | Login works; empty pages render in 3 languages incl. RTL |
+| 0. Foundations | 28 Sep – 4 Oct 2026 | Monorepo, Neon project + branches, Prisma schema + first migration, Better Auth magic link, R2 buckets, Pusher app, next-intl with FR/AR/EN, design tokens | Login works; empty pages render in 3 languages incl. RTL |
 | 1. Fundraising launch | 5 – 25 Oct 2026 | Accueil, Qui sommes-nous, Soutenir (don + sponsoring), Contact, Jissr Attadamon campaign, `/admin` campaigns + donations + users | First confirmed donation moves the bar live |
 | 2. Events and content | 26 Oct – 15 Nov 2026 | Événements + registrations, Solifun hub, bénévolat, Programmes, Actions map with the 14 caravans, Partenaires, `/admin` HR + media screens | Solifun sign-ups off Google Forms; all past actions published |
 | 3. Caravan period | 16 Nov – 5 Dec 2026 | Freeze features; live bar, daily content updates, post-caravan report page | Caravan report online |
@@ -374,7 +374,7 @@ The donation page and progress bar go live by 25 Oct 2026, giving about a month 
 - [ ] Export every Supabase table and map it to the Prisma schema
 - [ ] Rebuild each RLS policy as a `requireRole` check and list them side by side
 - [ ] Copy the `covers` and avatar buckets to R2 and rewrite stored URLs
-- [ ] Move members to Auth.js users with the same email so nobody re-registers
+- [ ] Move members to Better Auth users with the same email so nobody re-registers
 - [ ] Re-point the cron-job.org digest to the new route
 - [ ] Dry-run on a Neon branch, then cut over on a quiet weekend
 
@@ -382,7 +382,7 @@ The donation page and progress bar go live by 25 Oct 2026, giving about a month 
 
 | Decided | Choice |
 | --- | --- |
-| Stack | Next.js + Neon + Prisma + Auth.js + Pusher + Cloudflare R2 on Vercel |
+| Stack | Next.js + Neon + Prisma + Better Auth + Pusher + Cloudflare R2 on Vercel |
 | Repo | Existing `solident_terminal` repo restructured into a pnpm monorepo (`apps/terminal`, `apps/web`, `packages/db`) |
 | Pusher | Included from day one |
 | Database | One Neon database shared by the site and Terminal |
