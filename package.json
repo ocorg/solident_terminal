@@ -1,0 +1,11 @@
+{
+  "name": "solident",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev:terminal": "pnpm --filter ./apps/terminal dev",
+    "build:terminal": "pnpm --filter ./apps/terminal build",
+    "dev:web": "pnpm --filter ./apps/web dev",
+    "build:web": "pnpm --filter ./apps/web build"
+  }
+}
