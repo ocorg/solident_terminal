@@ -79,6 +79,12 @@ export function publicUrl(key: string) {
   return `${env('R2_PUBLIC_URL').replace(/\/+$/, '')}/${key}`
 }
 
+/** Key of a file in the public bucket from its URL; null for external URLs (never deleted). */
+export function publicKeyFromUrl(url: string | null | undefined) {
+  const base = `${env('R2_PUBLIC_URL').replace(/\/+$/, '')}/`
+  return url?.startsWith(base) ? url.slice(base.length) : null
+}
+
 /** Short-lived link (default 5 min) to view a private file, e.g. a donation proof. */
 export async function createPrivateViewUrl(key: string, expiresIn = 300) {
   return getSignedUrl(r2(), new GetObjectCommand({ Bucket: bucketName('private'), Key: key }), { expiresIn })

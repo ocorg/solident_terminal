@@ -7,7 +7,6 @@ import { PersonCard } from '@/components/site/person-card'
 import { SponsorWall } from '@/components/site/sponsor-wall'
 import { sponsorWall } from '@/lib/donations'
 import { localized, localizedList } from '@/lib/localized'
-import { org } from '@/lib/org'
 
 export const revalidate = 300
 
@@ -30,10 +29,11 @@ export default async function SponsoringPage({ params }: PageProps<'/[locale]/so
   const t = await getTranslations('Sponsoring')
   const format = await getFormatter()
 
-  const [tiers, contacts, wall] = await Promise.all([
+  const [tiers, contacts, wall, dossier] = await Promise.all([
     prisma.sponsorTier.findMany({ orderBy: { order: 'asc' } }),
     prisma.teamMember.findMany({ where: { isPublicContact: true }, orderBy: { order: 'asc' } }),
     sponsorWall(),
+    prisma.siteSetting.findUnique({ where: { key: 'dossier_url' } }),
   ])
   const money = (n: number) => format.number(n, { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 })
 
@@ -74,8 +74,8 @@ export default async function SponsoringPage({ params }: PageProps<'/[locale]/so
           ))}
         </div>
         <div className="mt-6">
-          {org.dossierUrl ? (
-            <a href={org.dossierUrl} target="_blank" rel="noreferrer" className="btn btn-cta">
+          {dossier ? (
+            <a href={dossier.value} target="_blank" rel="noreferrer" className="btn btn-cta">
               {t('dossier')}
             </a>
           ) : (

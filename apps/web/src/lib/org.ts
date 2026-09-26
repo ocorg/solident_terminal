@@ -6,8 +6,6 @@ export const org = {
   bank: 'Attijariwafa Bank',
   accountHolder: 'Association Solident',
   rib: '007 640 0006029000304812 15',
-  // Sponsorship pack PDF (public R2 URL). null = not uploaded yet: the page offers it on request.
-  dossierUrl: null as string | null,
   socials: [
     { label: 'Instagram', handle: '@assoc_solident', href: 'https://www.instagram.com/assoc_solident' },
     { label: 'Facebook', handle: '@assoc_solident', href: 'https://www.facebook.com/assoc_solident' },

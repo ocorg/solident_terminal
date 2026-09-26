@@ -481,6 +481,15 @@ model ImpactStat {
   @@map("impact_stats")
 }
 
+// Small editable site values (e.g. dossier_url), managed from /admin.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("site_settings")
+}
+
 model AuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String?  @map("user_id") @db.Uuid
