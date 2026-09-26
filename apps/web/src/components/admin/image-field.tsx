@@ -16,7 +16,7 @@ export function ImageField({
   round = false,
   maxSide = 1200,
 }: {
-  entity: 'team' | 'partner' | 'event'
+  entity: 'team' | 'partner' | 'event' | 'action' | 'programme'
   id: string
   url: string | null
   alt: string

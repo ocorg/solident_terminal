@@ -12,6 +12,7 @@ export const adminScreens: { href: string; label: string; roles: Role[] }[] = [
   { href: '/admin/evenements', label: 'Événements', roles: ['admin', 'media', 'hr'] },
   { href: '/admin/inscriptions', label: 'Inscriptions', roles: ['admin', 'hr'] },
   { href: '/admin/benevoles', label: 'Bénévoles', roles: ['admin', 'hr'] },
+  { href: '/admin/contenu', label: 'Contenu', roles: ['admin', 'media'] },
   { href: '/admin/equipe', label: 'Équipe', roles: ['admin', 'media'] },
   { href: '/admin/partenaires', label: 'Partenaires', roles: ['admin', 'media'] },
   { href: '/admin/documents', label: 'Documents', roles: ['admin', 'media'] },
