@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@solident/db": "workspace:*",
     "better-auth": "1.7.6",
+    "leaflet": "^1.9.4",
     "next": "16.3.6",
     "next-intl": "4.14.7",
     "nodemailer": "^8.0.11",
@@ -21,12 +22,14 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-leaflet": "^5.0.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
     "@types/qrcode": "^1.5.6",

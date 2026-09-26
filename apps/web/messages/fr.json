@@ -240,5 +240,79 @@
     "eventsTitle": "Prochains événements Solifun",
     "noEvents": "Pas d’événement Solifun annoncé pour l’instant. Suivez @solifun_ pour être prévenu·e.",
     "followCta": "Suivre @solifun_"
+  },
+  "Volunteer": {
+    "title": "Devenir bénévole",
+    "intro": "Étudiants en médecine dentaire, praticiens ou bénévoles d’autres métiers : rejoignez nos caravanes, nos journées de prévention et nos événements.",
+    "profilesTitle": "Qui recherchons-nous ?",
+    "p1": "Étudiants et praticiens pour les consultations, soins et séances de prévention.",
+    "p2": "Profils logistique, communication, photo et vidéo pour préparer et raconter nos actions.",
+    "p3": "Toute personne motivée : accueil, animation avec les enfants, distribution des kits.",
+    "charter": "« Chacun fait ce qu’il peut. Chacun dit clairement ce qu’il peut faire. »",
+    "formTitle": "Proposer mon aide",
+    "name": "Nom complet",
+    "phone": "Téléphone",
+    "email": "E-mail",
+    "city": "Ville",
+    "profile": "Profil",
+    "profiles": {
+      "etudiant": "Étudiant·e en médecine dentaire",
+      "praticien": "Praticien·ne",
+      "public": "Bénévole d’un autre métier"
+    },
+    "skills": "Compétences",
+    "skillsHint": "Ex. soins, photo, logistique, arabe/amazigh…",
+    "availability": "Disponibilités",
+    "availabilityHint": "Ex. week-ends, novembre, 2 jours par mois…",
+    "motivation": "Motivation",
+    "submit": "Envoyer ma candidature",
+    "successTitle": "Merci pour votre engagement !",
+    "successText": "Notre responsable des ressources humaines vous contactera prochainement.",
+    "errFields": "Indiquez au moins votre nom et votre téléphone.",
+    "errPhone": "Numéro de téléphone invalide.",
+    "errTooMany": "Trop d’envois depuis votre connexion. Réessayez dans quelques minutes.",
+    "errGeneric": "L’envoi a échoué. Réessayez dans un instant."
+  },
+  "Programmes": {
+    "title": "Nos programmes",
+    "intro": "Caravanes, science, sport solidaire, prévention à l’école et soins aux aînés : cinq façons d’agir pour la santé bucco-dentaire.",
+    "actions": "Actions réalisées",
+    "events": "Prochains rendez-vous",
+    "noActions": "Les actions de ce programme seront bientôt documentées.",
+    "back": "Tous les programmes",
+    "discover": "Découvrir"
+  },
+  "Actions": {
+    "title": "Actions & impact",
+    "intro": "Depuis 2024, nos équipes ont sillonné le nord du Maroc et au-delà. Chaque point sur la carte est une caravane dentaire.",
+    "mapTitle": "La carte de nos caravanes",
+    "mapNote": "Certains lieux seront ajoutés à la carte prochainement.",
+    "timelineTitle": "Toutes nos actions",
+    "all": "Toutes",
+    "totals": {
+      "actions": "actions menées",
+      "caravans": "caravanes dentaires",
+      "beneficiaries": "bénéficiaires recensés",
+      "partners": "partenaires associés"
+    },
+    "beneficiaries": "{count} bénéficiaires",
+    "with": "Avec",
+    "gallery": "Galerie",
+    "back": "Toutes les actions",
+    "seeAction": "Voir l’action",
+    "programme": "Programme"
+  },
+  "Partners": {
+    "title": "Nos partenaires",
+    "intro": "Associations, écoles, universités, clubs et entreprises : merci à celles et ceux qui agissent à nos côtés.",
+    "types": {
+      "sponsor": "Entreprises et sponsors",
+      "association": "Associations et fondations",
+      "ecole": "Écoles",
+      "universite": "Universités et grandes écoles",
+      "sport": "Clubs sportifs"
+    },
+    "together": "{count, plural, one {# action ensemble} other {# actions ensemble}}",
+    "cta": "Devenir partenaire"
   }
 }

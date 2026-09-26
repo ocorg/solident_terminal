@@ -240,5 +240,79 @@
     "eventsTitle": "Upcoming Solifun events",
     "noEvents": "No Solifun event announced yet. Follow @solifun_ to be the first to know.",
     "followCta": "Follow @solifun_"
+  },
+  "Volunteer": {
+    "title": "Volunteer",
+    "intro": "Dental students, practitioners or volunteers from other professions: join our caravans, prevention days and events.",
+    "profilesTitle": "Who are we looking for?",
+    "p1": "Students and practitioners for consultations, treatment and prevention sessions.",
+    "p2": "Logistics, communication, photo and video profiles to prepare and tell our actions.",
+    "p3": "Anyone motivated: welcoming people, activities with children, handing out kits.",
+    "charter": "“Everyone does what they can. Everyone says clearly what they can do.”",
+    "formTitle": "Offer my help",
+    "name": "Full name",
+    "phone": "Phone",
+    "email": "Email",
+    "city": "City",
+    "profile": "Profile",
+    "profiles": {
+      "etudiant": "Dental student",
+      "praticien": "Practitioner",
+      "public": "Volunteer from another profession"
+    },
+    "skills": "Skills",
+    "skillsHint": "E.g. treatment, photography, logistics, languages…",
+    "availability": "Availability",
+    "availabilityHint": "E.g. weekends, November, 2 days a month…",
+    "motivation": "Motivation",
+    "submit": "Send my application",
+    "successTitle": "Thank you for your commitment!",
+    "successText": "Our human-resources lead will contact you soon.",
+    "errFields": "Please enter at least your name and phone.",
+    "errPhone": "Invalid phone number.",
+    "errTooMany": "Too many submissions from your connection. Try again in a few minutes.",
+    "errGeneric": "Sending failed. Please try again in a moment."
+  },
+  "Programmes": {
+    "title": "Our programmes",
+    "intro": "Caravans, science, solidarity sport, prevention in schools and care for the elderly: five ways to act for oral health.",
+    "actions": "Completed actions",
+    "events": "Upcoming events",
+    "noActions": "This programme’s actions will be documented soon.",
+    "back": "All programmes",
+    "discover": "Discover"
+  },
+  "Actions": {
+    "title": "Actions & impact",
+    "intro": "Since 2024, our teams have travelled across northern Morocco and beyond. Every pin on the map is a dental caravan.",
+    "mapTitle": "Map of our caravans",
+    "mapNote": "Some places will be added to the map soon.",
+    "timelineTitle": "All our actions",
+    "all": "All",
+    "totals": {
+      "actions": "actions carried out",
+      "caravans": "dental caravans",
+      "beneficiaries": "recorded beneficiaries",
+      "partners": "partners involved"
+    },
+    "beneficiaries": "{count} beneficiaries",
+    "with": "With",
+    "gallery": "Gallery",
+    "back": "All actions",
+    "seeAction": "See action",
+    "programme": "Programme"
+  },
+  "Partners": {
+    "title": "Our partners",
+    "intro": "Associations, schools, universities, clubs and companies: thank you to everyone who acts alongside us.",
+    "types": {
+      "sponsor": "Companies and sponsors",
+      "association": "Associations and foundations",
+      "ecole": "Schools",
+      "universite": "Universities",
+      "sport": "Sports clubs"
+    },
+    "together": "{count, plural, one {# action together} other {# actions together}}",
+    "cta": "Become a partner"
   }
 }

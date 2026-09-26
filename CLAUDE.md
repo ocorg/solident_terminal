@@ -75,6 +75,7 @@ Dev gotchas: Turbopack on Windows occasionally crashes the dev server (exit 3765
 Decision (26 Sep): registration form = name + phone (required) + email, city, profile, note; no per-activity fields yet (the note covers it).
 
 - [x] Events + registrations: `src/lib/registrations.ts` (capacity + duplicate phone in one transaction with an event row lock; "closed" wins over "full"; cancel frees a place; Pusher `places-updated`), `src/lib/phone.ts` (Moroccan numbers → E.164 so duplicates match), `/[locale]/evenements` (upcoming/past, type filter), `/[locale]/evenements/[slug]` (live places + form, confirmation email), `/[locale]/solifun` hub. Admin: `/admin/evenements` (admin+media edit, hr read; cover image; datetime inputs in Casablanca time via `src/lib/tz.ts`, Ramadan-safe), `/admin/inscriptions` (admin+hr; status; CSV export for Excel with BOM, ";" and formula-injection guard). next-intl `timeZone: Africa/Casablanca`
-- [ ] Bénévolat, Programmes, Actions map, Partenaires pages; admin bénévoles + contenu (actions/programmes/galleries)
+- [x] `/soutenir/benevolat` (vol-* fields, HR + admins emailed) + `/admin/benevoles` (admin+hr, statuses, WhatsApp links); `/programmes` + `/programmes/[slug]` (actions + upcoming events); `/actions` (totals, Leaflet/OpenStreetMap map of caravans with coordinates, timeline by year, programme filter) + `/actions/[slug]` (gallery from `media`); `/partenaires` (grouped by type, actions together). Every §4 section now has a real page
+- [ ] Admin contenu: edit actions (incl. map coordinates, partners, gallery) and programmes
 
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026, Terminal migration Dec 2026–Jan 2027).

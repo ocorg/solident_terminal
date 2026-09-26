@@ -16,7 +16,7 @@ export const supportItems = [
 ] as const
 
 /** Sections that already have their real page (excluded from the "coming soon" catch-all). */
-export const builtSections = new Set(['soutenir/don', 'soutenir/sponsoring', 'contact', 'qui-sommes-nous', 'evenements', 'solifun'])
+export const builtSections = new Set(['soutenir/don', 'soutenir/sponsoring', 'contact', 'qui-sommes-nous', 'evenements', 'solifun', 'soutenir/benevolat', 'programmes', 'actions', 'partenaires'])
 
 /** Sections still shown as a placeholder page, with their Nav translation key. */
 export const sectionKeys: Record<string, string> = Object.fromEntries(
