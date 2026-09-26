@@ -1,5 +1,6 @@
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma } from '@solident/db'
+import { ProgressBar } from '@/components/site/progress-bar'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
 
@@ -75,11 +76,13 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
               <p className="mt-4 text-ink-600">{localized(nextEvent, 'body', locale)}</p>
             </div>
             {campaign && (
-              <div className="flex flex-col justify-center gap-3 bg-navy-700 p-8 text-white md:w-80">
+              <div className="flex flex-col justify-center gap-4 bg-navy-700 p-8 text-white md:w-96">
                 <p className="text-sm text-white/80">{localized(campaign, 'title', locale)}</p>
-                <p className="font-heading text-3xl font-bold">
-                  {format.number(campaign.goalDh, { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 })}
-                </p>
+                <ProgressBar
+                  campaignId={campaign.id}
+                  initial={{ raisedDh: campaign.raisedDh, donorsCount: campaign.donorsCount, goalDh: campaign.goalDh }}
+                  dark
+                />
                 <Link href="/soutenir/don" className="btn btn-cta mt-2">
                   {t('nextEventCta')}
                 </Link>

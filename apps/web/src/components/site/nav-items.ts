@@ -15,7 +15,10 @@ export const supportItems = [
   { href: '/soutenir/benevolat', key: 'volunteer' },
 ] as const
 
-/** Every section that exists as a (placeholder) page, with its Nav translation key. */
+/** Sections that already have their real page (excluded from the "coming soon" catch-all). */
+export const builtSections = new Set(['soutenir/don'])
+
+/** Sections still shown as a placeholder page, with their Nav translation key. */
 export const sectionKeys: Record<string, string> = Object.fromEntries(
-  [...navItems, ...supportItems].map((i) => [i.href.slice(1), i.key]),
+  [...navItems, ...supportItems].map((i) => [i.href.slice(1), i.key]).filter(([path]) => !builtSections.has(path)),
 )

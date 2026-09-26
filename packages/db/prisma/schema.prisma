@@ -334,15 +334,20 @@ model Donation {
   status        DonationStatus @default(pending)
   source        DonationSource @default(form)
   adminNote     String?        @map("admin_note")
+  // Set when the gift comes from a company/organisation: it then appears on the sponsor wall,
+  // with its tier computed from the partner's confirmed total (sponsor_tiers.min_dh).
+  partnerId     String?        @map("partner_id") @db.Uuid
   confirmedById String?        @map("confirmed_by") @db.Uuid
   confirmedAt   DateTime?      @map("confirmed_at") @db.Timestamptz(3)
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   campaign    Campaign @relation(fields: [campaignId], references: [id])
+  partner     Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   confirmedBy User?    @relation("DonationConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
 
   @@index([campaignId, status])
+  @@index([partnerId])
   @@index([status, createdAt])
   @@map("donations")
 }
@@ -379,7 +384,8 @@ model Partner {
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  actions ActionPartner[]
+  actions   ActionPartner[]
+  donations Donation[]
 
   @@map("partners")
 }
