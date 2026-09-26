@@ -9,6 +9,7 @@ export const adminScreens: { href: string; label: string; roles: Role[] }[] = [
   { href: '/admin', label: 'Tableau de bord', roles: ['admin', 'treasurer', 'hr', 'media'] },
   { href: '/admin/dons', label: 'Dons', roles: ['admin', 'treasurer'] },
   { href: '/admin/campagnes', label: 'Campagnes', roles: ['admin', 'treasurer'] },
+  { href: '/admin/messages', label: 'Messages', roles: ['admin'] },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', roles: ['admin'] },
   { href: '/admin/outils/upload', label: 'Outils', roles: ['admin'] },
 ]

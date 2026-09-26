@@ -10,9 +10,10 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
   const { user, role } = await requireRolePage(...STAFF_ROLES)
 
   // Badges: work waiting for this role
-  const [pendingDonations, pendingUsers] = await Promise.all([
+  const [pendingDonations, pendingUsers, newMessages] = await Promise.all([
     role === 'admin' || role === 'treasurer' ? prisma.donation.count({ where: { status: 'pending' } }) : 0,
     role === 'admin' ? prisma.user.count({ where: { isActive: false } }) : 0,
+    role === 'admin' ? prisma.inquiry.count({ where: { status: 'new' } }) : 0,
   ])
 
   return (
@@ -31,7 +32,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
           <SignOutButton className="border-white/30 hover:bg-white/10" />
         </div>
       </header>
-      <AdminNav role={role} badges={{ '/admin/dons': pendingDonations, '/admin/utilisateurs': pendingUsers }} />
+      <AdminNav role={role} badges={{ '/admin/dons': pendingDonations, '/admin/utilisateurs': pendingUsers, '/admin/messages': newMessages }} />
       <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
     </div>
   )

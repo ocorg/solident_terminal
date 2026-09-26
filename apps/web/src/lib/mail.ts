@@ -10,13 +10,14 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
 })
 
-export async function sendMail(to: string, subject: string, html: string, text: string) {
+export async function sendMail(to: string, subject: string, html: string, text: string, replyTo?: string) {
   await transporter.sendMail({
     from: `"Association Solident" <${process.env.GMAIL_USER}>`,
     to,
     subject,
     html,
     text,
+    ...(replyTo && { replyTo }),
   })
 }
 

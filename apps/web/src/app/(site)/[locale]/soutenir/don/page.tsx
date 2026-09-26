@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import QRCode from 'qrcode'
 import { prisma } from '@solident/db'
+import { PageHeader } from '@/components/site/page-header'
 import { ProgressBar } from '@/components/site/progress-bar'
+import { SponsorWall } from '@/components/site/sponsor-wall'
 import { Link } from '@/i18n/navigation'
 import { donorWall, sponsorWall } from '@/lib/donations'
 import { localized } from '@/lib/localized'
@@ -35,14 +37,7 @@ export default async function DonatePage({ params }: PageProps<'/[locale]/souten
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <header className="mb-10 max-w-3xl">
-        <h1 className="font-heading text-4xl font-bold text-navy-900 md:text-5xl">
-          {t('title')}
-          <span className="text-gold-500">.</span>
-        </h1>
-        <div className="divider-dot my-5" />
-        <p className="text-lg text-ink-600">{t('intro')}</p>
-      </header>
+      <PageHeader title={t('title')} intro={t('intro')} />
 
       {campaigns.length === 0 && <p className="card mb-10 p-6 text-ink-600">{t('noCampaign')}</p>}
 
@@ -114,48 +109,9 @@ export default async function DonatePage({ params }: PageProps<'/[locale]/souten
             {t('becomeSponsor')}
           </Link>
         </div>
-        {sponsors.tiers.map(({ tier, partners }) => (
-          <div key={tier.id} className="mb-6">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold-500">{tier.name}</p>
-            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {partners.map((p) => (
-                <SponsorTile key={p.id} partner={p} />
-              ))}
-            </ul>
-          </div>
-        ))}
-        {sponsors.supporters.length > 0 && (
-          <div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-600">{t('supporters')}</p>
-            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {sponsors.supporters.map((p) => (
-                <SponsorTile key={p.id} partner={p} />
-              ))}
-            </ul>
-          </div>
-        )}
+        <SponsorWall wall={sponsors} />
       </section>
     </div>
   )
 }
 
-/** Logo if uploaded, otherwise a name placeholder (real logos come later via /admin). */
-function SponsorTile({ partner }: { partner: { name: string; logoUrl: string | null; website: string | null } }) {
-  const inner = partner.logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={partner.logoUrl} alt={partner.name} className="max-h-16 w-auto object-contain" />
-  ) : (
-    <span className="text-center font-heading font-bold text-navy-700">{partner.name}</span>
-  )
-  return (
-    <li className="card card-hover flex h-24 items-center justify-center p-4">
-      {partner.website ? (
-        <a href={partner.website} target="_blank" rel="noreferrer">
-          {inner}
-        </a>
-      ) : (
-        inner
-      )}
-    </li>
-  )
-}
