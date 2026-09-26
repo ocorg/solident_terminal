@@ -2,7 +2,7 @@
 
 This repo holds the Next.js app and shared database package for **Association Solident** (Moroccan dental NGO, see `docs/SPEC.md` §1):
 
-- `apps/terminal` — **removed** (27 Sep 2026). The old Supabase Terminal was replaced by `/espace` in apps/web; its code is in git history (tag `pre-monorepo` = original layout). Only the git-ignored `apps/terminal/.env.local` (Supabase keys, used by `packages/db/scripts/import-terminal.ts`) stays on disk until the Supabase project is deleted.
+- `apps/terminal` — **removed** (27 Sep 2026). The old Supabase Terminal was replaced by `/espace` in apps/web; its code is in git history (tag `pre-monorepo` = original layout). The local Supabase keys were deleted too, so `packages/db/scripts/import-terminal.ts` can no longer run (kept for reference).
 - `apps/web` — the public trilingual website (FR / AR / EN) + `/admin` (staff back-office) + `/espace` (members area, ex-Terminal). One app, one login.
 - `packages/db` — shared Prisma schema + client (`@solident/db`) on **Neon Postgres** (branches `production` + `dev`).
 
@@ -92,6 +92,6 @@ Decision: Terminal was not in use, so instead of porting its 11k lines of Supaba
 - [x] /espace pages: dashboard, tâches (+ detail, comments), projets and cellules (shared `_lib/context-*`: members/positions, cover, tasks, sub-projects), agenda (team events, invites by team or person, RSVP), propositions (approve → project with "Chef de Projet"), membres, notifications, paramètres (profile, avatar, e-mails, password). Logins land on /espace; staff also get /admin
 - [x] E-mail digest: `/api/cron/digest` (Bearer `CRON_SECRET`) sends one summary per member from `email_queue` (items due 15 min after the notification). **To activate**: add `CRON_SECRET` to Vercel (Production + Preview) and a cron-job.org job every 15 min
 - [x] Legacy code removed and `monorepo-setup` merged into `main` (27 Sep 2026)
-- [ ] Owner: switch the Vercel `solident` Production Branch to `main`; delete the Vercel project `solident-terminal` and the Supabase project (then delete `apps/terminal/.env.local`)
+- [ ] Owner: switch the Vercel `solident` Production Branch to `main`; delete the Vercel project `solident-terminal` and the Supabase project
 
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026). Phase 4 is done.
