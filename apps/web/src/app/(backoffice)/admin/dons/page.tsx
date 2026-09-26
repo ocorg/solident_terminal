@@ -62,7 +62,7 @@ export default async function DonsPage({ searchParams }: PageProps<'/admin/dons'
         <p className="card p-6 text-ink-600">Aucun don dans cette liste.</p>
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="stack-table w-full min-w-[760px] text-sm">
             <thead className="bg-navy-100 text-start text-navy-900">
               <tr>
                 {['Date', 'Donateur', 'Montant', 'Campagne', 'Justificatif', 'Statut', 'Actions'].map((h) => (
@@ -79,22 +79,22 @@ export default async function DonsPage({ searchParams }: PageProps<'/admin/dons'
                     {date(d.createdAt)}
                     {d.source === 'manual' && <div className="text-xs">ajout manuel</div>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td data-label="Donateur" className="px-4 py-3">
                     <div className="font-semibold">{d.partner?.name ?? d.donorName ?? <span className="text-ink-600">Sans nom</span>}</div>
                     <div className="text-xs text-ink-600">
                       {d.partner ? 'Sponsor' : d.isAnonymous ? 'Anonyme sur le site' : 'Nom affiché sur le mur'}
                     </div>
                     {(d.email || d.phone) && <div className="text-xs text-ink-600">{[d.email, d.phone].filter(Boolean).join(' · ')}</div>}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-navy-700">{dh(d.amountDh)}</td>
-                  <td className="px-4 py-3 text-ink-600">{d.campaign.titleFr}</td>
-                  <td className="px-4 py-3">{d.proofKey ? <ProofButton id={d.id} /> : <span className="text-ink-600">—</span>}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Montant" className="whitespace-nowrap px-4 py-3 font-semibold text-navy-700">{dh(d.amountDh)}</td>
+                  <td data-label="Campagne" className="px-4 py-3 text-ink-600">{d.campaign.titleFr}</td>
+                  <td data-label="Justificatif" className="px-4 py-3">{d.proofKey ? <ProofButton id={d.id} /> : <span className="text-ink-600">—</span>}</td>
+                  <td data-label="Statut" className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyle[d.status]}`}>{statusLabel[d.status]}</span>
                     {d.confirmedBy && d.status !== 'pending' && <div className="mt-1 text-xs text-ink-600">par {d.confirmedBy.name}</div>}
                     {d.adminNote && <div className="mt-1 max-w-48 text-xs text-ink-600">« {d.adminNote} »</div>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="stack-full px-4 py-3">
                     <DecisionButtons id={d.id} amountDh={d.amountDh} status={d.status} />
                   </td>
                 </tr>

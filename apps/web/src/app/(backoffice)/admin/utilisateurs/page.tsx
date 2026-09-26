@@ -27,7 +27,7 @@ export default async function UtilisateursPage() {
         </p>
       )}
       <div className="card overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="stack-table w-full min-w-[720px] text-sm">
           <thead className="bg-navy-100 text-navy-900">
             <tr>
               {['Personne', 'Statut', 'Rôle actuel', 'Espace membres', 'Inscrit le', 'Actions'].map((h) => (
@@ -47,16 +47,16 @@ export default async function UtilisateursPage() {
                   </div>
                   <div className="text-xs text-ink-600">{u.email}</div>
                 </td>
-                <td className="px-4 py-3">
+                <td data-label="Statut" className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.isActive ? 'bg-success/15 text-success' : 'bg-gold-100 text-navy-900'}`}>
                     {u.isActive ? 'Actif' : 'En attente / désactivé'}
                   </span>
                   {u.sessions[0] && <div className="mt-1 text-xs text-ink-600">vu le {day(u.sessions[0].updatedAt)}</div>}
                 </td>
-                <td className="px-4 py-3">{roleLabel[u.role]}</td>
-                <td className="px-4 py-3">{u.role === 'admin' ? <span className="text-sm text-ink-600">admin (inclus)</span> : <SpaceAdminToggle id={u.id} value={u.spaceAdmin} />}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-ink-600">{day(u.createdAt)}</td>
-                <td className="px-4 py-3">
+                <td data-label="Rôle" className="px-4 py-3">{roleLabel[u.role]}</td>
+                <td data-label="Espace membres" className="px-4 py-3">{u.role === 'admin' ? <span className="text-sm text-ink-600">admin (inclus)</span> : <SpaceAdminToggle id={u.id} value={u.spaceAdmin} />}</td>
+                <td data-label="Inscrit le" className="whitespace-nowrap px-4 py-3 text-ink-600">{day(u.createdAt)}</td>
+                <td className="stack-full px-4 py-3">
                   <UserRowActions id={u.id} isActive={u.isActive} role={u.role} isMe={u.id === me.id} />
                 </td>
               </tr>

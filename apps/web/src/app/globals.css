@@ -115,3 +115,55 @@ body {
     transform: scaleX(-1);
   }
 }
+
+/* Tables that become labelled cards on phones: add `stack-table` on <table>
+   and `data-label="…"` on each <td>. Desktop keeps the normal table. */
+@media (max-width: 767px) {
+  .stack-table {
+    min-width: 0 !important;
+  }
+  .stack-table thead {
+    display: none;
+  }
+  .stack-table tr {
+    display: block;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-navy-100);
+  }
+  .stack-table tr:first-child {
+    border-top: 0;
+  }
+  .stack-table td {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.35rem 0 !important;
+    text-align: end;
+  }
+  .stack-table td > * {
+    min-width: 0;
+  }
+  .stack-table td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-ink-600);
+    text-align: start;
+  }
+  /* First cell = the row's title: full width, no label */
+  .stack-table td:first-child {
+    display: block;
+    text-align: start;
+    padding-bottom: 0.5rem !important;
+  }
+}
+@media (max-width: 767px) {
+  /* Cells with buttons/forms: full width under their row on phones */
+  .stack-table td.stack-full {
+    display: block;
+    text-align: start;
+    padding-top: 0.6rem !important;
+  }
+}

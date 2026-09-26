@@ -52,7 +52,7 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
             <h2 className="mb-8 font-heading text-2xl font-bold text-navy-700">{t('impactTitle')}</h2>
             <dl className="grid grid-cols-2 gap-6 md:grid-cols-4">
               {stats.map((s) => (
-                <div key={s.key} className="card card-hover p-6">
+                <div key={s.key} className="card card-hover flex flex-col p-4 sm:p-6">
                   <dt className="order-2 mt-1 text-sm text-ink-600">{localized(s, 'label', locale)}</dt>
                   <dd className="font-heading text-4xl font-bold text-navy-700">{format.number(s.value)}</dd>
                 </div>

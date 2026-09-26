@@ -70,7 +70,7 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
             <p className="card p-6 text-ink-600">Aucune inscription dans cette liste.</p>
           ) : (
             <div className="card overflow-x-auto">
-              <table className="w-full min-w-[820px] text-sm">
+              <table className="stack-table w-full min-w-[820px] text-sm">
                 <thead className="bg-navy-100 text-navy-900">
                   <tr>
                     {['#', 'Nom', 'Téléphone', 'E-mail', 'Ville', 'Profil', 'Remarque', 'Inscrit le', 'Statut'].map((h) => (
@@ -83,9 +83,9 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
                 <tbody>
                   {registrations.map((r, i) => (
                     <tr key={r.id} className={`border-t border-navy-100 align-top ${r.status === 'cancelled' ? 'opacity-60' : ''}`}>
-                      <td className="px-3 py-2 text-ink-600">{i + 1}</td>
-                      <td className="px-3 py-2 font-semibold">{r.fullName}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-ink-600 max-md:!hidden">{i + 1}</td>
+                      <td className="stack-full px-3 py-2 font-semibold">{r.fullName}</td>
+                      <td data-label="Téléphone" className="px-3 py-2">
                         <a href={`tel:${r.phone}`} dir="ltr" className="text-navy-700 underline">
                           {r.phone}
                         </a>{' '}
@@ -93,12 +93,12 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
                           WhatsApp
                         </a>
                       </td>
-                      <td className="px-3 py-2 text-ink-600">{r.email ?? '—'}</td>
-                      <td className="px-3 py-2 text-ink-600">{r.city ?? '—'}</td>
-                      <td className="px-3 py-2">{profileLabel[r.profile]}</td>
-                      <td className="max-w-56 px-3 py-2 text-ink-600">{r.note ?? ''}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-ink-600">{date(r.createdAt)}</td>
-                      <td className="px-3 py-2">
+                      <td data-label="E-mail" className="px-3 py-2 text-ink-600">{r.email ?? '—'}</td>
+                      <td data-label="Ville" className="px-3 py-2 text-ink-600">{r.city ?? '—'}</td>
+                      <td data-label="Profil" className="px-3 py-2">{profileLabel[r.profile]}</td>
+                      <td data-label="Remarque" className="px-3 py-2 text-ink-600 md:max-w-56">{r.note ?? ''}</td>
+                      <td data-label="Inscrit le" className="whitespace-nowrap px-3 py-2 text-ink-600">{date(r.createdAt)}</td>
+                      <td data-label="Statut" className="px-3 py-2">
                         <RegistrationStatus id={r.id} status={r.status} />
                       </td>
                     </tr>

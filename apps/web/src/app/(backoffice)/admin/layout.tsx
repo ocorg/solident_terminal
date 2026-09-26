@@ -22,21 +22,23 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
   return (
     <div className="flex flex-1 flex-col bg-cream-50">
       <header className="flex items-center justify-between bg-navy-700 px-4 py-3 text-white sm:px-6">
-        <Link href="/admin" className="flex items-center gap-2 font-heading text-lg font-bold">
+        <Link href="/admin" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-heading text-lg font-bold">
           <Logo size={26} variant="badge" />
-          Solident<span className="text-gold-500">.</span> <span className="font-normal opacity-80">admin</span>
+          <span>
+            Solident<span className="text-gold-500">.</span> <span className="font-normal opacity-80">admin</span>
+          </span>
         </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/espace" className="hidden rounded-[10px] bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20 sm:inline">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/espace" className="hidden rounded-[10px] bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20 md:inline">
             Espace membres
           </Link>
-          <Link href="/fr" className="hidden text-sm opacity-80 hover:opacity-100 sm:inline">
+          <Link href="/fr" className="hidden text-sm opacity-80 hover:opacity-100 md:inline">
             Voir le site ↗
           </Link>
           <span className="hidden text-sm opacity-90 md:inline">
             {user.name} · {roleLabel[role]}
           </span>
-          <SignOutButton className="border-white/30 hover:bg-white/10" />
+          <SignOutButton compact className="border-white/30 hover:bg-white/10" />
         </div>
       </header>
       <AdminNav role={role} badges={{ '/admin/dons': pendingDonations, '/admin/utilisateurs': pendingUsers, '/admin/messages': newMessages, '/admin/inscriptions': newRegistrations, '/admin/benevoles': newVolunteers }} />

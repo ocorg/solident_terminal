@@ -37,7 +37,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/espace/m
       )}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {members.map((m) => (
-          <li key={m.id} className="card flex gap-4 p-4">
+          <li key={m.id} className="card flex min-w-0 gap-4 p-4">
             <Avatar name={m.name} image={m.image} size="md" />
             <div className="min-w-0 flex-1">
               <p className="font-semibold">
