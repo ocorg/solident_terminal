@@ -131,18 +131,18 @@ const caravanBody = (partnerName: string) => ({
 // [slug, dateStart, dateEnd?, location FR, location AR, partner slug, lat?, lng?]
 const caravans: [string, string, string | null, string, string, string, number?, number?][] = [
   ['tamesna-2026', '2026-04-18', null, 'Tamesna', 'تامسنا', 'racines-marocaines-sans-frontieres', 33.82, -6.92],
-  ['bouqachmir-2025', '2025-12-20', '2025-12-21', 'Bouqachmir', 'بوقشمير', 'caravane-al-amal'],
-  ['bni-leit-2025', '2025-08-16', null, 'Bni Leit', 'بني ليت', 'ecdh'],
+  ['bouqachmir-2025', '2025-12-20', '2025-12-21', 'Bouqachmir', 'بوقشمير', 'caravane-al-amal', 33.510869, -5.93],
+  ['bni-leit-2025', '2025-08-16', null, 'Bni Leit', 'بني ليت', 'ecdh', 35.293869, -5.398869],
   ['ifrane-2025', '2025-07-12', '2025-07-13', "Région d'Ifrane", 'إقليم إفران', 'les-racines-d-espoir', 33.53, -5.11],
-  ['souk-tolba-2025', '2025-06-28', '2025-06-29', 'Souk Tolba', 'سوق الطلبة', 'scoutisme-hassania-ksar'],
+  ['souk-tolba-2025', '2025-06-28', '2025-06-29', 'Souk Tolba', 'سوق الطلبة', 'scoutisme-hassania-ksar', 35.080942, -5.840158],
   ['al-mussaly-2025', '2025-04-25', '2025-04-27', 'Al Mussaly', 'المصلى', 'enimbenevolat'],
-  ['ait-oumdiss-2025', '2025-02-14', null, 'Aït Oumdiss', 'آيت أومديس', 'club-affaires-sociales-inpt'],
-  ['oulad-hmid-2025', '2025-01-25', '2025-01-26', 'Oulad Hmid', 'أولاد حميد', 'scoutisme-hassania-ksar'],
+  ['ait-oumdiss-2025', '2025-02-14', null, 'Aït Oumdiss', 'آيت أومديس', 'club-affaires-sociales-inpt', 31.49575, -7.052858],
+  ['oulad-hmid-2025', '2025-01-25', '2025-01-26', 'Oulad Hmid', 'أولاد حميد', 'scoutisme-hassania-ksar', 33.447156, -7.121078],
   ['assoul-2024', '2024-12-07', '2024-12-08', 'Assoul', 'أسول', 'caravane-al-amal', 31.95, -5.21],
-  ['boujadian-2024', '2024-11-16', '2024-11-17', 'Boujadian', 'بوجديان', 'scoutisme-hassania-ksar'],
+  ['boujadian-2024', '2024-11-16', '2024-11-17', 'Boujadian', 'بوجديان', 'scoutisme-hassania-ksar', 35.116689, -5.775392],
   ['ksar-el-kebir-2024', '2024-10-05', null, 'Ksar El Kébir', 'القصر الكبير', 'hand-in-hand-aui', 35.0, -5.9],
-  ['ait-ouadfal-2024', '2024-09-28', null, 'Aït Ouadfal', 'آيت وادفال', 'club-affaires-sociales-inpt'],
-  ['had-lgharbia-2024', '2024-09-25', null, 'Had Lgharbia', 'حد الغربية', 'fondation-safir'],
+  ['ait-ouadfal-2024', '2024-09-28', null, 'Aït Ouadfal', 'آيت وادفال', 'club-affaires-sociales-inpt', 33.283056, -4.533194],
+  ['had-lgharbia-2024', '2024-09-25', null, 'Had Lgharbia', 'حد الغربية', 'fondation-safir', 35.517136, -5.931367],
   ['bni-harchen-2024', '2024-08-17', null, 'Bni Harchen', 'بني حرشن', 'ecdh'],
 ]
 

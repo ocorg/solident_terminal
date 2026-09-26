@@ -100,7 +100,7 @@ export function ActionForm({
         </Field>
         <Field id="acoords" label="Coordonnées pour la carte">
           <input id="acoords" dir="ltr" value={v.coords ?? ''} onChange={set('coords')} placeholder="35.0017, -5.9053" className={`${inputClass} text-start`} />
-          <p className="text-xs text-ink-600">Google Maps : clic droit sur le lieu → cliquez sur les chiffres pour les copier → collez ici.</p>
+          <p className="text-xs text-ink-600">Google Maps : clic droit sur le lieu → cliquez sur les chiffres. Le format Google Earth (33°30'39"N 5°55'48"W) marche aussi.</p>
         </Field>
         <Field id="abenef" label="Bénéficiaires (nombre)">
           <input id="abenef" type="number" min={0} value={v.beneficiariesCount} onChange={set('beneficiariesCount')} className={inputClass} />

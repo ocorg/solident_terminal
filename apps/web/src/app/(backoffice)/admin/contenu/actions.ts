@@ -10,14 +10,28 @@ const opt = (max: number) => z.string().trim().max(max).optional().transform((v)
 const slug = z.string().trim().toLowerCase().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(80)
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
-/** "35.0017, -5.9053" as copied from Google Maps → { lat, lng }; empty → nulls. */
+/** Degrees-minutes-seconds pair (Google Earth), e.g. 33°30'39.13"N 5°55'48.00"W → [lat, lng]. */
+function parseDms(s: string): [number, number] | null {
+  const parts = [...s.matchAll(/(\d{1,3})\s*°\s*(\d{1,2})\s*['’′]\s*(\d{1,2}(?:[.,]\d+)?)\s*(?:["”″]|'')?\s*([NSEWnsew])/g)]
+  if (parts.length !== 2) return null
+  const val = (p: RegExpMatchArray) => {
+    const v = Number(p[1]) + Number(p[2]) / 60 + Number(p[3].replace(',', '.')) / 3600
+    return /[SWsw]/.test(p[4]) ? -v : v
+  }
+  const [a, b] = parts
+  const aIsLat = /[NSns]/.test(a[4])
+  return aIsLat ? [val(a), val(b)] : [val(b), val(a)]
+}
+
+/** "35.0017, -5.9053" (Google Maps) or 33°30'39"N 5°55'48"W (Google Earth) → { lat, lng }; empty → nulls. */
 function parseCoords(raw: string | undefined): { lat: number | null; lng: number | null } | 'invalid' | 'swapped' {
   const s = (raw ?? '').trim()
   if (!s) return { lat: null, lng: null }
-  const m = s.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)$/)
-  if (!m) return 'invalid'
-  const lat = Number(m[1])
-  const lng = Number(m[2])
+  const dms = parseDms(s)
+  const m = dms ? null : s.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)$/)
+  if (!dms && !m) return 'invalid'
+  const lat = Math.round((dms ? dms[0] : Number(m![1])) * 1e6) / 1e6
+  const lng = Math.round((dms ? dms[1] : Number(m![2])) * 1e6) / 1e6
   // Morocco and neighbours: latitude ~20–37 N, longitude ~-18 to -1 (W). Catches swapped values.
   if (lat >= -18 && lat <= -1 && lng >= 20 && lng <= 37) return 'swapped'
   if (lat < 15 || lat > 40 || lng < -20 || lng > 5) return 'invalid'
