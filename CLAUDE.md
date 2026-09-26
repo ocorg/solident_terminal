@@ -1,8 +1,8 @@
 # Solident monorepo — context for Claude Code
 
-This repo holds two Next.js apps for **Association Solident** (Moroccan dental NGO, see `docs/SPEC.md` §1):
+This repo holds the Next.js app and shared database package for **Association Solident** (Moroccan dental NGO, see `docs/SPEC.md` §1):
 
-- `apps/terminal` — the OLD Solident Terminal (Supabase). **Legacy, not in use**: its features were rebuilt in `apps/web` under `/espace` and its data imported into Neon (Phase 4, 26 Sep 2026). Do not develop it further; delete it (with its Vercel project and the Supabase project) once `/espace` is validated.
+- `apps/terminal` — **removed** (27 Sep 2026). The old Supabase Terminal was replaced by `/espace` in apps/web; its code is in git history (tag `pre-monorepo` = original layout). Only the git-ignored `apps/terminal/.env.local` (Supabase keys, used by `packages/db/scripts/import-terminal.ts`) stays on disk until the Supabase project is deleted.
 - `apps/web` — the public trilingual website (FR / AR / EN) + `/admin` (staff back-office) + `/espace` (members area, ex-Terminal). One app, one login.
 - `packages/db` — shared Prisma schema + client (`@solident/db`) on **Neon Postgres** (branches `production` + `dev`).
 
@@ -31,9 +31,7 @@ Next.js App Router + TypeScript · pnpm 10 workspaces · Neon Postgres + **Prism
 
 ```
 pnpm install
-pnpm dev:terminal   # http://localhost:3000
 pnpm dev:web        # http://localhost:3001
-pnpm build:terminal
 pnpm build:web
 pnpm db:migrate     # create + apply a migration on the dev branch (after editing schema.prisma)
 pnpm db:status      # is the DB in sync with the migrations?
@@ -44,7 +42,7 @@ pnpm db:generate    # rebuild the Prisma client
 
 ## Progress — Phase 0 (foundations) ✅ done 26 Sep 2026
 
-Work happens on branch **`monorepo-setup`**. Restore point: tag **`pre-monorepo`** (old single-app layout).
+Work happened on branch **`monorepo-setup`**, merged into **`main`** on 27 Sep 2026 (main is now the working branch). Restore point: tag **`pre-monorepo`** (old single-app layout).
 
 - [x] Step 1 — safety tag + branch, pnpm 10.34.5 (pnpm 11 failed on Windows; stay on 10), Node 22.22.3
 - [x] Step 2 — Terminal moved to `apps/terminal` (its `.env.local` and `.vercel` moved with it, both git-ignored)
@@ -93,6 +91,7 @@ Decision: Terminal was not in use, so instead of porting its 11k lines of Supaba
 - [x] **Rights**: old `is_admin` → `users.space_admin` = full rights in /espace only, NOT website admin (toggle in /admin/utilisateurs). Managers = members whose position name does not contain "membre" manage their project/cellule and its tasks; assignees change task status; creators edit their team events. Helpers in `src/lib/space.ts` (`requireMemberPage`, `requireMember`, `isContextManager`, `taskRights`, `notify`). Server pages must not pass functions to client components (use self-contained toggles like `ContextEditorToggle`)
 - [x] /espace pages: dashboard, tâches (+ detail, comments), projets and cellules (shared `_lib/context-*`: members/positions, cover, tasks, sub-projects), agenda (team events, invites by team or person, RSVP), propositions (approve → project with "Chef de Projet"), membres, notifications, paramètres (profile, avatar, e-mails, password). Logins land on /espace; staff also get /admin
 - [x] E-mail digest: `/api/cron/digest` (Bearer `CRON_SECRET`) sends one summary per member from `email_queue` (items due 15 min after the notification). **To activate**: add `CRON_SECRET` to Vercel (Production + Preview) and a cron-job.org job every 15 min
-- [ ] Retire legacy after validation: delete `apps/terminal`, the Vercel project `solident-terminal` and the Supabase project. Then merging `monorepo-setup` into `main` carries no risk (switch the Vercel `solident` Production Branch back to `main` at merge)
+- [x] Legacy code removed and `monorepo-setup` merged into `main` (27 Sep 2026)
+- [ ] Owner: switch the Vercel `solident` Production Branch to `main`; delete the Vercel project `solident-terminal` and the Supabase project (then delete `apps/terminal/.env.local`)
 
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026). Phase 4 is done.

@@ -143,7 +143,7 @@ const caravans: [string, string, string | null, string, string, string, number?,
   ['ksar-el-kebir-2024', '2024-10-05', null, 'Ksar El Kébir', 'القصر الكبير', 'hand-in-hand-aui', 35.0, -5.9],
   ['ait-ouadfal-2024', '2024-09-28', null, 'Aït Ouadfal', 'آيت وادفال', 'club-affaires-sociales-inpt', 33.283056, -4.533194],
   ['had-lgharbia-2024', '2024-09-25', null, 'Had Lgharbia', 'حد الغربية', 'fondation-safir', 35.517136, -5.931367],
-  ['bni-harchen-2024', '2024-08-17', null, 'Bni Harchen', 'بني حرشن', 'ecdh'],
+  ['bni-harchen-2024', '2024-08-17', null, 'Bni Harchen', 'بني حرشن', 'ecdh', 35.5021, -5.6962],
 ]
 
 const partnerName = (slug: string) => partners.find((p) => p.slug === slug)!.name
