@@ -42,3 +42,17 @@ export async function updateUser(input: z.input<typeof schema>) {
     return ok({ approved: !before.isActive && d.isActive })
   }, 'La mise à jour a échoué.')
 }
+
+/** Members-area admin rights (ex-Terminal admin), independent from the website role. */
+export async function setSpaceAdmin(input: { id: string; value: boolean }) {
+  return run(async () => {
+    const { user: me } = await requireRole('admin')
+    const d = z.object({ id: z.uuid(), value: z.boolean() }).parse(input)
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: d.id }, data: { spaceAdmin: d.value } }),
+      prisma.auditLog.create({ data: { userId: me.id, action: 'user.space_admin', entity: 'user', entityId: d.id, payload: { value: d.value } } }),
+    ])
+    revalidatePath('/admin', 'layout')
+    return ok(null)
+  }, 'La mise à jour a échoué.')
+}

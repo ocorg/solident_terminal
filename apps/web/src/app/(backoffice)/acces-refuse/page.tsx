@@ -8,8 +8,8 @@ export default function AccesRefuse() {
         <h1 className="font-heading text-2xl font-bold text-navy-700">Accès refusé</h1>
         <p className="text-ink-600">Votre compte n&apos;a pas accès à cet espace. Contactez un administrateur.</p>
         <div className="flex justify-center gap-3">
-          <Link href="/" className="rounded-[10px] px-3 py-1.5 text-sm text-navy-700 underline">
-            Retour au site
+          <Link href="/espace" className="btn btn-primary px-3 py-1.5 text-sm">
+            Espace membres
           </Link>
           <SignOutButton className="border-navy-100 text-navy-700 hover:bg-navy-100" />
         </div>

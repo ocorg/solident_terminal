@@ -25,6 +25,9 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
           Solident<span className="text-gold-500">.</span> <span className="font-normal opacity-80">admin</span>
         </Link>
         <div className="flex items-center gap-4">
+          <Link href="/espace" className="hidden rounded-[10px] bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20 sm:inline">
+            Espace membres
+          </Link>
           <Link href="/fr" className="hidden text-sm opacity-80 hover:opacity-100 sm:inline">
             Voir le site ↗
           </Link>

@@ -6,7 +6,7 @@ import { routing } from './i18n/routing'
 const intl = createMiddleware(routing)
 
 // French-only back-office pages live outside /[locale].
-const BACKOFFICE = /^\/(admin|connexion|inscription|mot-de-passe|mot-de-passe-oublie|acces-refuse)(\/|$)/
+const BACKOFFICE = /^\/(admin|espace|connexion|inscription|mot-de-passe|mot-de-passe-oublie|acces-refuse)(\/|$)/
 
 export default function proxy(request: NextRequest) {
   if (BACKOFFICE.test(request.nextUrl.pathname)) return NextResponse.next()

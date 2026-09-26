@@ -2,8 +2,8 @@
 
 This repo holds two Next.js apps for **Association Solident** (Moroccan dental NGO, see `docs/SPEC.md` §1):
 
-- `apps/terminal` — Solident Terminal, the existing internal mini-ERP. **Still on Supabase** until Phase 4. Has its own `CLAUDE.md` / `AGENTS.md`; read them before touching it.
-- `apps/web` — the new public trilingual website (FR / AR / EN) + `/admin`. Being built now.
+- `apps/terminal` — the OLD Solident Terminal (Supabase). **Legacy, not in use**: its features were rebuilt in `apps/web` under `/espace` and its data imported into Neon (Phase 4, 26 Sep 2026). Do not develop it further; delete it (with its Vercel project and the Supabase project) once `/espace` is validated.
+- `apps/web` — the public trilingual website (FR / AR / EN) + `/admin` (staff back-office) + `/espace` (members area, ex-Terminal). One app, one login.
 - `packages/db` — shared Prisma schema + client (`@solident/db`) on **Neon Postgres** (branches `production` + `dev`).
 
 Full spec: **`docs/SPEC.md`** (architecture, site map, data model, flows, admin roles, design system, roadmap). Read it before any feature work.
@@ -84,4 +84,15 @@ Decision (26 Sep): registration form = name + phone (required) + email, city, pr
 - [x] Post-caravan report = action page: `actions.figures` JSON ("En chiffres", FR required, AR/EN fall back) edited in `/admin/contenu`; a campaign linked via `campaigns.action_id` (select in `/admin/campagnes`) adds final funding, sponsor wall, donor names and a thank-you block. After Jissr Attadamon: create its action, fill figures + photos, link the campaign
 - [x] Launch essentials: `app/sitemap.ts` (all public pages × 3 languages with hreflang, hourly), `app/robots.ts` (admin/auth disallowed; previews fully noindex), `[locale]/opengraph-image.tsx` (brand share image, Latin text only), `[locale]/error.tsx`, security headers in `next.config.ts`, `metadataBase` + openGraph defaults
 
-Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026, Terminal migration Dec 2026–Jan 2027).
+## Progress — Phase 4 (Terminal → Neon), done early (26 Sep 2026)
+
+Decision: Terminal was not in use, so instead of porting its 11k lines of Supabase code, its features were **rebuilt in apps/web under `/espace`** (one app, one login, one deployment). Supabase is only read, by the import script.
+
+- [x] Schema: members-area models (cellules, projects + positions/members, project_proposals, tasks + assignees/contexts/comments, team_events + attendees/invites, notifications, email_queue) and `users.username / email_notifications / space_admin`. The old emoji statuses became enums; the labels shown are identical (`src/lib/space-labels.ts`)
+- [x] Import: `packages/db/scripts/import-terminal.ts` (dry run by default, `--write` to write, `DB_ENV_FILE=.env.production` for prod; reads Supabase with the service key in `apps/terminal/.env.local`; users matched by email, same UUIDs; storage files copied to R2 under `terminal/`; idempotent). Run on dev and production: 28 users, 5 projects, 4 cellules, 25 tasks, 43 assignments, 10 files. Supabase passwords cannot be exported: imported members log in by magic link or set a password (Paramètres, or Mot de passe oublié)
+- [x] **Rights**: old `is_admin` → `users.space_admin` = full rights in /espace only, NOT website admin (toggle in /admin/utilisateurs). Managers = members whose position name does not contain "membre" manage their project/cellule and its tasks; assignees change task status; creators edit their team events. Helpers in `src/lib/space.ts` (`requireMemberPage`, `requireMember`, `isContextManager`, `taskRights`, `notify`). Server pages must not pass functions to client components (use self-contained toggles like `ContextEditorToggle`)
+- [x] /espace pages: dashboard, tâches (+ detail, comments), projets and cellules (shared `_lib/context-*`: members/positions, cover, tasks, sub-projects), agenda (team events, invites by team or person, RSVP), propositions (approve → project with "Chef de Projet"), membres, notifications, paramètres (profile, avatar, e-mails, password). Logins land on /espace; staff also get /admin
+- [x] E-mail digest: `/api/cron/digest` (Bearer `CRON_SECRET`) sends one summary per member from `email_queue` (items due 15 min after the notification). **To activate**: add `CRON_SECRET` to Vercel (Production + Preview) and a cron-job.org job every 15 min
+- [ ] Retire legacy after validation: delete `apps/terminal`, the Vercel project `solident-terminal` and the Supabase project. Then merging `monorepo-setup` into `main` carries no risk (switch the Vercel `solident` Production Branch back to `main` at merge)
+
+Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026). Phase 4 is done.

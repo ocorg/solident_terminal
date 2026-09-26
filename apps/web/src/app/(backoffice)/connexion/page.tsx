@@ -13,7 +13,7 @@ const errors: Record<string, string> = {
 }
 
 export default async function ConnexionPage({ searchParams }: PageProps<'/connexion'>) {
-  if (await getSession()) redirect('/admin')
+  if (await getSession()) redirect('/espace')
   const { error } = await searchParams
   const message = typeof error === 'string' ? (errors[error] ?? 'La connexion a échoué. Réessayez.') : null
 

@@ -91,21 +91,41 @@ enum MediaOwnerType {
 // do not rename the Prisma fields. Better Auth generates UUID ids (advanced.database.generateId).
 
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  email         String   @unique
-  emailVerified Boolean  @default(false) @map("email_verified")
-  image         String?
-  role          Role     @default(member)
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  email              String   @unique
+  emailVerified      Boolean  @default(false) @map("email_verified")
+  image              String?
+  role               Role     @default(member)
+  isActive           Boolean  @default(true) @map("is_active")
+  // Members area (ex-Terminal)
+  username           String?  @unique
+  emailNotifications Boolean  @default(true) @map("email_notifications")
+  // Full rights in the members area (ex-Terminal is_admin), without website /admin access.
+  spaceAdmin         Boolean  @default(false) @map("space_admin")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   accounts           Account[]
   sessions           Session[]
   confirmedDonations Donation[] @relation("DonationConfirmedBy")
   createdEvents      Event[]    @relation("EventCreatedBy")
   auditLogs          AuditLog[]
+
+  celluleMemberships CelluleMember[]
+  projectMemberships ProjectMember[]
+  proposedProjects   Project[]           @relation("ProjectProposedBy")
+  proposals          ProjectProposal[]   @relation("ProposalBy")
+  suggestedChefFor   ProjectProposal[]   @relation("ProposalChef")
+  reviewedProposals  ProjectProposal[]   @relation("ProposalReviewer")
+  createdTasks       Task[]              @relation("TaskCreatedBy")
+  updatedTasks       Task[]              @relation("TaskUpdatedBy")
+  taskAssignments    TaskAssignee[]
+  taskComments       TaskComment[]
+  createdTeamEvents  TeamEvent[]
+  teamEventRsvps     TeamEventAttendee[]
+  notifications      Notification[]
+  emailQueue         EmailQueueItem[]
 
   @@map("users")
 }
@@ -506,4 +526,329 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([createdAt])
   @@map("audit_log")
+}
+
+// ═════════════════════════ Members area (ex-Terminal, Phase 4) ═════════════════════════
+// Imported from Supabase with the same UUIDs (users matched by email).
+
+enum ContextType {
+  project
+  cellule
+}
+
+enum TeamContext {
+  global
+  project
+  cellule
+}
+
+enum ProjectStatus {
+  actif
+  en_pause
+  bloque
+  termine
+}
+
+enum ApprovalStatus {
+  en_attente
+  approuve
+  rejete
+}
+
+enum TaskStatus {
+  a_faire
+  en_cours
+  bloque
+  termine
+}
+
+enum TaskPriority {
+  urgent
+  eleve
+  moyen
+  faible
+}
+
+enum TeamEventType {
+  activite
+  action
+  reunion
+  evenement
+}
+
+enum TeamEventVisibility {
+  tous
+  invites
+}
+
+enum Rsvp {
+  oui
+  non
+  en_attente
+}
+
+model Cellule {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  positions CellulePosition[]
+  members   CelluleMember[]
+
+  @@map("cellules")
+}
+
+model CellulePosition {
+  id        String @id @default(uuid()) @db.Uuid
+  celluleId String @map("cellule_id") @db.Uuid
+  name      String
+
+  cellule Cellule         @relation(fields: [celluleId], references: [id], onDelete: Cascade)
+  members CelluleMember[]
+
+  @@index([celluleId])
+  @@map("cellule_positions")
+}
+
+model CelluleMember {
+  id         String @id @default(uuid()) @db.Uuid
+  celluleId  String @map("cellule_id") @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  positionId String @map("position_id") @db.Uuid
+
+  cellule  Cellule         @relation(fields: [celluleId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position CellulePosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([celluleId, userId])
+  @@index([userId])
+  @@map("cellule_members")
+}
+
+model Project {
+  id              String         @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  status          ProjectStatus  @default(actif)
+  approvalStatus  ApprovalStatus @default(approuve) @map("approval_status")
+  isMultiActivite Boolean        @default(false) @map("is_multi_activite")
+  parentProjectId String?        @map("parent_project_id") @db.Uuid
+  proposedById    String?        @map("proposed_by") @db.Uuid
+  startDate       DateTime?      @map("start_date") @db.Date
+  endDate         DateTime?      @map("end_date") @db.Date
+  imageUrl        String?        @map("image_url")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  parent     Project?          @relation("SubProjects", fields: [parentProjectId], references: [id], onDelete: SetNull)
+  children   Project[]         @relation("SubProjects")
+  proposedBy User?             @relation("ProjectProposedBy", fields: [proposedById], references: [id], onDelete: SetNull)
+  positions  ProjectPosition[]
+  members    ProjectMember[]
+  proposals  ProjectProposal[]
+
+  @@index([parentProjectId])
+  @@map("projects")
+}
+
+model ProjectPosition {
+  id        String @id @default(uuid()) @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  name      String
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  members ProjectMember[]
+
+  @@index([projectId])
+  @@map("project_positions")
+}
+
+model ProjectMember {
+  id         String @id @default(uuid()) @db.Uuid
+  projectId  String @map("project_id") @db.Uuid
+  userId     String @map("user_id") @db.Uuid
+  positionId String @map("position_id") @db.Uuid
+
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position ProjectPosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ProjectProposal {
+  id              String         @id @default(uuid()) @db.Uuid
+  title           String
+  description     String?
+  type            String         @default("Projet")
+  isActivity      Boolean        @default(false) @map("is_activity")
+  parentProjectId String?        @map("parent_project_id") @db.Uuid
+  proposedById    String         @map("proposed_by") @db.Uuid
+  suggestedChefId String?        @map("suggested_chef") @db.Uuid
+  status          ApprovalStatus @default(en_attente)
+  reviewNotes     String?        @map("review_notes")
+  reviewedById    String?        @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?      @map("reviewed_at") @db.Timestamptz(3)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  parentProject Project? @relation(fields: [parentProjectId], references: [id], onDelete: SetNull)
+  proposedBy    User     @relation("ProposalBy", fields: [proposedById], references: [id], onDelete: Cascade)
+  suggestedChef User?    @relation("ProposalChef", fields: [suggestedChefId], references: [id], onDelete: SetNull)
+  reviewedBy    User?    @relation("ProposalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("project_proposals")
+}
+
+// A task belongs to one main context (project or cellule) and may appear in secondary ones.
+model Task {
+  id              String       @id @default(uuid()) @db.Uuid
+  contextType     ContextType  @map("context_type")
+  contextId       String       @map("context_id") @db.Uuid
+  title           String
+  description     String?
+  status          TaskStatus   @default(a_faire)
+  priority        TaskPriority @default(moyen)
+  dueDate         DateTime?    @map("due_date") @db.Timestamptz(3)
+  startedAt       DateTime?    @map("started_at") @db.Timestamptz(3)
+  completedAt     DateTime?    @map("completed_at") @db.Timestamptz(3)
+  archived        Boolean      @default(false)
+  createdById     String       @map("created_by") @db.Uuid
+  lastUpdatedById String?      @map("last_updated_by") @db.Uuid
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy     User           @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  lastUpdatedBy User?          @relation("TaskUpdatedBy", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+  assignees     TaskAssignee[]
+  contexts      TaskContext[]
+  comments      TaskComment[]
+
+  @@index([contextType, contextId])
+  @@index([status, archived])
+  @@map("tasks")
+}
+
+model TaskAssignee {
+  taskId String @map("task_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
+  @@map("task_assignees")
+}
+
+model TaskContext {
+  id          String      @id @default(uuid()) @db.Uuid
+  taskId      String      @map("task_id") @db.Uuid
+  contextType ContextType @map("context_type")
+  contextId   String      @map("context_id") @db.Uuid
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, contextType, contextId])
+  @@index([contextType, contextId])
+  @@map("task_contexts")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+// Internal team events (meetings…), distinct from the public "events" table.
+model TeamEvent {
+  id          String              @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  type        TeamEventType       @default(reunion)
+  contextType TeamContext         @default(global) @map("context_type")
+  contextId   String?             @map("context_id") @db.Uuid
+  startAt     DateTime            @map("start_at") @db.Timestamptz(3)
+  endAt       DateTime?           @map("end_at") @db.Timestamptz(3)
+  location    String?
+  visibility  TeamEventVisibility @default(tous)
+  createdById String              @map("created_by") @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  attendees TeamEventAttendee[]
+  invites   TeamEventInvite[]
+
+  @@index([startAt])
+  @@map("team_events")
+}
+
+model TeamEventAttendee {
+  eventId String @map("event_id") @db.Uuid
+  userId  String @map("user_id") @db.Uuid
+  rsvp    Rsvp   @default(en_attente)
+
+  event TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+  @@map("team_event_attendees")
+}
+
+// "Invite a whole project or cellule": its members are invited.
+model TeamEventInvite {
+  id          String      @id @default(uuid()) @db.Uuid
+  eventId     String      @map("event_id") @db.Uuid
+  contextType ContextType @map("context_type")
+  contextId   String      @map("context_id") @db.Uuid
+
+  event TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, contextType, contextId])
+  @@map("team_event_invites")
+}
+
+model Notification {
+  id          String    @id @default(uuid()) @db.Uuid
+  recipientId String    @map("recipient_id") @db.Uuid
+  type        String
+  targetId    String?   @map("target_id") @db.Uuid
+  message     String
+  readAt      DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, readAt, createdAt])
+  @@map("notifications")
+}
+
+// Grouped e-mail notifications, sent by the digest cron after send_after.
+model EmailQueueItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  recipientId String   @map("recipient_id") @db.Uuid
+  actionType  String   @map("action_type")
+  payload     Json
+  sendAfter   DateTime @map("send_after") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([sendAfter])
+  @@map("email_queue")
 }

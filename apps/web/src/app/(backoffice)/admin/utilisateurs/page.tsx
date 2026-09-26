@@ -1,7 +1,7 @@
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { roleOptions } from './roles'
-import { UserRowActions } from './user-row-actions'
+import { SpaceAdminToggle, UserRowActions } from './user-row-actions'
 
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Casablanca' })
 
@@ -19,7 +19,7 @@ export default async function UtilisateursPage() {
       <h1 className="font-heading text-2xl font-bold text-navy-700">Utilisateurs</h1>
       <p className="text-sm text-ink-600">
         Les inscriptions arrivent désactivées. Validez-les ici et choisissez un rôle : seuls Admin, Trésorerie, Ressources humaines et Médias ont accès à
-        l’administration.
+        l’administration. Tout compte actif accède à l’espace membres ; « admin espace » y donne tous les droits (projets, cellules, tâches) sans accès à l’administration du site.
       </p>
       {pending.length > 0 && (
         <p className="rounded-[10px] bg-gold-100 px-4 py-3 text-sm font-semibold text-navy-900">
@@ -30,7 +30,7 @@ export default async function UtilisateursPage() {
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-navy-100 text-navy-900">
             <tr>
-              {['Personne', 'Statut', 'Rôle actuel', 'Inscrit le', 'Actions'].map((h) => (
+              {['Personne', 'Statut', 'Rôle actuel', 'Espace membres', 'Inscrit le', 'Actions'].map((h) => (
                 <th key={h} className="px-4 py-3 text-start font-semibold">
                   {h}
                 </th>
@@ -54,6 +54,7 @@ export default async function UtilisateursPage() {
                   {u.sessions[0] && <div className="mt-1 text-xs text-ink-600">vu le {day(u.sessions[0].updatedAt)}</div>}
                 </td>
                 <td className="px-4 py-3">{roleLabel[u.role]}</td>
+                <td className="px-4 py-3">{u.role === 'admin' ? <span className="text-sm text-ink-600">admin (inclus)</span> : <SpaceAdminToggle id={u.id} value={u.spaceAdmin} />}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-ink-600">{day(u.createdAt)}</td>
                 <td className="px-4 py-3">
                   <UserRowActions id={u.id} isActive={u.isActive} role={u.role} isMe={u.id === me.id} />

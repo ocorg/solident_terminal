@@ -23,10 +23,10 @@ export function LoginForm() {
         const { error } = await authClient.signIn.email({ email, password, rememberMe: true })
         if (error) return void toast.error(authErrorMessage(error))
         toast.success('Connexion réussie')
-        router.replace('/admin')
+        router.replace('/espace')
         router.refresh()
       } else {
-        const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/admin', errorCallbackURL: '/connexion' })
+        const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/espace', errorCallbackURL: '/connexion' })
         if (error) return void toast.error(authErrorMessage(error))
         setLinkSentTo(email)
         toast.success('Vérifiez votre boîte mail')

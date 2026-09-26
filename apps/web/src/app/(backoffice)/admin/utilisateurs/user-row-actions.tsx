@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { Role } from '@solident/db'
 import { Spinner } from '@/components/spinner'
-import { updateUser } from './actions'
+import { setSpaceAdmin, updateUser } from './actions'
 import { roleOptions } from './roles'
 
 export function UserRowActions({ id, isActive, role, isMe }: { id: string; isActive: boolean; role: Role; isMe: boolean }) {
@@ -56,5 +56,35 @@ export function UserRowActions({ id, isActive, role, isMe }: { id: string; isAct
         </>
       )}
     </div>
+  )
+}
+
+export function SpaceAdminToggle({ id, value }: { id: string; value: boolean }) {
+  const router = useRouter()
+  const [checked, setChecked] = useState(value)
+  const [loading, setLoading] = useState(false)
+  return (
+    <label className="inline-flex items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={loading}
+        onChange={async (e) => {
+          const next = e.target.checked
+          setChecked(next)
+          setLoading(true)
+          const res = await setSpaceAdmin({ id, value: next })
+          setLoading(false)
+          if (res.status === 'error') {
+            setChecked(!next)
+            return void toast.error(res.message)
+          }
+          toast.success(next ? 'Admin de l’espace membres' : 'Droits d’admin de l’espace retirés')
+          router.refresh()
+        }}
+        className="size-4 accent-navy-700"
+      />
+      {loading ? <Spinner /> : 'admin espace'}
+    </label>
   )
 }
