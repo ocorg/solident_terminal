@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { prisma } from '@solident/db'
+import { Prisma, prisma } from '@solident/db'
 import { fail, ok, run } from '@/lib/action'
 import { requireRole } from '@/lib/guards'
 
@@ -54,6 +54,9 @@ const actionSchema = z.object({
   coords: z.string().max(80).optional(),
   beneficiariesCount: z.union([z.literal(''), z.coerce.number().int().min(0).max(10_000_000)]).optional().transform((v) => (v === '' || v === undefined ? null : v)),
   partnerIds: z.array(z.uuid()).max(50),
+  figures: z
+    .array(z.object({ value: z.coerce.number().min(0).max(100_000_000), labelFr: z.string().trim().min(1).max(80), labelAr: z.string().trim().max(80).optional(), labelEn: z.string().trim().max(80).optional() }))
+    .max(12),
   isPublished: z.boolean(),
 })
 export type ActionInput = z.input<typeof actionSchema>
@@ -68,7 +71,7 @@ export async function saveAction(input: ActionInput) {
     const { user } = await requireRole('admin', 'media')
     const parsed = actionSchema.safeParse(input)
     if (!parsed.success) return fail('Vérifiez les champs (titre FR, slug, dates).')
-    const { id, partnerIds, coords, dateStart, dateEnd, ...rest } = parsed.data
+    const { id, partnerIds, coords, dateStart, dateEnd, figures, ...rest } = parsed.data
     const c = parseCoords(coords)
     if (c === 'invalid') return fail('Coordonnées invalides. Collez-les depuis Google Maps, ex. « 35.0017, -5.9053 ».')
     if (c === 'swapped') return fail('Coordonnées inversées : la latitude (≈ 30 à 36) doit venir en premier, ex. « 35.0017, -5.9053 ».')
@@ -78,7 +81,13 @@ export async function saveAction(input: ActionInput) {
     const clash = await prisma.action.findFirst({ where: { slug: rest.slug, ...(id && { NOT: { id } }) }, select: { id: true } })
     if (clash) return fail('Ce slug est déjà utilisé par une autre action.')
 
-    const data = { ...rest, ...c, dateStart: start, dateEnd: end }
+    const data = {
+      ...rest,
+      ...c,
+      dateStart: start,
+      dateEnd: end,
+      figures: figures.length ? figures.map((f) => ({ value: f.value, labelFr: f.labelFr, labelAr: f.labelAr || null, labelEn: f.labelEn || null })) : Prisma.DbNull,
+    }
     const saved = await prisma.$transaction(async (tx) => {
       const a = id ? await tx.action.update({ where: { id }, data }) : await tx.action.create({ data })
       await tx.actionPartner.deleteMany({ where: { actionId: a.id } })

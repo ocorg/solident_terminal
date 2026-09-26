@@ -213,6 +213,8 @@ model Action {
   bodyAr             String?   @map("body_ar")
   bodyEn             String?   @map("body_en")
   coverUrl           String?   @map("cover_url")
+  // Report key figures: [{ value: number, labelFr, labelAr?, labelEn? }] shown as "En chiffres".
+  figures            Json?
   isPublished        Boolean   @default(false) @map("is_published")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)

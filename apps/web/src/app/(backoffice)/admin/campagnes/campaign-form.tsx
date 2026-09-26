@@ -16,11 +16,11 @@ const langs = [
   { key: 'En', label: 'English', dir: 'ltr' },
 ] as const
 
-export function CampaignForm({ initial }: { initial?: CampaignInput }) {
+export function CampaignForm({ initial, actions = [] }: { initial?: CampaignInput; actions?: { id: string; title: string }[] }) {
   const router = useRouter()
   const [v, setV] = useState<Values>({
     slug: '', titleFr: '', titleAr: '', titleEn: '', summaryFr: '', summaryAr: '', summaryEn: '',
-    startsOn: new Date().toISOString().slice(0, 10), endsOn: '', isActive: true,
+    startsOn: new Date().toISOString().slice(0, 10), endsOn: '', isActive: true, actionId: '',
     ...initial,
     goalDh: initial ? String(initial.goalDh) : '',
   })
@@ -28,7 +28,7 @@ export function CampaignForm({ initial }: { initial?: CampaignInput }) {
   const [slugTouched, setSlugTouched] = useState(Boolean(initial))
   const [loading, setLoading] = useState(false)
 
-  const set = (k: keyof Values) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const set = (k: keyof Values) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value
     setV((f) => ({ ...f, [k]: value, ...(k === 'titleFr' && !slugTouched && { slug: slugify(String(value)) }) }))
   }
@@ -94,6 +94,17 @@ export function CampaignForm({ initial }: { initial?: CampaignInput }) {
           />
         </Field>
       </div>
+      <Field id="action" label="Action liée (pour le rapport après la caravane)">
+        <select id="action" value={v.actionId ?? ''} onChange={set('actionId')} className={inputClass}>
+          <option value="">—</option>
+          {actions.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.title}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-ink-600">La page de l’action affichera le résultat de la collecte, les sponsors et les donateurs.</p>
+      </Field>
       <label className="flex items-center gap-3 text-sm">
         <input type="checkbox" checked={v.isActive} onChange={set('isActive')} className="size-4 accent-navy-700" />
         Active : visible sur le site et ouverte aux dons

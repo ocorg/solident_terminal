@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { SiteFooter } from '@/components/site/footer'
 import { SiteHeader } from '@/components/site/header'
 import { localeDir, routing } from '@/i18n/routing'
+import { siteUrl } from '@/lib/site-url'
 import { fontVariables } from '../../fonts'
 import '../../globals.css'
 
@@ -17,9 +18,11 @@ export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Pr
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Metadata' })
   return {
+    metadataBase: new URL(siteUrl()),
     title: { default: t('title'), template: `%s · ${t('title')}` },
     description: t('description'),
     alternates: { languages: Object.fromEntries(routing.locales.map((l) => [l, `/${l}`])) },
+    openGraph: { siteName: 'Association Solident', locale: { fr: 'fr_MA', ar: 'ar_MA', en: 'en_US' }[locale] ?? 'fr_MA', type: 'website' },
   }
 }
 

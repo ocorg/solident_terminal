@@ -19,6 +19,7 @@ export default async function EditCampagnePage({ params }: PageProps<'/admin/cam
         Le total collecté ({new Intl.NumberFormat('fr-MA').format(c.raisedDh)} DH) se calcule automatiquement à partir des dons confirmés.
       </p>
       <CampaignForm
+        actions={(await prisma.action.findMany({ orderBy: { dateStart: 'desc' }, select: { id: true, titleFr: true } })).map((a) => ({ id: a.id, title: a.titleFr }))}
         initial={{
           id: c.id,
           slug: c.slug,
@@ -32,6 +33,7 @@ export default async function EditCampagnePage({ params }: PageProps<'/admin/cam
           startsOn: isoDay(c.startsOn),
           endsOn: isoDay(c.endsOn),
           isActive: c.isActive,
+          actionId: c.actionId ?? '',
         }}
       />
     </div>

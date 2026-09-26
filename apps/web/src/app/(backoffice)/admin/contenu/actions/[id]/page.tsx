@@ -54,6 +54,7 @@ export default async function EditActionPage({ params }: PageProps<'/admin/conte
           coords: a.lat !== null && a.lng !== null ? `${a.lat}, ${a.lng}` : '',
           beneficiariesCount: a.beneficiariesCount ?? '',
           partnerIds: a.partners.map((p) => p.partnerId),
+          figures: Array.isArray(a.figures) ? (a.figures as { value: number; labelFr: string; labelAr?: string | null; labelEn?: string | null }[]).map((x) => ({ value: x.value, labelFr: x.labelFr, labelAr: x.labelAr ?? '', labelEn: x.labelEn ?? '' })) : [],
           isPublished: a.isPublished,
         }}
       />

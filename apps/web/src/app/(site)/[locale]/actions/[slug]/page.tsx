@@ -2,8 +2,12 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma } from '@solident/db'
+import { SponsorWall } from '@/components/site/sponsor-wall'
 import { Link } from '@/i18n/navigation'
+import { donorWall, sponsorWall } from '@/lib/donations'
 import { localized } from '@/lib/localized'
+
+type Figure = { value: number; labelFr: string; labelAr?: string | null; labelEn?: string | null }
 
 export const revalidate = 3600
 
@@ -24,7 +28,14 @@ export default async function ActionPage({ params }: PageProps<'/[locale]/action
   if (!a) notFound()
   const t = await getTranslations('Actions')
   const format = await getFormatter()
-  const gallery = await prisma.media.findMany({ where: { ownerType: 'action', ownerId: a.id }, orderBy: { order: 'asc' } })
+  const r = await getTranslations('Report')
+  const [gallery, campaign] = await Promise.all([
+    prisma.media.findMany({ where: { ownerType: 'action', ownerId: a.id }, orderBy: { order: 'asc' } }),
+    prisma.campaign.findFirst({ where: { actionId: a.id }, orderBy: { startsOn: 'desc' } }),
+  ])
+  const [names, sponsors] = campaign ? await Promise.all([donorWall(campaign.id, 200), sponsorWall(campaign.id)]) : [[], null]
+  const figures = Array.isArray(a.figures) ? (a.figures as Figure[]) : []
+  const money = (n: number) => format.number(n, { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 })
   const opts = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' } as const
 
   return (
@@ -66,6 +77,59 @@ export default async function ActionPage({ params }: PageProps<'/[locale]/action
       </dl>
 
       {localized(a, 'body', locale) && <p className="whitespace-pre-line text-lg text-ink-600">{localized(a, 'body', locale)}</p>}
+
+      {figures.length > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-navy-700">{r('figuresTitle')}</h2>
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {figures.map((x, i) => (
+              <div key={i} className="card p-5">
+                <dd className="font-heading text-4xl font-bold text-navy-700">{format.number(x.value)}</dd>
+                <dt className="text-sm text-ink-600">{localized(x, 'label', locale)}</dt>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {campaign && (
+        <section className="mt-12 space-y-8">
+          <div className="card overflow-hidden">
+            <div className="bg-navy-700 p-6 text-white">
+              <h2 className="mb-1 font-heading text-2xl font-bold">{r('fundingTitle')}</h2>
+              <p className="text-white/85">{r('raisedOf', { raised: money(campaign.raisedDh), goal: money(campaign.goalDh) })} · {r('donors', { count: campaign.donorsCount })}</p>
+              <div className="mt-4 h-3.5 overflow-hidden rounded-full bg-white/15">
+                <div className="h-full rounded-full bg-gold-500" style={{ width: `${Math.min(100, campaign.goalDh ? (campaign.raisedDh / campaign.goalDh) * 100 : 0)}%` }} />
+              </div>
+            </div>
+          </div>
+          {sponsors && (sponsors.tiers.length > 0 || sponsors.supporters.length > 0) && (
+            <div>
+              <h2 className="mb-4 font-heading text-xl font-bold text-navy-700">{r('sponsorsTitle')}</h2>
+              <SponsorWall wall={sponsors} />
+            </div>
+          )}
+          {names.length > 0 && (
+            <div>
+              <h2 className="mb-4 font-heading text-xl font-bold text-navy-700">{r('donorsTitle')}</h2>
+              <ul className="flex flex-wrap gap-2">
+                {names.map((n, i) => (
+                  <li key={`${n}-${i}`} className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-navy-700 shadow-card">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="card border-s-4 border-gold-500 p-6">
+            <h2 className="mb-2 font-heading text-xl font-bold text-navy-700">{r('thanksTitle')}</h2>
+            <p className="mb-4 text-ink-600">{r('thanksText')}</p>
+            <Link href="/soutenir/don" className="btn btn-cta">
+              {r('supportCta')}
+            </Link>
+          </div>
+        </section>
+      )}
 
       {gallery.length > 0 && (
         <section className="mt-12">

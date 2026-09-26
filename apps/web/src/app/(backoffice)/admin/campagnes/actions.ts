@@ -21,6 +21,7 @@ const schema = z.object({
   startsOn: z.iso.date(),
   endsOn: z.union([z.literal(''), z.iso.date()]).optional(),
   isActive: z.boolean(),
+  actionId: z.union([z.literal(''), z.uuid()]).optional().transform((v) => v || null),
 })
 
 export type CampaignInput = z.input<typeof schema>

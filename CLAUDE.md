@@ -78,4 +78,10 @@ Decision (26 Sep): registration form = name + phone (required) + email, city, pr
 - [x] `/soutenir/benevolat` (vol-* fields, HR + admins emailed) + `/admin/benevoles` (admin+hr, statuses, WhatsApp links); `/programmes` + `/programmes/[slug]` (actions + upcoming events); `/actions` (totals, Leaflet/OpenStreetMap map of caravans with coordinates, timeline by year, programme filter) + `/actions/[slug]` (gallery from `media`); `/partenaires` (grouped by type, actions together). Every §4 section now has a real page
 - [x] `/admin/contenu` (admin+media): programmes (3 languages, cover, order, visible) and actions (3 languages, dates, place, Google-Maps coordinates with swap/range checks, beneficiaries, partners, publish, cover, multi-photo gallery in `media`, 1600 px WebP). Covers for actions/programmes/events use the shared `setImage`
 
+## Progress — Phase 3 (caravan period 16 Nov – 5 Dec: feature freeze; code ready early)
+
+- [x] Caravan coordinates: 12 of 14 caravans on the map (Al Mussaly and Bni Harchen still missing); `/admin/contenu` accepts Google Maps decimals and Google Earth DMS
+- [x] Post-caravan report = action page: `actions.figures` JSON ("En chiffres", FR required, AR/EN fall back) edited in `/admin/contenu`; a campaign linked via `campaigns.action_id` (select in `/admin/campagnes`) adds final funding, sponsor wall, donor names and a thank-you block. After Jissr Attadamon: create its action, fill figures + photos, link the campaign
+- [x] Launch essentials: `app/sitemap.ts` (all public pages × 3 languages with hreflang, hourly), `app/robots.ts` (admin/auth disallowed; previews fully noindex), `[locale]/opengraph-image.tsx` (brand share image, Latin text only), `[locale]/error.tsx`, security headers in `next.config.ts`, `metadataBase` + openGraph defaults
+
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026, Terminal migration Dec 2026–Jan 2027).

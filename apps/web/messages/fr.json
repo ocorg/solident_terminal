@@ -314,5 +314,22 @@
     },
     "together": "{count, plural, one {# action ensemble} other {# actions ensemble}}",
     "cta": "Devenir partenaire"
+  },
+  "Report": {
+    "figuresTitle": "En chiffres",
+    "fundingTitle": "Le financement",
+    "raisedOf": "{raised} collectés sur un objectif de {goal}",
+    "donors": "{count, plural, =0 {Aucun don} one {# don} other {# dons}}",
+    "thanksTitle": "Merci",
+    "thanksText": "Cette action a été possible grâce à chaque donateur, sponsor et bénévole. Merci de faire vivre la solidarité.",
+    "donorsTitle": "Nos donateurs",
+    "sponsorsTitle": "Nos sponsors",
+    "supportCta": "Soutenir la prochaine action"
+  },
+  "Error": {
+    "title": "Une erreur est survenue",
+    "text": "Désolé, cette page n’a pas pu se charger. Réessayez dans un instant.",
+    "retry": "Réessayer",
+    "home": "Retour à l’accueil"
   }
 }

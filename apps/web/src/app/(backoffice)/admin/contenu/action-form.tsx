@@ -28,7 +28,7 @@ export function ActionForm({
   const router = useRouter()
   const [v, setV] = useState<Values>({
     slug: '', programmeId: '', titleFr: '', titleAr: '', titleEn: '', bodyFr: '', bodyAr: '', bodyEn: '',
-    dateStart: '', dateEnd: '', location: '', coords: '', partnerIds: [], isPublished: true,
+    dateStart: '', dateEnd: '', location: '', coords: '', partnerIds: [], figures: [], isPublished: true,
     ...initial,
     beneficiariesCount: initial?.beneficiariesCount ? String(initial.beneficiariesCount) : '',
   })
@@ -41,6 +41,13 @@ export function ActionForm({
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value
     setV((f) => ({ ...f, [k]: value, ...(k === 'titleFr' && !slugTouched && { slug: slugify(String(value)) }) }))
   }
+  type Fig = { value: string | number; labelFr: string; labelAr?: string; labelEn?: string }
+  const figs = (v.figures ?? []) as Fig[]
+  const setFig = (i: number, k: keyof Fig, value: string) =>
+    setV((f) => ({ ...f, figures: (f.figures as Fig[]).map((x, j) => (j === i ? { ...x, [k]: value } : x)) }))
+  const addFig = () => setV((f) => ({ ...f, figures: [...((f.figures ?? []) as Fig[]), { value: '', labelFr: '', labelAr: '', labelEn: '' }] }))
+  const removeFig = (i: number) => setV((f) => ({ ...f, figures: (f.figures as Fig[]).filter((_, j) => j !== i) }))
+
   const togglePartner = (id: string) =>
     setV((f) => ({ ...f, partnerIds: f.partnerIds.includes(id) ? f.partnerIds.filter((x) => x !== id) : [...f.partnerIds, id] }))
 
@@ -121,6 +128,27 @@ export function ActionForm({
             </label>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-navy-900">Chiffres clés du rapport (« En chiffres ») — facultatif</legend>
+        <p className="text-xs text-ink-600">Ex. 400 · familles aidées / 320 · consultations / 150 · kits distribués. Le français est obligatoire, l’arabe et l’anglais reprennent le français s’ils sont vides.</p>
+        {figs.map((x, i) => (
+          <div key={i} className="grid items-end gap-2 sm:grid-cols-[110px_1fr_1fr_1fr_auto]">
+            <input type="number" min={0} required aria-label="Valeur" placeholder="400" value={x.value} onChange={(e) => setFig(i, 'value', e.target.value)} className={`${inputClass} py-2`} />
+            <input required maxLength={80} aria-label="Libellé FR" placeholder="familles aidées" value={x.labelFr} onChange={(e) => setFig(i, 'labelFr', e.target.value)} className={`${inputClass} py-2`} />
+            <input dir="rtl" maxLength={80} aria-label="Libellé AR" placeholder="أسرة مستفيدة" value={x.labelAr ?? ''} onChange={(e) => setFig(i, 'labelAr', e.target.value)} className={`${inputClass} py-2`} />
+            <input maxLength={80} aria-label="Libellé EN" placeholder="families helped" value={x.labelEn ?? ''} onChange={(e) => setFig(i, 'labelEn', e.target.value)} className={`${inputClass} py-2`} />
+            <button type="button" onClick={() => removeFig(i)} className="pb-2 text-sm text-danger underline">
+              Retirer
+            </button>
+          </div>
+        ))}
+        {figs.length < 12 && (
+          <button type="button" onClick={addFig} className="text-sm font-semibold text-navy-700 underline">
+            + Ajouter un chiffre
+          </button>
+        )}
       </fieldset>
 
       <label className="flex items-center gap-2 text-sm">
