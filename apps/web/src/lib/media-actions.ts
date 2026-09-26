@@ -9,13 +9,13 @@ import { createUploadUrl, deleteObject, publicKeyFromUrl, publicUrl } from './r2
 
 // Content editors (spec §7: admin + media).
 const EDITORS = ['admin', 'media'] as const
-const folders = { team: 'team', partner: 'partners', dossier: 'documents' } as const
+const folders = { team: 'team', partner: 'partners', event: 'events', dossier: 'documents' } as const
 type Target = keyof typeof folders
 
 export async function getMediaUploadUrl(input: { target: Target; contentType: string; size: number }) {
   return run(async () => {
     await requireRole(...EDITORS)
-    const d = z.object({ target: z.enum(['team', 'partner', 'dossier']), contentType: z.string().max(100), size: z.number().int() }).parse(input)
+    const d = z.object({ target: z.enum(['team', 'partner', 'event', 'dossier']), contentType: z.string().max(100), size: z.number().int() }).parse(input)
     const kind = d.target === 'dossier' ? 'document' : 'image'
     const { key, uploadUrl } = await createUploadUrl({ bucket: 'public', kind, folder: folders[d.target], contentType: d.contentType, size: d.size })
     return ok({ key, uploadUrl })
@@ -36,10 +36,10 @@ function refreshSite() {
 }
 
 /** Saves (or clears, with key = null) the photo of a team member or the logo of a partner. */
-export async function setImage(input: { entity: 'team' | 'partner'; id: string; key: string | null }) {
+export async function setImage(input: { entity: 'team' | 'partner' | 'event'; id: string; key: string | null }) {
   return run(async () => {
     const { user } = await requireRole(...EDITORS)
-    const d = z.object({ entity: z.enum(['team', 'partner']), id: z.uuid(), key: z.string().nullable() }).parse(input)
+    const d = z.object({ entity: z.enum(['team', 'partner', 'event']), id: z.uuid(), key: z.string().nullable() }).parse(input)
     if (d.key && !keyFor(d.entity).test(d.key)) return fail('Fichier invalide.')
     const url = d.key ? publicUrl(d.key) : null
 
@@ -49,6 +49,11 @@ export async function setImage(input: { entity: 'team' | 'partner'; id: string; 
       if (!before) return fail('Membre introuvable.')
       previous = before.photoUrl
       await prisma.teamMember.update({ where: { id: d.id }, data: { photoUrl: url } })
+    } else if (d.entity === 'event') {
+      const before = await prisma.event.findUnique({ where: { id: d.id }, select: { coverUrl: true } })
+      if (!before) return fail('Événement introuvable.')
+      previous = before.coverUrl
+      await prisma.event.update({ where: { id: d.id }, data: { coverUrl: url } })
     } else {
       const before = await prisma.partner.findUnique({ where: { id: d.id }, select: { logoUrl: true } })
       if (!before) return fail('Partenaire introuvable.')

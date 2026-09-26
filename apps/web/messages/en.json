@@ -167,5 +167,78 @@
     "joinTitle": "Want to join us?",
     "joinText": "Students, practitioners or volunteers from other professions: there is a place for everyone.",
     "joinCta": "Volunteer"
+  },
+  "Events": {
+    "title": "Events",
+    "intro": "Caravans, scientific days, Solifun and prevention days: find our next events and register online.",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "all": "All",
+    "types": {
+      "caravane": "Caravan",
+      "scientifique": "Scientific",
+      "solifun": "Solifun",
+      "ambassadeurs": "Young ambassadors",
+      "autre": "Other"
+    },
+    "noUpcoming": "No upcoming events right now. Follow us on Instagram so you don’t miss anything.",
+    "noPast": "No past events in this category.",
+    "placesLeft": "{count, plural, =0 {Full} one {# place left} other {# places left}}",
+    "full": "Full",
+    "closed": "Registration closed",
+    "open": "Registration open",
+    "register": "Register",
+    "when": "When",
+    "where": "Where",
+    "back": "All events",
+    "registerTitle": "Registration",
+    "details": "See event"
+  },
+  "Registration": {
+    "name": "Full name",
+    "phone": "Phone",
+    "phoneHint": "E.g. 06 12 34 56 78 or +212 6 12 34 56 78",
+    "email": "Email",
+    "emailHint": "Optional, to receive a confirmation",
+    "city": "City",
+    "cityHint": "Optional",
+    "profile": "You are",
+    "profiles": {
+      "etudiant": "Dental student",
+      "praticien": "Practitioner",
+      "public": "General public"
+    },
+    "note": "Note",
+    "noteHint": "Optional · level, equipment, allergies… (500 characters max)",
+    "submit": "Confirm my registration",
+    "successTitle": "You’re registered!",
+    "successText": "Thank you! The team will contact you if needed. Save the date.",
+    "another": "Register someone else",
+    "errDuplicate": "This phone number is already registered for this event.",
+    "errFull": "Sorry, the event is full.",
+    "errClosed": "Registration is closed for this event.",
+    "errPhone": "Invalid phone number.",
+    "errFields": "Please check the required fields.",
+    "errTooMany": "Too many registrations from your connection. Try again in a few minutes.",
+    "errGeneric": "Registration failed. Please try again in a moment."
+  },
+  "Solifun": {
+    "slogan": "Play hard, give harder",
+    "intro": "Solifun is Solident’s sport and leisure side: we meet to play, ride, paddle… and every participation funds our solidarity actions.",
+    "fundsTitle": "Where does the money go?",
+    "fundsText": "Revenue from every Solifun event directly funds our dental caravans and prevention actions.",
+    "fundsCta": "See the current campaign",
+    "activitiesTitle": "Our activities",
+    "activities": {
+      "padel": "Padel",
+      "velo": "Cycling",
+      "kayak": "Kayak",
+      "foot": "Football",
+      "fifa": "FIFA tournaments",
+      "voyage": "Trips"
+    },
+    "eventsTitle": "Upcoming Solifun events",
+    "noEvents": "No Solifun event announced yet. Follow @solifun_ to be the first to know.",
+    "followCta": "Follow @solifun_"
   }
 }

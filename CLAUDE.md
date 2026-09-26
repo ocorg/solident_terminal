@@ -68,6 +68,13 @@ Decisions (26 Sep): donor wall = opt-in names, never amounts; sponsor wall = com
 - [x] Home page: hero, impact counters, programmes teaser, next event + live bar, mission/vision/values, partner strip (logos, or names until uploaded)
 - [ ] Rotate R2 + Pusher keys before public launch
 
-Dev gotchas: never run `pnpm build:web` while `pnpm dev:web` is running (the dev server then serves stale prerendered pages as 404; fix = stop it, delete `apps/web/.next`, restart). After a Prisma schema change, restart the dev server (the client is cached across hot reloads).
+Dev gotchas: Turbopack on Windows occasionally crashes the dev server (exit 3765269347) and can leave a corrupt cache (every page 404) — stop it, `rm -rf apps/web/.next`, restart. Never run `pnpm build:web` while `pnpm dev:web` is running (the dev server then serves stale prerendered pages as 404; fix = stop it, delete `apps/web/.next`, restart). After a Prisma schema change, restart the dev server (the client is cached across hot reloads).
+
+## Progress — Phase 2 (events and content, 26 Oct – 15 Nov 2026)
+
+Decision (26 Sep): registration form = name + phone (required) + email, city, profile, note; no per-activity fields yet (the note covers it).
+
+- [x] Events + registrations: `src/lib/registrations.ts` (capacity + duplicate phone in one transaction with an event row lock; "closed" wins over "full"; cancel frees a place; Pusher `places-updated`), `src/lib/phone.ts` (Moroccan numbers → E.164 so duplicates match), `/[locale]/evenements` (upcoming/past, type filter), `/[locale]/evenements/[slug]` (live places + form, confirmation email), `/[locale]/solifun` hub. Admin: `/admin/evenements` (admin+media edit, hr read; cover image; datetime inputs in Casablanca time via `src/lib/tz.ts`, Ramadan-safe), `/admin/inscriptions` (admin+hr; status; CSV export for Excel with BOM, ";" and formula-injection guard). next-intl `timeZone: Africa/Casablanca`
+- [ ] Bénévolat, Programmes, Actions map, Partenaires pages; admin bénévoles + contenu (actions/programmes/galleries)
 
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026, Terminal migration Dec 2026–Jan 2027).

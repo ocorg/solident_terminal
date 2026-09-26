@@ -167,5 +167,78 @@
     "joinTitle": "Envie de nous rejoindre ?",
     "joinText": "Étudiants, praticiens ou bénévoles d’autres métiers : il y a une place pour chacun.",
     "joinCta": "Devenir bénévole"
+  },
+  "Events": {
+    "title": "Événements",
+    "intro": "Caravanes, journées scientifiques, Solifun et journées de prévention : retrouvez nos prochains rendez-vous et inscrivez-vous en ligne.",
+    "upcoming": "À venir",
+    "past": "Passés",
+    "all": "Tous",
+    "types": {
+      "caravane": "Caravane",
+      "scientifique": "Scientifique",
+      "solifun": "Solifun",
+      "ambassadeurs": "Jeunes ambassadeurs",
+      "autre": "Autre"
+    },
+    "noUpcoming": "Aucun événement à venir pour le moment. Suivez-nous sur Instagram pour ne rien manquer.",
+    "noPast": "Aucun événement passé dans cette catégorie.",
+    "placesLeft": "{count, plural, =0 {Complet} one {# place restante} other {# places restantes}}",
+    "full": "Complet",
+    "closed": "Inscriptions fermées",
+    "open": "Inscriptions ouvertes",
+    "register": "S’inscrire",
+    "when": "Quand",
+    "where": "Où",
+    "back": "Tous les événements",
+    "registerTitle": "Inscription",
+    "details": "Voir l’événement"
+  },
+  "Registration": {
+    "name": "Nom complet",
+    "phone": "Téléphone",
+    "phoneHint": "Ex. 06 12 34 56 78 ou +212 6 12 34 56 78",
+    "email": "E-mail",
+    "emailHint": "Facultatif, pour recevoir une confirmation",
+    "city": "Ville",
+    "cityHint": "Facultatif",
+    "profile": "Vous êtes",
+    "profiles": {
+      "etudiant": "Étudiant·e en médecine dentaire",
+      "praticien": "Praticien·ne",
+      "public": "Grand public"
+    },
+    "note": "Remarque",
+    "noteHint": "Facultatif · niveau, matériel, allergies… (500 caractères max.)",
+    "submit": "Valider mon inscription",
+    "successTitle": "Inscription enregistrée !",
+    "successText": "Merci ! L’équipe vous recontactera si besoin. Pensez à noter la date.",
+    "another": "Inscrire une autre personne",
+    "errDuplicate": "Ce numéro est déjà inscrit à cet événement.",
+    "errFull": "Désolé, l’événement est complet.",
+    "errClosed": "Les inscriptions sont fermées pour cet événement.",
+    "errPhone": "Numéro de téléphone invalide.",
+    "errFields": "Vérifiez les champs obligatoires.",
+    "errTooMany": "Trop d’inscriptions depuis votre connexion. Réessayez dans quelques minutes.",
+    "errGeneric": "L’inscription a échoué. Réessayez dans un instant."
+  },
+  "Solifun": {
+    "slogan": "Play hard, give harder",
+    "intro": "Solifun, c’est le volet sport et loisirs de Solident : on se retrouve pour jouer, rouler, pagayer… et chaque participation finance nos actions solidaires.",
+    "fundsTitle": "Où va l’argent ?",
+    "fundsText": "Les recettes de chaque événement Solifun financent directement nos caravanes dentaires et nos actions de prévention.",
+    "fundsCta": "Voir la campagne en cours",
+    "activitiesTitle": "Nos activités",
+    "activities": {
+      "padel": "Padel",
+      "velo": "Vélo",
+      "kayak": "Kayak",
+      "foot": "Foot",
+      "fifa": "Tournois FIFA",
+      "voyage": "Voyages"
+    },
+    "eventsTitle": "Prochains événements Solifun",
+    "noEvents": "Pas d’événement Solifun annoncé pour l’instant. Suivez @solifun_ pour être prévenu·e.",
+    "followCta": "Suivre @solifun_"
   }
 }

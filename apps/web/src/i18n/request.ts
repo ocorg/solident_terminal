@@ -8,7 +8,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
   // Missing keys in ar/en fall back to French (spec §7: French is the reference language).
   const fr = (await import('../../messages/fr.json')).default
   const own = locale === 'fr' ? fr : (await import(`../../messages/${locale}.json`)).default
-  return { locale, messages: deepMerge(fr, own) }
+  // Event dates and times always shown in Moroccan time, wherever the visitor or server is.
+  return { locale, messages: deepMerge(fr, own), timeZone: 'Africa/Casablanca' }
 })
 
 type Msgs = { [k: string]: string | Msgs }

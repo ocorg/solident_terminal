@@ -20,7 +20,7 @@ export async function shrinkImage(file: File, maxSide = 1200, quality = 0.85): P
 }
 
 /** Presigned upload straight from the browser to the public R2 bucket; returns the object key. */
-export async function uploadToR2(target: 'team' | 'partner' | 'dossier', file: File): Promise<string> {
+export async function uploadToR2(target: 'team' | 'partner' | 'event' | 'dossier', file: File): Promise<string> {
   const res = await getMediaUploadUrl({ target, contentType: file.type, size: file.size })
   if (res.status === 'error') throw new Error(res.message)
   const put = await fetch(res.data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
