@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
+import { Logo } from '@/components/brand/logo'
 import { Link, usePathname } from '@/i18n/navigation'
 import { LocaleSwitcher } from './locale-switcher'
 import { navItems, supportItems } from './nav-items'
@@ -23,8 +24,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-navy-100/60 bg-cream-50/70 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="shrink-0 font-heading text-2xl font-bold text-navy-700">
-          Solident<span className="text-gold-500">.</span>
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-heading text-2xl font-bold text-navy-700" aria-label="Association Solident, accueil">
+          <Logo size={44} />
+          <span>
+            Solident<span className="text-gold-500">.</span>
+          </span>
         </Link>
 
         <nav className="ms-4 hidden flex-1 items-center gap-1 xl:flex" aria-label="Navigation principale">

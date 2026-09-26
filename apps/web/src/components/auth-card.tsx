@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/components/brand/logo'
 
 const tabs = [
   { href: '/connexion', label: 'Connexion' },
@@ -20,9 +21,11 @@ export function AuthCard({
   return (
     <main className="flex flex-1 items-center justify-center bg-cream-50 px-4 py-16">
       <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-card">
-        <div className="bg-navy-700 px-8 py-5 font-heading text-xl font-bold text-white">
-          Solident<span className="text-gold-500">.</span>{' '}
-          <span className="font-normal text-white/80">Espace membres</span>
+        <div className="flex items-center gap-3 bg-navy-700 px-8 py-5 font-heading text-xl font-bold text-white">
+          <Logo size={36} variant="badge" />
+          <span>
+            Solident<span className="text-gold-500">.</span> <span className="font-normal text-white/80">Espace membres</span>
+          </span>
         </div>
         <nav className="grid grid-cols-2 border-b border-navy-100" aria-label="Connexion ou inscription">
           {tabs.map((t) => (

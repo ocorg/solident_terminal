@@ -1,4 +1,5 @@
 import 'server-only'
+import { emailBrand } from '@/lib/mail'
 import { siteUrl } from './site-url'
 
 const esc = (s: string) =>
@@ -42,7 +43,7 @@ export function donationThanksEmail(locale: string, name: string, amountDh: numb
   const html = `<!doctype html>
 <html lang="${locale}" dir="${dir}"><body style="margin:0;background:#FBF8F2;font-family:Montserrat,Arial,sans-serif;color:#123A4F;padding:32px 16px">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(18,58,79,.08)">
-    <div style="background:#1E5470;padding:20px 28px;color:#ffffff;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:20px">Solident<span style="color:#F4B223">.</span></div>
+    <div style="background:#1E5470;padding:20px 28px;color:#ffffff;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:20px">${emailBrand()}</div>
     <div style="padding:28px;line-height:1.6">
       <p style="margin:0 0 12px">${esc(c.hello(name))}</p>
       <p style="margin:0 0 12px;color:#4A5A66">${c.body(esc(amount), esc(campaign))}</p>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
+import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/sign-out-button'
 import { Avatar } from '@/components/space/avatar'
 import { STAFF_ROLES } from '@/lib/guards'
@@ -20,7 +21,8 @@ export default async function SpaceLayout({ children }: LayoutProps<'/espace'>) 
   return (
     <div className="flex flex-1 flex-col bg-cream-50">
       <header className="flex items-center justify-between gap-3 bg-navy-900 px-4 py-3 text-white sm:px-6">
-        <Link href="/espace" className="font-heading text-lg font-bold">
+        <Link href="/espace" className="flex items-center gap-2 font-heading text-lg font-bold">
+          <Logo size={26} variant="badge" />
           Solident<span className="text-gold-500">.</span> <span className="font-normal opacity-80">espace membres</span>
         </Link>
         <div className="flex items-center gap-3">

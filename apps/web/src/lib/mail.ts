@@ -10,6 +10,11 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
 })
 
+/** Logo + name for e-mail headers (logo served from the live site; e-mails cannot embed site files). */
+export function emailBrand() {
+  return `<img src="${siteUrl()}/brand/logo.png" width="34" height="34" alt="" style="vertical-align:middle;background:#ffffff;border-radius:50%;padding:3px;margin-inline-end:10px">Solident<span style="color:#F4B223">.</span>`
+}
+
 export async function sendMail(to: string, subject: string, html: string, text: string, replyTo?: string) {
   await transporter.sendMail({
     from: `"Association Solident" <${process.env.GMAIL_USER}>`,
@@ -30,7 +35,7 @@ export function magicLinkEmail(url: string, name: string) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;box-shadow:0 8px 24px rgba(18,58,79,.08);overflow:hidden">
         <tr><td style="background:#1E5470;padding:20px 28px;color:#ffffff;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:20px">
-          Solident<span style="color:#F4B223">.</span>
+          ${emailBrand()}
         </td></tr>
         <tr><td style="padding:28px">
           <p style="margin:0 0 12px;font-size:16px">Bonjour ${escapeHtml(name)},</p>
@@ -51,7 +56,7 @@ export function resetPasswordEmail(url: string, name: string) {
   const html = `<!doctype html>
 <html lang="fr"><body style="margin:0;background:#FBF8F2;font-family:Montserrat,Arial,sans-serif;color:#123A4F;padding:32px 16px">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(18,58,79,.08)">
-    <div style="background:#1E5470;padding:20px 28px;color:#ffffff;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:20px">Solident<span style="color:#F4B223">.</span></div>
+    <div style="background:#1E5470;padding:20px 28px;color:#ffffff;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:20px">${emailBrand()}</div>
     <div style="padding:28px">
       <p style="margin:0 0 12px;font-size:16px">Bonjour ${escapeHtml(name)},</p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4A5A66">Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Le lien est valable 1 heure.</p>

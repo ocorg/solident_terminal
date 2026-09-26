@@ -1,5 +1,6 @@
 import NextLink from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import { Logo } from '@/components/brand/logo'
 import { Link } from '@/i18n/navigation'
 import { navItems, supportItems } from './nav-items'
 
@@ -18,8 +19,11 @@ export async function SiteFooter() {
     <footer className="bg-navy-900 text-white/85">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
-          <p className="font-heading text-2xl font-bold text-white">
-            Solident<span className="text-gold-500">.</span>
+          <p className="flex items-center gap-3 font-heading text-2xl font-bold text-white">
+            <Logo size={52} variant="badge" />
+            <span>
+              Solident<span className="text-gold-500">.</span>
+            </span>
           </p>
           <p className="mt-3 max-w-sm text-sm">{t('tagline')}</p>
         </div>

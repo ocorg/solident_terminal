@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@solident/db'
+import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/sign-out-button'
 import { requireRolePage, STAFF_ROLES } from '@/lib/guards'
 import { AdminNav } from './admin-nav'
@@ -21,7 +22,8 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
   return (
     <div className="flex flex-1 flex-col bg-cream-50">
       <header className="flex items-center justify-between bg-navy-700 px-4 py-3 text-white sm:px-6">
-        <Link href="/admin" className="font-heading text-lg font-bold">
+        <Link href="/admin" className="flex items-center gap-2 font-heading text-lg font-bold">
+          <Logo size={26} variant="badge" />
           Solident<span className="text-gold-500">.</span> <span className="font-normal opacity-80">admin</span>
         </Link>
         <div className="flex items-center gap-4">
