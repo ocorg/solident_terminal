@@ -4,7 +4,7 @@ import { ProgressBar } from '@/components/site/progress-bar'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
 
-// Rebuilt at most every 5 minutes; live counters come with Pusher in Phase 1.
+// Rebuilt at most every 5 minutes; the donation bar itself updates live via Pusher.
 export const revalidate = 300
 
 export default async function HomePage({ params }: PageProps<'/[locale]'>) {
@@ -13,10 +13,12 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
   const t = await getTranslations('Home')
   const format = await getFormatter()
 
-  const [stats, nextEvent, campaign] = await Promise.all([
+  const [stats, nextEvent, campaign, programmes, partners] = await Promise.all([
     prisma.impactStat.findMany({ orderBy: { order: 'asc' } }),
     prisma.event.findFirst({ where: { isPublished: true, startsAt: { gte: new Date() } }, orderBy: { startsAt: 'asc' } }),
     prisma.campaign.findFirst({ where: { isActive: true }, orderBy: { startsOn: 'asc' } }),
+    prisma.programme.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } }),
+    prisma.partner.findMany({ where: { isVisible: true }, orderBy: [{ order: 'asc' }, { name: 'asc' }], select: { id: true, name: true, logoUrl: true } }),
   ])
 
   return (
@@ -92,6 +94,27 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
         </section>
       )}
 
+      {/* What we do: programmes */}
+      {programmes.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="font-heading text-2xl font-bold text-navy-700">{t('programmesTitle')}</h2>
+            <Link href="/programmes" className="text-sm font-semibold text-navy-700 hover:underline">
+              {t('seeAll')} <span className="flip-rtl inline-block">→</span>
+            </Link>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {programmes.map((p, i) => (
+              <li key={p.id} className="card card-hover flex flex-col p-5">
+                <span className="mb-3 flex size-9 items-center justify-center rounded-full bg-gold-100 font-heading font-bold text-navy-700">{i + 1}</span>
+                <h3 className="mb-1 font-heading font-bold text-navy-900">{localized(p, 'title', locale)}</h3>
+                <p className="line-clamp-4 text-sm text-ink-600">{localized(p, 'summary', locale)}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Mission / vision / values */}
       <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-20 sm:px-6 md:grid-cols-3">
         {(['mission', 'vision', 'values'] as const).map((k) => (
@@ -101,6 +124,34 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
           </div>
         ))}
       </section>
+
+      {/* Partner strip: logos when uploaded (/admin/partenaires), names until then */}
+      {partners.length > 0 && (
+        <section className="border-t border-navy-100 bg-white py-12">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-heading text-xl font-bold text-navy-700">{t('partnersTitle')}</h2>
+              <Link href="/partenaires" className="text-sm font-semibold text-navy-700 hover:underline">
+                {t('seeAll')} <span className="flip-rtl inline-block">→</span>
+              </Link>
+            </div>
+            <ul className="flex flex-wrap items-center gap-3">
+              {partners.map((p) =>
+                p.logoUrl ? (
+                  <li key={p.id} className="flex h-16 w-32 items-center justify-center rounded-lg p-2 grayscale transition hover:grayscale-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.logoUrl} alt={p.name} className="max-h-full max-w-full object-contain" loading="lazy" />
+                  </li>
+                ) : (
+                  <li key={p.id} className="rounded-full bg-cream-50 px-4 py-1.5 text-sm font-medium text-navy-700 ring-1 ring-navy-100">
+                    {p.name}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        </section>
+      )}
     </>
   )
 }

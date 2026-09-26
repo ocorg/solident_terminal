@@ -65,7 +65,8 @@ Decisions (26 Sep): donor wall = opt-in names, never amounts; sponsor wall = com
 - [x] Admin: role-filtered nav with badges, dashboard, `/admin/dons`, `/admin/campagnes` (FR/AR/EN tabs), `/admin/utilisateurs` (approve/role/deactivate + approval email; replaces `pnpm db:user`), `/admin/messages`
 - [x] Pages: `/soutenir/sponsoring` (tiers from DB, inquiry form, public contacts, sponsor wall; dossier link = `org.dossierUrl` in `src/lib/org.ts`, null until the PDF is uploaded), `/contact`, `/qui-sommes-nous` (story, charter, governance, board with initials placeholders). Pages with a real route are listed in `builtSections` (`components/site/nav-items.ts`) so the "coming soon" catch-all skips them
 - [x] Media screens (admin + media roles): `/admin/equipe` (members + photos), `/admin/partenaires` (partners + logos), `/admin/documents` (sponsoring PDF → `site_settings.dossier_url`). Images are shrunk to WebP in the browser (`components/admin/upload.ts`, also strips EXIF/GPS), keys validated per folder server-side (`src/lib/media-actions.ts`), replaced files deleted from R2
-- [ ] Home page polish (partner logo strip, programmes teaser), rotate R2/Pusher keys
+- [x] Home page: hero, impact counters, programmes teaser, next event + live bar, mission/vision/values, partner strip (logos, or names until uploaded)
+- [ ] Rotate R2 + Pusher keys before public launch
 
 Dev gotchas: never run `pnpm build:web` while `pnpm dev:web` is running (the dev server then serves stale prerendered pages as 404; fix = stop it, delete `apps/web/.next`, restart). After a Prisma schema change, restart the dev server (the client is cached across hot reloads).
 
