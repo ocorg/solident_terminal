@@ -86,14 +86,14 @@ export function existingAccountEmail(name: string) {
 
 export function accessRequestEmail(req: { name: string; email: string; message?: string }) {
   const subject = `Nouvelle demande d'accès : ${req.name}`
-  const text = `${req.name} (${req.email}) demande un accès à l'espace membres.${req.message ? `\n\nMessage : ${req.message}` : ''}\n\nPour valider : pnpm db:user approve ${req.email} [rôle]`
+  const text = `${req.name} (${req.email}) demande un accès à l'espace membres.${req.message ? `\n\nMessage : ${req.message}` : ''}\n\nPour valider et choisir son rôle : ${siteUrl()}/admin/utilisateurs`
   const html = `<!doctype html>
 <html lang="fr"><body style="margin:0;background:#FBF8F2;font-family:Montserrat,Arial,sans-serif;color:#123A4F;padding:32px 16px">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;box-shadow:0 8px 24px rgba(18,58,79,.08)">
     <p style="margin:0 0 12px;font-family:Poppins,Arial,sans-serif;font-weight:700;font-size:18px;color:#1E5470">Nouvelle demande d'accès</p>
     <p style="margin:0 0 8px"><strong>${escapeHtml(req.name)}</strong> — ${escapeHtml(req.email)}</p>
     ${req.message ? `<p style="margin:0 0 16px;padding:12px;background:#E3EDF2;border-radius:10px">${escapeHtml(req.message)}</p>` : ''}
-    <p style="margin:0;font-size:13px;color:#4A5A66">Pour valider : <code>pnpm db:user approve ${escapeHtml(req.email)}</code> (ajoutez un rôle si besoin). L'écran /admin/utilisateurs arrive en Phase 1.</p>
+    <p style="margin:16px 0 0"><a href="${siteUrl()}/admin/utilisateurs" style="display:inline-block;background:#1E5470;color:#ffffff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:10px">Valider dans l'administration</a></p>
   </div>
 </body></html>`
   return { subject, html, text }
