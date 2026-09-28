@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma } from '@solident/db'
 import { Link } from '@/i18n/navigation'
+import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { registrationState, takenPlaces } from '@/lib/registrations'
 import { RegistrationPanel } from './registration-panel'
@@ -69,8 +70,8 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
           ) : e.type === 'caravane' ? (
             <div className="card space-y-4 bg-navy-700 p-6 text-white">
               <p className="font-heading text-xl font-bold">{localized(e, 'title', locale)}</p>
-              <Link href="/soutenir/don" className="btn btn-cta">
-                {(await getTranslations('Home'))('nextEventCta')}
+              <Link href={(await getFundraising()).open ? '/soutenir/don' : '/soutenir/sponsoring'} className="btn btn-cta">
+                {(await getTranslations('Home'))((await getFundraising()).open ? 'nextEventCta' : 'ctaSponsor')}
               </Link>
             </div>
           ) : null}

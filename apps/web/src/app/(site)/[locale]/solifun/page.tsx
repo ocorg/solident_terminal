@@ -4,6 +4,7 @@ import { prisma } from '@solident/db'
 import { EventCard } from '@/components/site/event-card'
 import { ProgressBar } from '@/components/site/progress-bar'
 import { Link } from '@/i18n/navigation'
+import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { org } from '@/lib/org'
 import { registrationState } from '@/lib/registrations'
@@ -94,7 +95,7 @@ export default async function SolifunPage({ params }: PageProps<'/[locale]/solif
             <h2 className="mb-2 font-heading text-2xl font-bold text-navy-700">{t('fundsTitle')}</h2>
             <p className="text-ink-600">{t('fundsText')}</p>
           </div>
-          {campaign && (
+          {campaign && (await getFundraising()).open && (
             <div className="flex flex-col justify-center gap-4 bg-navy-700 p-8 text-white md:w-96">
               <p className="text-sm text-white/80">{localized(campaign, 'title', locale)}</p>
               <ProgressBar campaignId={campaign.id} initial={{ raisedDh: campaign.raisedDh, donorsCount: campaign.donorsCount, goalDh: campaign.goalDh }} dark />

@@ -7,6 +7,7 @@ import { ProgressBar } from '@/components/site/progress-bar'
 import { SponsorWall } from '@/components/site/sponsor-wall'
 import { Link } from '@/i18n/navigation'
 import { donorWall, sponsorWall } from '@/lib/donations'
+import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { ribCompact } from '@/lib/org'
 import { DonationForm } from './donation-form'
@@ -18,13 +19,45 @@ export const revalidate = 300
 export async function generateMetadata({ params }: PageProps<'/[locale]/soutenir/don'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Donate' })
-  return { title: t('title'), description: t('intro') }
+  return { title: t('title'), description: (await getFundraising()).open ? t('intro') : t('closedIntro') }
 }
 
 export default async function DonatePage({ params }: PageProps<'/[locale]/soutenir/don'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getTranslations('Donate')
+  const fundraising = await getFundraising()
+
+  // Closed (no authorization yet, law 18-18): no RIB, no form, no bar; other ways to help instead.
+  if (!fundraising.open) {
+    const sponsors = await sponsorWall()
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <PageHeader title={t('title')} intro={t('closedIntro')} />
+        <section className="card border-s-4 border-gold-500 p-6 md:p-8">
+          <h2 className="mb-2 font-heading text-2xl font-bold text-navy-700">{t('closedTitle')}</h2>
+          <p className="mb-6 max-w-3xl text-ink-600">{t('closedText')}</p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/soutenir/sponsoring" className="btn btn-primary">
+              {t('closedSponsor')}
+            </Link>
+            <Link href="/soutenir/benevolat" className="btn btn-ghost">
+              {t('closedVolunteer')}
+            </Link>
+            <Link href="/contact" className="btn btn-ghost">
+              {t('closedContact')}
+            </Link>
+          </div>
+        </section>
+        {(sponsors.tiers.length > 0 || sponsors.supporters.length > 0) && (
+          <section className="mt-16">
+            <h2 className="mb-6 font-heading text-2xl font-bold text-navy-700">{t('sponsorWallTitle')}</h2>
+            <SponsorWall wall={sponsors} />
+          </section>
+        )}
+      </div>
+    )
+  }
 
   const campaigns = await prisma.campaign.findMany({ where: { isActive: true }, orderBy: { startsOn: 'asc' } })
   const main = campaigns[0]
@@ -38,6 +71,7 @@ export default async function DonatePage({ params }: PageProps<'/[locale]/souten
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <PageHeader title={t('title')} intro={t('intro')} />
+      {fundraising.authorization && <p className="-mt-6 mb-8 text-sm text-ink-600">{t('authorization', { ref: fundraising.authorization })}</p>}
 
       {campaigns.length === 0 && <p className="card mb-10 p-6 text-ink-600">{t('noCampaign')}</p>}
 

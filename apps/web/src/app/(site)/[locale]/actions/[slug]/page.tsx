@@ -5,6 +5,7 @@ import { prisma } from '@solident/db'
 import { SponsorWall } from '@/components/site/sponsor-wall'
 import { Link } from '@/i18n/navigation'
 import { donorWall, sponsorWall } from '@/lib/donations'
+import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 
 type Figure = { value: number; labelFr: string; labelAr?: string | null; labelEn?: string | null }
@@ -124,7 +125,7 @@ export default async function ActionPage({ params }: PageProps<'/[locale]/action
           <div className="card border-s-4 border-gold-500 p-6">
             <h2 className="mb-2 font-heading text-xl font-bold text-navy-700">{r('thanksTitle')}</h2>
             <p className="mb-4 text-ink-600">{r('thanksText')}</p>
-            <Link href="/soutenir/don" className="btn btn-cta">
+            <Link href={(await getFundraising()).open ? '/soutenir/don' : '/soutenir/sponsoring'} className="btn btn-cta">
               {r('supportCta')}
             </Link>
           </div>

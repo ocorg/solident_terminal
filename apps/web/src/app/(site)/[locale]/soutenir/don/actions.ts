@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@solident/db'
 import { fail, ok, run } from '@/lib/action'
 import { donationAlertEmail, donationThanksEmail } from '@/lib/donation-emails'
+import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { sendMail } from '@/lib/mail'
 import { createUploadUrl, UPLOAD_RULES } from '@/lib/r2'
@@ -15,6 +16,7 @@ export type DonateError = 'errGeneric' | 'errTooMany' | 'errFile' | 'errCampaign
 export async function getProofUploadUrl(input: { contentType: string; size: number }) {
   return run(async () => {
     const { contentType, size } = z.object({ contentType: z.string().max(100), size: z.number().int() }).parse(input)
+    if (!(await getFundraising()).open) return fail('errCampaign')
     const rule = UPLOAD_RULES.proof
     if (!(rule.types as readonly string[]).includes(contentType) || size <= 0 || size > rule.maxBytes) return fail('errFile')
     if (!(await allow('proof-upload', 5, 600))) return fail('errTooMany')
@@ -42,6 +44,7 @@ const declareSchema = z
 export async function declareDonation(input: z.input<typeof declareSchema>) {
   return run(async () => {
     const d = declareSchema.parse(input)
+    if (!(await getFundraising()).open) return fail('errCampaign')
     if (d.amountDh < 10 || d.amountDh > 10_000_000) return fail('errAmount')
     if (d.showOnWall && (!d.donorName || d.donorName.length < 2)) return fail('errName')
     if (!(await allow('donation-declare', 5, 600))) return fail('errTooMany')

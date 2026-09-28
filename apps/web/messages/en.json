@@ -41,7 +41,23 @@
     "values": "Solidarity · Kindness · Collective action · Volunteering",
     "programmesTitle": "What we do",
     "partnersTitle": "They act with us",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "ctaAbout": "Discover the association",
+    "ctaActions": "See our actions",
+    "aboutTitle": "Who we are",
+    "aboutCta": "Our story",
+    "actionsTitle": "Our latest actions",
+    "actionsMap": "All our actions and the map",
+    "nextEventMore": "See the event",
+    "joinTitle": "Act with us",
+    "joinSponsorTitle": "Become a partner",
+    "joinSponsorText": "Companies and institutions: link your name to our caravans or co-organise an action with us.",
+    "joinVolunteerTitle": "Volunteer",
+    "joinVolunteerText": "Students, practitioners or volunteers from other fields: there is a place for everyone.",
+    "joinDonateTitle": "Donate",
+    "joinDonateText": "Every dirham funds care and prevention, and you follow its effect live.",
+    "joinContactTitle": "Contact us",
+    "joinContactText": "An idea, a question, a joint project? Write to us."
   },
   "Footer": {
     "tagline": "Moroccan oral-health association, founded in 2024 in Larache – Ksar El Kébir.",
@@ -107,7 +123,14 @@
     "sponsorWallTitle": "Our sponsors",
     "supporters": "They support us",
     "becomeSponsor": "Become a sponsor",
-    "noCampaign": "No campaign is open right now. You can still support the association by bank transfer."
+    "noCampaign": "No campaign is open right now. You can still support the association by bank transfer.",
+    "closedIntro": "Online fundraising is not open yet. You can already support us in other ways.",
+    "closedTitle": "Fundraising opening soon",
+    "closedText": "In Morocco, any public appeal for donations requires prior authorisation (law 18-18). Fundraising will open here as soon as it is granted. Meanwhile, you can become a partner or sponsor, join us as a volunteer, or write to us.",
+    "closedSponsor": "Become a partner",
+    "closedVolunteer": "Volunteer",
+    "closedContact": "Contact us",
+    "authorization": "Authorised fundraising: {ref}"
   },
   "Inquiry": {
     "name": "Full name",

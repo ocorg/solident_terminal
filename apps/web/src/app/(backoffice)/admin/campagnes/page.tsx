@@ -1,12 +1,15 @@
 import Link from 'next/link'
 import { prisma } from '@solident/db'
+import { getFundraising } from '@/lib/fundraising'
 import { requireRolePage } from '@/lib/guards'
+import { FundraisingCard } from './fundraising-card'
 
 const dh = (n: number) => new Intl.NumberFormat('fr-MA').format(n) + ' DH'
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 export default async function CampagnesPage() {
   await requireRolePage('admin', 'treasurer')
+  const fundraising = await getFundraising()
   const campaigns = await prisma.campaign.findMany({
     orderBy: [{ isActive: 'desc' }, { startsOn: 'desc' }],
     include: { _count: { select: { donations: { where: { status: 'pending' } } } } },
@@ -20,6 +23,7 @@ export default async function CampagnesPage() {
           + Nouvelle campagne
         </Link>
       </div>
+      <FundraisingCard open={fundraising.open} authorization={fundraising.authorization ?? ''} />
       {campaigns.length === 0 && <p className="card p-6 text-ink-600">Aucune campagne.</p>}
       <div className="grid gap-4">
         {campaigns.map((c) => {

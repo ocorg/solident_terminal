@@ -41,7 +41,23 @@
     "values": "Solidarité · Bienveillance · Action collective · Bénévolat",
     "programmesTitle": "Ce que nous faisons",
     "partnersTitle": "Ils agissent avec nous",
-    "seeAll": "Tout voir"
+    "seeAll": "Tout voir",
+    "ctaAbout": "Découvrir l’association",
+    "ctaActions": "Voir nos actions",
+    "aboutTitle": "Qui sommes-nous",
+    "aboutCta": "Notre histoire",
+    "actionsTitle": "Nos dernières actions",
+    "actionsMap": "Toutes nos actions et la carte",
+    "nextEventMore": "Voir l’événement",
+    "joinTitle": "Agir avec nous",
+    "joinSponsorTitle": "Devenir partenaire",
+    "joinSponsorText": "Entreprises et institutions : associez votre nom à nos caravanes ou co-organisez une action avec nous.",
+    "joinVolunteerTitle": "Devenir bénévole",
+    "joinVolunteerText": "Étudiants, praticiens ou bénévoles d’autres métiers : il y a une place pour chacun.",
+    "joinDonateTitle": "Faire un don",
+    "joinDonateText": "Chaque dirham finance des soins et de la prévention, et vous suivez son effet en direct.",
+    "joinContactTitle": "Nous contacter",
+    "joinContactText": "Une idée, une question, un projet commun ? Écrivez-nous."
   },
   "Footer": {
     "tagline": "Association marocaine de santé bucco-dentaire, fondée en 2024 à Larache – Ksar El Kébir.",
@@ -107,7 +123,14 @@
     "sponsorWallTitle": "Nos sponsors",
     "supporters": "Ils nous soutiennent",
     "becomeSponsor": "Devenir sponsor",
-    "noCampaign": "Aucune campagne n’est ouverte en ce moment. Vous pouvez tout de même soutenir l’association par virement."
+    "noCampaign": "Aucune campagne n’est ouverte en ce moment. Vous pouvez tout de même soutenir l’association par virement.",
+    "closedIntro": "La collecte de dons en ligne n’est pas encore ouverte. Vous pouvez déjà agir à nos côtés autrement.",
+    "closedTitle": "Collecte bientôt ouverte",
+    "closedText": "Au Maroc, tout appel aux dons auprès du public nécessite une autorisation préalable (loi 18-18). La collecte ouvrira ici dès qu’elle sera obtenue. En attendant, vous pouvez devenir partenaire ou sponsor, nous rejoindre comme bénévole, ou nous écrire.",
+    "closedSponsor": "Devenir partenaire",
+    "closedVolunteer": "Devenir bénévole",
+    "closedContact": "Nous contacter",
+    "authorization": "Collecte autorisée : {ref}"
   },
   "Inquiry": {
     "name": "Nom complet",

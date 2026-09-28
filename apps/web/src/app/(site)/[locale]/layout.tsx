@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Toaster } from 'sonner'
 import { SiteFooter } from '@/components/site/footer'
 import { SiteHeader } from '@/components/site/header'
+import { getFundraising } from '@/lib/fundraising'
 import { localeDir, routing } from '@/i18n/routing'
 import { siteUrl } from '@/lib/site-url'
 import { fontVariables } from '../../fonts'
@@ -40,7 +41,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<'/[lo
           <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 btn btn-cta">
             {t('skip')}
           </a>
-          <SiteHeader />
+          <SiteHeader fundraisingOpen={(await getFundraising()).open} />
           <main id="contenu" className="flex-1">
             {children}
           </main>

@@ -7,7 +7,8 @@ import { Link, usePathname } from '@/i18n/navigation'
 import { LocaleSwitcher } from './locale-switcher'
 import { navItems, supportItems } from './nav-items'
 
-export function SiteHeader() {
+/** fundraisingOpen: public donations allowed (admin switch); otherwise the CTA points to sponsoring. */
+export function SiteHeader({ fundraisingOpen }: { fundraisingOpen: boolean }) {
   const t = useTranslations('Nav')
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -15,6 +16,7 @@ export function SiteHeader() {
   // Close the mobile menu after navigating.
   useEffect(() => setOpen(false), [pathname])
 
+  const cta = fundraisingOpen ? { href: '/soutenir/don', label: t('donate') } : { href: '/soutenir/sponsoring', label: t('support') }
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
   const linkClass = (href: string) =>
     `rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-navy-100 hover:text-navy-700 ${
@@ -41,8 +43,8 @@ export function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-2">
           <LocaleSwitcher />
-          <Link href="/soutenir/don" className="btn btn-cta hidden px-4 py-2 text-sm sm:inline-flex">
-            {t('donate')}
+          <Link href={cta.href} className="btn btn-cta hidden px-4 py-2 text-sm sm:inline-flex">
+            {cta.label}
           </Link>
           <button
             type="button"
@@ -67,8 +69,8 @@ export function SiteHeader() {
               </li>
             ))}
           </ul>
-          <Link href="/soutenir/don" className="btn btn-cta mt-4 w-full sm:hidden">
-            {t('donate')}
+          <Link href={cta.href} className="btn btn-cta mt-4 w-full sm:hidden">
+            {cta.label}
           </Link>
         </nav>
       )}
