@@ -11,5 +11,12 @@
     "db:seed": "pnpm --filter @solident/db seed",
     "db:studio": "pnpm --filter @solident/db studio",
     "db:user": "pnpm --filter @solident/db db:user"
+  },
+  "pnpm": {
+    "overrides": {
+      "lodash": ">=4.18.0",
+      "mysql2": ">=3.23.1",
+      "deepmerge-ts": ">=8.0.0"
+    }
   }
 }
