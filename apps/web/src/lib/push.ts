@@ -11,10 +11,14 @@ if (pushEnabled) webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:so
 
 export type PushPayload = { title: string; body: string; url?: string; tag?: string }
 
-/** Sends to every device of these users. Never throws; removes subscriptions the browser has revoked. */
-export async function sendPush(userIds: string[], payload: PushPayload) {
-  if (!pushEnabled || !userIds.length) return { sent: 0 }
-  const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds }, user: { isActive: true } } })
+/**
+ * Sends to every device of these users (or only one device with `endpoint`). Never throws; removes subscriptions
+ * the browser has revoked. Returns how many were found, sent, and the push-service error codes.
+ */
+export async function sendPush(userIds: string[], payload: PushPayload, opts: { endpoint?: string } = {}) {
+  if (!pushEnabled || !userIds.length) return { sent: 0, found: 0, failures: [] as number[] }
+  const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds }, user: { isActive: true }, ...(opts.endpoint && { endpoint: opts.endpoint }) } })
+  const failures: number[] = []
   const body = JSON.stringify(payload)
   let sent = 0
   const gone: string[] = []
@@ -25,11 +29,12 @@ export async function sendPush(userIds: string[], payload: PushPayload) {
         sent++
       } catch (e) {
         const status = (e as { statusCode?: number }).statusCode
+        failures.push(status ?? 0)
         if (status === 404 || status === 410) gone.push(s.id)
         else console.error('Push failed:', status ?? e)
       }
     }),
   )
   if (gone.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: gone } } })
-  return { sent }
+  return { sent, found: subs.length, failures }
 }

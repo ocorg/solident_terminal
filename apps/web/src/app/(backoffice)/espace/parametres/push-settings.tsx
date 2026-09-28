@@ -14,6 +14,12 @@ function keyBytes(base64url: string) {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 }
 
+/** Sends this device's subscription to the server (idempotent: same endpoint = same row). */
+async function register(sub: PushSubscription) {
+  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
+  return savePushSubscription({ endpoint: json.endpoint, keys: json.keys, userAgent: navigator.userAgent.slice(0, 300) })
+}
+
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 
@@ -29,7 +35,10 @@ export function PushSettings() {
       if (!supported) return setState(isIos() && !isInstalled() ? 'ios-install' : 'unsupported')
       if (Notification.permission === 'denied') return setState('denied')
       const reg = await navigator.serviceWorker.ready
-      setState((await reg.pushManager.getSubscription()) ? 'on' : 'off')
+      const sub = await reg.pushManager.getSubscription()
+      setState(sub ? 'on' : 'off')
+      // Self-repair: the phone is subscribed but the server may not know it (e.g. a save lost during a deployment).
+      if (sub) await register(sub).catch(() => {})
     })().catch(() => setState('unsupported'))
   }, [])
 
@@ -43,8 +52,7 @@ export function PushSettings() {
       }
       const reg = await navigator.serviceWorker.ready
       const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(PUBLIC_KEY!) }))
-      const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
-      const res = await savePushSubscription({ endpoint: json.endpoint, keys: json.keys, userAgent: navigator.userAgent.slice(0, 300) })
+      const res = await register(sub)
       if (res.status === 'error') return void toast.error(res.message)
       setState('on')
       toast.success('Notifications activées sur cet appareil')
@@ -76,10 +84,23 @@ export function PushSettings() {
 
   async function test() {
     setBusy('test')
-    const res = await sendTestPush()
-    setBusy(null)
-    if (res.status === 'error') return void toast.error(res.message)
-    toast.success('Notification de test envoyée')
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (!sub) {
+        setState('off')
+        return void toast.error('Cet appareil n’est plus abonné. Réactivez les notifications.')
+      }
+      const saved = await register(sub)
+      if (saved.status === 'error') return void toast.error(saved.message)
+      const res = await sendTestPush({ endpoint: sub.endpoint })
+      if (res.status === 'error') return void toast.error(res.message)
+      toast.success('Notification de test envoyée à cet appareil')
+    } catch {
+      toast.error('L’envoi du test a échoué. Rechargez la page puis réessayez.')
+    } finally {
+      setBusy(null)
+    }
   }
 
   if (state === 'loading') return <p className="text-sm text-ink-600">Vérification…</p>
