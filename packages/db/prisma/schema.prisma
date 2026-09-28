@@ -126,6 +126,7 @@ model User {
   teamEventRsvps     TeamEventAttendee[]
   notifications      Notification[]
   emailQueue         EmailQueueItem[]
+  pushSubscriptions  PushSubscription[]
 
   @@map("users")
 }
@@ -851,4 +852,20 @@ model EmailQueueItem {
 
   @@index([sendAfter])
   @@map("email_queue")
+}
+
+// Phone / browser notifications (Web Push): one row per device that said yes (/espace/parametres).
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

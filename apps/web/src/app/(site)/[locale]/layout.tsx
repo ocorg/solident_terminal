@@ -1,9 +1,10 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Toaster } from 'sonner'
 import { SiteFooter } from '@/components/site/footer'
+import { ServiceWorkerRegister } from '@/components/service-worker'
 import { SiteHeader } from '@/components/site/header'
 import { getFundraising } from '@/lib/fundraising'
 import { localeDir, routing } from '@/i18n/routing'
@@ -15,6 +16,8 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
 }
 
+export const viewport: Viewport = { themeColor: '#1E5470' }
+
 export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Metadata' })
@@ -23,6 +26,7 @@ export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Pr
     title: { default: t('title'), template: `%s · ${t('title')}` },
     description: t('description'),
     alternates: { languages: Object.fromEntries(routing.locales.map((l) => [l, `/${l}`])) },
+    appleWebApp: { capable: true, title: 'Solident', statusBarStyle: 'default' },
     openGraph: { siteName: 'Association Solident', locale: { fr: 'fr_MA', ar: 'ar_MA', en: 'en_US' }[locale] ?? 'fr_MA', type: 'website' },
   }
 }
@@ -46,6 +50,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<'/[lo
             {children}
           </main>
           <SiteFooter />
+          <ServiceWorkerRegister />
           <Toaster position={dir === 'rtl' ? 'bottom-left' : 'bottom-right'} dir={dir} richColors duration={4000} />
         </NextIntlClientProvider>
       </body>

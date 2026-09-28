@@ -1,7 +1,10 @@
 import 'server-only'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { prisma, type ContextType } from '@solident/db'
 import { getSession } from './guards'
+import { notificationLink } from './notification-links'
+import { sendPush } from './push'
 import { isManagementPosition } from './space-labels'
 
 // Members area (ex-Terminal) access rules:
@@ -75,4 +78,15 @@ export async function notify(recipientIds: string[], type: string, message: stri
     await prisma.emailQueueItem.createMany({
       data: wantsMail.map((u) => ({ recipientId: u.id, actionType: type, payload: { message, targetId: targetId ?? null }, sendAfter: new Date(Date.now() + 15 * 60_000) })),
     })
+  // Phone notifications go out after the response, so a slow push service never delays the action.
+  after(() => sendPush(ids, { title: pushTitle(type), body: message, url: notificationLink(type, targetId) ?? '/espace/notifications', tag: targetId }))
+}
+
+function pushTitle(type: string) {
+  if (type === 'task_assigned') return 'Nouvelle tâche'
+  if (type === 'task_comment') return 'Nouveau commentaire'
+  if (type.startsWith('task_')) return 'Tâche mise à jour'
+  if (type === 'event_invited') return 'Invitation'
+  if (type.startsWith('proposal_')) return 'Proposition de projet'
+  return 'Solident'
 }
