@@ -47,8 +47,8 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(ngoJsonLd(locale, meta('description')))} />
       {/* ───────── Hero: who we are ───────── */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -end-40 -top-40 size-[36rem] rounded-full bg-gold-500/15 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-48 -start-40 size-[30rem] rounded-full bg-navy-700/10 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -end-40 -top-40 size-[40rem] rounded-full bg-[radial-gradient(closest-side,rgb(244_178_35/0.18),transparent)]" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-48 -start-40 size-[34rem] rounded-full bg-[radial-gradient(closest-side,rgb(30_84_112/0.10),transparent)]" aria-hidden />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pb-20 pt-12 sm:px-6 md:pt-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-navy-700">{t('eyebrow')}</p>
@@ -73,7 +73,7 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
             <BrushRing className="absolute inset-0 size-full" />
             <div className="absolute inset-[18%] flex items-center justify-center rounded-full bg-white shadow-[0_24px_60px_rgba(18,58,79,0.16)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/logo.webp" alt="" width={220} height={228} className="w-[62%]" fetchPriority="high" />
+              <img src="/brand/logo.webp" alt="" width={220} height={228} className="w-[62%]" loading="lazy" decoding="async" />
             </div>
             {heroStat && (
               <p className="float absolute -start-2 top-[12%] rounded-2xl bg-white px-4 py-3 shadow-card sm:-start-6">

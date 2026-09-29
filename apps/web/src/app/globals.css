@@ -51,9 +51,6 @@ h2,
 h3 {
   text-wrap: balance;
 }
-p {
-  text-wrap: pretty;
-}
 
 /* Keyboard focus: always visible, navy on light surfaces, gold on navy ones */
 :focus-visible {
@@ -77,8 +74,9 @@ p {
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  /* Pre-rendered 64 px noise tile (an SVG turbulence filter was too slow to paint on phones) */
+  background-image: url("/brand/grain.png");
 }
 
 /* ───────── Motion (all of it disappears with "reduce motion") ───────── */
@@ -112,13 +110,16 @@ p {
   }
 }
 @keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgb(244 178 35 / 0.6);
+  from {
+    transform: scale(1);
+    opacity: 0.6;
   }
-  100% {
-    box-shadow: 0 0 0 12px rgb(244 178 35 / 0);
+  to {
+    transform: scale(2.6);
+    opacity: 0;
   }
 }
+
 
 @media (prefers-reduced-motion: no-preference) {
   /* Scroll reveals: pure CSS (scroll-driven animations). Browsers without support simply show the content. */
@@ -148,7 +149,16 @@ p {
   .marquee:focus-within .marquee-track {
     animation-play-state: paused;
   }
+  /* Pulse = a scaled copy of the dot (transform + opacity: runs on the GPU, no repaint) */
   .live-dot {
+    position: relative;
+  }
+  .live-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
     animation: pulse-ring 1.8s ease-out infinite;
   }
   /* Bars grow from zero when they first appear */
