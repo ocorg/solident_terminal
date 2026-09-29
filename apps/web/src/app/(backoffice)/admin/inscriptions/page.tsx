@@ -46,7 +46,7 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
                 href={`/admin/inscriptions?evenement=${e.id}`}
                 className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${e.id === eventId ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
               >
-                {e.titleFr} <span className="opacity-70">({e._count.registrations}{e.capacity ? `/${e.capacity}` : ''})</span>
+                {e.titleFr} <span className="font-normal">({e._count.registrations}{e.capacity ? `/${e.capacity}` : ''})</span>
               </Link>
             ))}
           </div>

@@ -5,12 +5,17 @@
   --color-navy-900: #123a4f;
   --color-navy-700: #1e5470;
   --color-navy-100: #e3edf2;
+  /* Gold: 500 = fills, buttons, text on navy only. 600 = large text (≥24px) on light. 700 = small text on light (5.5:1). */
   --color-gold-500: #f4b223;
+  --color-gold-600: #a87500;
+  --color-gold-700: #8a6100;
   --color-gold-100: #fdf1d3;
   --color-cream-50: #fbf8f2;
+  --color-cream-100: #f4eee2;
   --color-ink-600: #4a5a66;
-  --color-success: #2e8b6a;
-  --color-danger: #c8553d;
+  /* Status colours darkened to pass 4.5:1 on white */
+  --color-success: #1f6b51;
+  --color-danger: #b0442e;
   --color-solifun-sky: #2fa4d8;
 
   --radius-card: 12px;
@@ -36,6 +41,157 @@
 
 body {
   line-height: 1.6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* Keyboard focus: always visible, navy on light surfaces, gold on navy ones */
+:focus-visible {
+  outline: 3px solid var(--color-navy-700);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+:where(.bg-navy-700, .bg-navy-900) :focus-visible {
+  outline-color: var(--color-gold-500);
+}
+
+::selection {
+  background: var(--color-gold-500);
+  color: var(--color-navy-900);
+}
+
+/* Paper grain: breaks the digital flatness of the cream background (decorative, never intercepts clicks) */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ───────── Motion (all of it disappears with "reduce motion") ───────── */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(244 178 35 / 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(244 178 35 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Scroll reveals: pure CSS (scroll-driven animations). Browsers without support simply show the content. */
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 40%;
+    }
+  }
+  .float {
+    animation: float-y 6s ease-in-out infinite;
+  }
+  .draw-in {
+    stroke-dasharray: var(--len, 1200);
+    stroke-dashoffset: var(--len, 1200);
+    animation: draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.2s forwards;
+  }
+  .ring-in {
+    stroke-dashoffset: var(--from);
+    animation: draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards;
+  }
+  .marquee-track {
+    animation: marquee 45s linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+  .live-dot {
+    animation: pulse-ring 1.8s ease-out infinite;
+  }
+  /* Bars grow from zero when they first appear */
+  .grow-x {
+    transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    @starting-style {
+      width: 0 !important;
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .nudge .nudge-arrow {
+    transition: transform 200ms;
+  }
+  .nudge:hover .nudge-arrow {
+    transform: translateX(4px);
+  }
+  [dir="rtl"] .nudge:hover .nudge-arrow {
+    transform: translateX(-4px) scaleX(-1);
+  }
+}
+/* Printing / saving as PDF: everything visible, no texture */
+@media print {
+  [data-reveal] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .grain::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .marquee-track {
+    flex-wrap: wrap;
+    width: auto !important;
+  }
+  .marquee-dup {
+    display: none;
+  }
 }
 
 /* ───────── Components (spec §8 "Components and feel") ───────── */
@@ -107,6 +263,17 @@ body {
     background-color: var(--color-gold-500);
     transform: translateY(-50%);
   }
+}
+
+/* The gold full stop after titles: a shape, not a text character (so it never fails contrast checks) */
+@utility brand-dot {
+  display: inline-block;
+  width: 0.16em;
+  height: 0.16em;
+  margin-inline-start: 0.06em;
+  border-radius: 9999px;
+  background-color: var(--color-gold-500);
+  vertical-align: baseline;
 }
 
 /* Directional icons (arrows) mirror in Arabic */

@@ -29,7 +29,7 @@ export default async function SectionPlaceholder({ params }: PageProps<'/[locale
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-      <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold-500">{t('soon')}</p>
+      <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold-700">{t('soon')}</p>
       <h1 className="font-heading text-4xl font-bold text-navy-700">{nav(key)}</h1>
       <div className="divider-dot mx-auto my-6" />
       <p className="text-ink-600">{t('text')}</p>

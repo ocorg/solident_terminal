@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Solident Association",
-    "description": "Free oral-health care and prevention for underserved communities in northern Morocco."
+    "description": "A non-profit of young dentists from northern Morocco: dental caravans, free care and oral-health prevention in schools and villages. Discover our actions and get involved.",
+    "homeTitle": "Solident Association — free dental care in Morocco"
   },
   "Nav": {
     "home": "Home",
@@ -57,7 +58,8 @@
     "joinDonateTitle": "Donate",
     "joinDonateText": "Every dirham funds care and prevention, and you follow its effect live.",
     "joinContactTitle": "Contact us",
-    "joinContactText": "An idea, a question, a joint project? Write to us."
+    "joinContactText": "An idea, a question, a joint project? Write to us.",
+    "countdown": "{days, plural, =0 {Today} one {# day to go} other {# days to go}}"
   },
   "Footer": {
     "tagline": "Moroccan oral-health association, founded in 2024 in Larache – Ksar El Kébir.",

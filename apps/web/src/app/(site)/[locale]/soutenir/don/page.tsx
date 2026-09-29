@@ -12,6 +12,7 @@ import { localized } from '@/lib/localized'
 import { ribCompact } from '@/lib/org'
 import { DonationForm } from './donation-form'
 import { RibCard } from './rib-card'
+import { alternatesFor } from '@/lib/seo'
 
 // Totals also refresh instantly via Pusher and revalidatePath after each confirmation.
 export const revalidate = 300
@@ -19,7 +20,7 @@ export const revalidate = 300
 export async function generateMetadata({ params }: PageProps<'/[locale]/soutenir/don'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Donate' })
-  return { title: t('title'), description: (await getFundraising()).open ? t('intro') : t('closedIntro') }
+  return { alternates: alternatesFor(locale, '/soutenir/don'), title: t('title'), description: (await getFundraising()).open ? t('intro') : t('closedIntro') }
 }
 
 export default async function DonatePage({ params }: PageProps<'/[locale]/soutenir/don'>) {

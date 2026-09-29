@@ -31,7 +31,7 @@ export default async function AdminEventsPage() {
           const s = registrationState(e, e._count.registrations)
           const past = (e.endsAt ?? e.startsAt) < now
           return (
-            <li key={e.id} className={`flex flex-wrap items-center gap-4 p-4 ${past ? 'opacity-70' : ''}`}>
+            <li key={e.id} className={`flex flex-wrap items-center gap-4 p-4 ${past ? 'opacity-85' : ''}`}>
               <div className="min-w-56 flex-1">
                 <p className="font-semibold">
                   {e.titleFr}

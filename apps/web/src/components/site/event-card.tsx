@@ -18,7 +18,7 @@ export async function EventCard({ event, placesLeft }: { event: Event; placesLef
   const day = { day: 'numeric', month: 'long', year: 'numeric' } as const
 
   return (
-    <li className="card card-hover flex flex-col overflow-hidden">
+    <li className="card card-hover flex flex-col overflow-hidden" data-reveal>
       <Link href={`/evenements/${event.slug}`} className="flex flex-1 flex-col">
         <div className={`relative h-36 bg-gradient-to-br ${typeStyle[event.type]}`}>
           {event.coverUrl && (
@@ -28,7 +28,7 @@ export async function EventCard({ event, placesLeft }: { event: Event; placesLef
           <span className="absolute start-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-navy-900">{t(`types.${event.type}`)}</span>
         </div>
         <div className="flex flex-1 flex-col p-5">
-          <p className="text-sm font-semibold text-gold-500">
+          <p className="text-sm font-semibold text-gold-700">
             {event.endsAt && event.endsAt.toDateString() !== event.startsAt.toDateString()
               ? format.dateTimeRange(event.startsAt, event.endsAt, day)
               : format.dateTime(event.startsAt, { ...day, hour: 'numeric', minute: '2-digit' })}

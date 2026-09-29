@@ -7,6 +7,7 @@ import { SiteFooter } from '@/components/site/footer'
 import { ServiceWorkerRegister } from '@/components/service-worker'
 import { SiteHeader } from '@/components/site/header'
 import { getFundraising } from '@/lib/fundraising'
+import { alternatesFor } from '@/lib/seo'
 import { localeDir, routing } from '@/i18n/routing'
 import { siteUrl } from '@/lib/site-url'
 import { fontVariables } from '../../fonts'
@@ -23,9 +24,9 @@ export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Pr
   const t = await getTranslations({ locale, namespace: 'Metadata' })
   return {
     metadataBase: new URL(siteUrl()),
-    title: { default: t('title'), template: `%s · ${t('title')}` },
+    title: { default: t('homeTitle'), template: `%s · ${t('title')}` },
     description: t('description'),
-    alternates: { languages: Object.fromEntries(routing.locales.map((l) => [l, `/${l}`])) },
+    alternates: alternatesFor(locale, ''),
     appleWebApp: { capable: true, title: 'Solident', statusBarStyle: 'default' },
     openGraph: { siteName: 'Association Solident', locale: { fr: 'fr_MA', ar: 'ar_MA', en: 'en_US' }[locale] ?? 'fr_MA', type: 'website' },
   }
@@ -40,7 +41,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<'/[lo
 
   return (
     <html lang={locale} dir={dir} className={`${fontVariables} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-cream-50 font-sans text-navy-900">
+      <body className="grain flex min-h-full flex-col bg-cream-50 font-sans text-navy-900">
         <NextIntlClientProvider>
           <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 btn btn-cta">
             {t('skip')}

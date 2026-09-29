@@ -8,6 +8,7 @@ import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { org } from '@/lib/org'
 import { registrationState } from '@/lib/registrations'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 300
 
@@ -23,7 +24,7 @@ const activities = [
 export async function generateMetadata({ params }: PageProps<'/[locale]/solifun'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Solifun' })
-  return { title: 'Solifun', description: t('intro') }
+  return { alternates: alternatesFor(locale, '/solifun'), title: 'Solifun', description: t('intro') }
 }
 
 export default async function SolifunPage({ params }: PageProps<'/[locale]/solifun'>) {
@@ -49,7 +50,7 @@ export default async function SolifunPage({ params }: PageProps<'/[locale]/solif
         <div className="absolute -end-24 -top-24 size-96 rotate-12 rounded-[3rem] bg-solifun-sky/70" aria-hidden />
         <div className="absolute -bottom-32 end-40 size-72 -rotate-12 rounded-[3rem] bg-gold-500/80" aria-hidden />
         <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <p className="mb-3 font-heading text-lg font-bold text-solifun-sky">Solifun</p>
+          <p className="mb-3 font-heading text-lg font-bold text-[#6cc4ea]">Solifun</p>
           <h1 dir="ltr" className="max-w-2xl text-start font-heading text-5xl font-bold leading-tight md:text-7xl">
             {t('slogan')}
             <span className="text-gold-500">.</span>

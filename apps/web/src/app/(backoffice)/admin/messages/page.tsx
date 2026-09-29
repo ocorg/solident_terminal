@@ -39,7 +39,7 @@ export default async function MessagesPage({ searchParams }: PageProps<'/admin/m
       {inquiries.length === 0 && <p className="card p-6 text-ink-600">Aucun message.</p>}
       <ul className="space-y-3">
         {inquiries.map((q) => (
-          <li key={q.id} className={`card p-5 ${q.status === 'closed' ? 'opacity-70' : ''}`}>
+          <li key={q.id} className={`card p-5 ${q.status === 'closed' ? 'opacity-85' : ''}`}>
             <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold">

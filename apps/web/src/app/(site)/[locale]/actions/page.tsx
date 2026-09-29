@@ -5,13 +5,14 @@ import { ActionsMap } from '@/components/site/actions-map'
 import { PageHeader, SectionTitle } from '@/components/site/page-header'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/actions'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Actions' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/actions'), title: t('title'), description: t('intro') }
 }
 
 export default async function ActionsPage({ params, searchParams }: PageProps<'/[locale]/actions'>) {
@@ -86,13 +87,13 @@ export default async function ActionsPage({ params, searchParams }: PageProps<'/
         </nav>
         {[...byYear.entries()].map(([year, list]) => (
           <div key={year} className="mb-10">
-            <p className="mb-4 font-heading text-4xl font-bold text-navy-100">{year}</p>
+            <p className="mb-4 font-heading text-4xl font-bold text-gold-600">{year}</p>
             <ol className="space-y-3 border-s-2 border-gold-500 ps-6">
               {list.map((a) => (
                 <li key={a.id} className="relative">
                   <span className="absolute -start-[31px] top-5 size-3 rounded-full bg-gold-500 ring-4 ring-cream-50" aria-hidden />
                   <Link href={`/actions/${a.slug}`} className="card card-hover block p-4">
-                    <p className="text-sm font-semibold text-gold-500">{dayFmt(a)}</p>
+                    <p className="text-sm font-semibold text-gold-700">{dayFmt(a)}</p>
                     <p className="font-heading font-bold text-navy-900">{localized(a, 'title', locale)}</p>
                     <p className="text-sm text-ink-600">
                       {[a.programme && localized(a.programme, 'title', locale), partnerNames(a) && `${t('with')} ${partnerNames(a)}`, a.beneficiariesCount && t('beneficiaries', { count: a.beneficiariesCount })].filter(Boolean).join(' · ')}

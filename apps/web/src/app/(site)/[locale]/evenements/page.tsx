@@ -5,13 +5,14 @@ import { EventCard } from '@/components/site/event-card'
 import { PageHeader } from '@/components/site/page-header'
 import { Link } from '@/i18n/navigation'
 import { registrationState } from '@/lib/registrations'
+import { alternatesFor } from '@/lib/seo'
 
 const TYPES: EventType[] = ['caravane', 'scientifique', 'solifun', 'ambassadeurs', 'autre']
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/evenements'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Events' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/evenements'), title: t('title'), description: t('intro') }
 }
 
 export default async function EventsPage({ params, searchParams }: PageProps<'/[locale]/evenements'>) {

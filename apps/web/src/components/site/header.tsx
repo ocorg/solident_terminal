@@ -29,7 +29,7 @@ export function SiteHeader({ fundraisingOpen }: { fundraisingOpen: boolean }) {
         <Link href="/" className="flex shrink-0 items-center gap-2 font-heading text-2xl font-bold text-navy-700" aria-label="Association Solident, accueil">
           <Logo size={44} />
           <span>
-            Solident<span className="text-gold-500">.</span>
+            Solident<span className="brand-dot" aria-hidden />
           </span>
         </Link>
 

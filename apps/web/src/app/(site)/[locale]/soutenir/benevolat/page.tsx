@@ -2,11 +2,12 @@ import type { Metadata } from 'next'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { PageHeader, SectionTitle } from '@/components/site/page-header'
 import { VolunteerForm } from './volunteer-form'
+import { alternatesFor } from '@/lib/seo'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/soutenir/benevolat'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Volunteer' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/soutenir/benevolat'), title: t('title'), description: t('intro') }
 }
 
 export default async function BenevolatPage({ params }: PageProps<'/[locale]/soutenir/benevolat'>) {

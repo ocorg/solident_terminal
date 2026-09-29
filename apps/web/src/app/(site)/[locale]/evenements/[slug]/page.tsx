@@ -7,6 +7,8 @@ import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { registrationState, takenPlaces } from '@/lib/registrations'
 import { RegistrationPanel } from './registration-panel'
+import { alternatesFor, jsonLd } from '@/lib/seo'
+import { siteUrl } from '@/lib/site-url'
 
 // Places left also update live via Pusher; this only bounds how stale the first paint can be.
 export const revalidate = 60
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/evenemen
   const { locale, slug } = await params
   const e = await getEvent(slug)
   if (!e) return {}
-  return { title: localized(e, 'title', locale), description: localized(e, 'body', locale).slice(0, 160), openGraph: { images: e.coverUrl ? [e.coverUrl] : [] } }
+  return { alternates: alternatesFor(locale, `/evenements/${slug}`), title: localized(e, 'title', locale), description: localized(e, 'body', locale).slice(0, 160), openGraph: { images: e.coverUrl ? [e.coverUrl] : [] } }
 }
 
 export default async function EventPage({ params }: PageProps<'/[locale]/evenements/[slug]'>) {
@@ -32,8 +34,24 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
   const state = registrationState(e, await takenPlaces(prisma, e.id))
   const long = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' } as const
 
+  const base = siteUrl()
+  const eventLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: localized(e, 'title', locale),
+    description: localized(e, 'body', locale)?.slice(0, 300) || undefined,
+    startDate: e.startsAt.toISOString(),
+    endDate: (e.endsAt ?? e.startsAt).toISOString(),
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    location: { '@type': 'Place', name: e.location ?? 'Maroc', address: { '@type': 'PostalAddress', addressLocality: e.location ?? undefined, addressCountry: 'MA' } },
+    image: e.coverUrl ? [e.coverUrl] : [`${base}/icons/icon-512.png`],
+    organizer: { '@type': 'NGO', '@id': `${base}/#organization`, name: 'Association Solident', url: `${base}/${locale}` },
+    url: `${base}/${locale}/evenements/${e.slug}`,
+  }
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(eventLd)} />
       <Link href="/evenements" className="mb-6 inline-block text-sm font-semibold text-navy-700 hover:underline">
         <span className="flip-rtl inline-block">←</span> {t('back')}
       </Link>
@@ -44,7 +62,7 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
             // eslint-disable-next-line @next/next/no-img-element
             <img src={e.coverUrl} alt="" className="mb-6 aspect-video w-full rounded-xl object-cover shadow-card" />
           )}
-          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-gold-500">{t(`types.${e.type}`)}</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-gold-700">{t(`types.${e.type}`)}</p>
           <h1 className="font-heading text-3xl font-bold text-navy-900 md:text-4xl">{localized(e, 'title', locale)}</h1>
           <div className="divider-dot my-5" />
           <dl className="mb-6 grid gap-3 sm:grid-cols-2">

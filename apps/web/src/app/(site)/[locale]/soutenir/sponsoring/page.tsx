@@ -7,13 +7,14 @@ import { PersonCard } from '@/components/site/person-card'
 import { SponsorWall } from '@/components/site/sponsor-wall'
 import { sponsorWall } from '@/lib/donations'
 import { localized, localizedList } from '@/lib/localized'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 300
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/soutenir/sponsoring'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Sponsoring' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/soutenir/sponsoring'), title: t('title'), description: t('intro') }
 }
 
 const tierAccent: Record<string, string> = {

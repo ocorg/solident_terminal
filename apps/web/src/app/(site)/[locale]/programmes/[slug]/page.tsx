@@ -7,6 +7,7 @@ import { SectionTitle } from '@/components/site/page-header'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
 import { registrationState } from '@/lib/registrations'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/programm
   const { locale, slug } = await params
   const p = await getProgramme(slug)
   if (!p) return {}
-  return { title: localized(p, 'title', locale), description: localized(p, 'summary', locale) }
+  return { alternates: alternatesFor(locale, `/programmes/${slug}`), title: localized(p, 'title', locale), description: localized(p, 'summary', locale) }
 }
 
 export default async function ProgrammePage({ params }: PageProps<'/[locale]/programmes/[slug]'>) {
@@ -45,7 +46,7 @@ export default async function ProgrammePage({ params }: PageProps<'/[locale]/pro
       <header className="mb-10 max-w-3xl">
         <h1 className="font-heading text-4xl font-bold text-navy-900">
           {localized(p, 'title', locale)}
-          <span className="text-gold-500">.</span>
+          <span className="brand-dot" aria-hidden />
         </h1>
         <div className="divider-dot my-5" />
         <p className="text-lg text-ink-600">{localized(p, 'summary', locale)}</p>
@@ -72,7 +73,7 @@ export default async function ProgrammePage({ params }: PageProps<'/[locale]/pro
             {actions.map((a) => (
               <li key={a.id}>
                 <Link href={`/actions/${a.slug}`} className="card card-hover block h-full p-5">
-                  <p className="text-sm font-semibold text-gold-500">{format.dateTime(a.dateStart, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
+                  <p className="text-sm font-semibold text-gold-700">{format.dateTime(a.dateStart, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
                   <p className="font-heading font-bold text-navy-900">{localized(a, 'title', locale)}</p>
                   {a.location && <p className="text-sm text-ink-600">{a.location}</p>}
                 </Link>

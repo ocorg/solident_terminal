@@ -33,7 +33,7 @@ export default async function BenevolesPage({ searchParams }: PageProps<'/admin/
             href={`/admin/benevoles?statut=${t.key}`}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${current === t.key ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
           >
-            {t.label} <span className="opacity-70">({count(t.key)})</span>
+            {t.label} <span className="font-normal">({count(t.key)})</span>
           </Link>
         ))}
       </div>

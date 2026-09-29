@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma, type PartnerType } from '@solident/db'
 import { PageHeader, SectionTitle } from '@/components/site/page-header'
 import { Link } from '@/i18n/navigation'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
@@ -11,7 +12,7 @@ const ORDER: PartnerType[] = ['sponsor', 'association', 'universite', 'ecole', '
 export async function generateMetadata({ params }: PageProps<'/[locale]/partenaires'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Partners' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/partenaires'), title: t('title'), description: t('intro') }
 }
 
 export default async function PartnersPage({ params }: PageProps<'/[locale]/partenaires'>) {

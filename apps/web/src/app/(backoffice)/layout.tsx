@@ -16,7 +16,7 @@ export const viewport: Viewport = { themeColor: '#1E5470' }
 export default function BackofficeLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" dir="ltr" className={`${fontVariables} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-cream-50 font-sans text-navy-900">
+      <body className="grain flex min-h-full flex-col bg-cream-50 font-sans text-navy-900">
         {children}
         <ServiceWorkerRegister />
         <Toaster position="bottom-right" richColors duration={4000} />

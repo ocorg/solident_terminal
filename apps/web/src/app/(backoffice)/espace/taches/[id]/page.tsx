@@ -39,7 +39,7 @@ export default async function TaskPage({ params }: PageProps<'/espace/taches/[id
       <div className="card space-y-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Link href={ctxHref} className="text-sm font-semibold text-gold-500 hover:underline">
+            <Link href={ctxHref} className="text-sm font-semibold text-gold-700 hover:underline">
               {names.get(full.contextId) ?? '—'}
             </Link>
             <h1 className="font-heading text-2xl font-bold text-navy-900">

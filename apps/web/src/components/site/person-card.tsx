@@ -7,7 +7,7 @@ export function PersonCard({ name, role, photoUrl, phone }: { name: string; role
     .map((w) => w[0]!.toUpperCase())
     .join('')
   return (
-    <li className="card card-hover flex flex-col items-center p-5 text-center">
+    <li className="card card-hover flex flex-col items-center p-5 text-center" data-reveal>
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photoUrl} alt={name} className="mb-3 size-24 rounded-full object-cover" />

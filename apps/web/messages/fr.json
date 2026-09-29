@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Association Solident",
-    "description": "Soins bucco-dentaires gratuits et prévention pour les communautés défavorisées du nord du Maroc."
+    "description": "Association de jeunes dentistes du nord du Maroc : caravanes dentaires, soins gratuits et prévention bucco-dentaire dans les écoles et les villages. Découvrez nos actions et agissez avec nous.",
+    "homeTitle": "Association Solident — soins dentaires gratuits au Maroc"
   },
   "Nav": {
     "home": "Accueil",
@@ -57,7 +58,8 @@
     "joinDonateTitle": "Faire un don",
     "joinDonateText": "Chaque dirham finance des soins et de la prévention, et vous suivez son effet en direct.",
     "joinContactTitle": "Nous contacter",
-    "joinContactText": "Une idée, une question, un projet commun ? Écrivez-nous."
+    "joinContactText": "Une idée, une question, un projet commun ? Écrivez-nous.",
+    "countdown": "{days, plural, =0 {Aujourd’hui} one {J-#} other {J-#}}"
   },
   "Footer": {
     "tagline": "Association marocaine de santé bucco-dentaire, fondée en 2024 à Larache – Ksar El Kébir.",

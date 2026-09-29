@@ -67,7 +67,7 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
       <form className="flex flex-wrap items-center gap-2 text-sm" action="/espace/taches">
         <input type="hidden" name="vue" value={view} />
         {status && <input type="hidden" name="statut" value={status} />}
-        <select name="contexte" defaultValue={contextId ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
+        <select name="contexte" aria-label="Filtrer par projet ou cellule" defaultValue={contextId ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
           <option value="">Tous projets et cellules</option>
           {[...names.entries()].sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) => (
             <option key={id} value={id}>
@@ -75,7 +75,7 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
             </option>
           ))}
         </select>
-        <select name="priorite" defaultValue={priority ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
+        <select name="priorite" aria-label="Filtrer par priorité" defaultValue={priority ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
           <option value="">Toutes priorités</option>
           {TASK_PRIORITIES.map((p: TaskPriority) => (
             <option key={p} value={p}>

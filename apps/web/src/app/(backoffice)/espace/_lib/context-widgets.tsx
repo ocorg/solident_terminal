@@ -38,7 +38,7 @@ export function MembersManager({ type, contextId, positions, members, people, ca
         return (
           <div key={pos.id}>
             <div className="mb-2 flex items-center gap-2">
-              <p className={`text-sm font-semibold ${isManagementPosition(pos.name) ? 'text-gold-500' : 'text-ink-600'}`}>
+              <p className={`text-sm font-semibold ${isManagementPosition(pos.name) ? 'text-gold-700' : 'text-ink-600'}`}>
                 {pos.name} ({inPos.length})
               </p>
               {canManage && inPos.length === 0 && (

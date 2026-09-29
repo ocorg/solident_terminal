@@ -56,7 +56,7 @@ export async function ContextPage({ type, id }: { type: ContextType; id: string 
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold-500">
+          <p className="text-sm font-semibold uppercase tracking-wide text-gold-700">
             {type === 'project' ? 'Projet' : 'Cellule'}
             {project?.parent && (
               <>

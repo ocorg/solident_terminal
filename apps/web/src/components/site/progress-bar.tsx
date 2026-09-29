@@ -30,7 +30,7 @@ export function ProgressBar({ campaignId, initial, dark = false }: { campaignId:
         <p className={`font-heading text-2xl font-bold ${dark ? 'text-white' : 'text-navy-700'} transition ${pulse ? 'scale-105' : ''}`}>
           {t('raised', { amount: money(totals.raisedDh) })}
         </p>
-        <p className="font-heading text-lg font-bold text-gold-500">{format.number(pct / 100, { style: 'percent', maximumFractionDigits: 0 })}</p>
+        <p className={`font-heading text-lg font-bold ${dark ? 'text-gold-500' : 'text-gold-700'}`}>{format.number(pct / 100, { style: 'percent', maximumFractionDigits: 0 })}</p>
       </div>
       <div
         className={`h-3.5 overflow-hidden rounded-full ${dark ? 'bg-white/15' : 'bg-navy-100'}`}

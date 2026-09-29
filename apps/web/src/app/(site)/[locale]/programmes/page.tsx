@@ -4,6 +4,7 @@ import { prisma } from '@solident/db'
 import { PageHeader } from '@/components/site/page-header'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
@@ -12,7 +13,7 @@ const accents = ['from-navy-700 to-navy-900', 'from-[#2c6e8f] to-navy-700', 'fro
 export async function generateMetadata({ params }: PageProps<'/[locale]/programmes'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Programmes' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/programmes'), title: t('title'), description: t('intro') }
 }
 
 export default async function ProgrammesPage({ params }: PageProps<'/[locale]/programmes'>) {

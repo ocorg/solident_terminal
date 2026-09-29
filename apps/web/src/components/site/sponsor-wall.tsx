@@ -12,7 +12,7 @@ export async function SponsorWall({ wall }: { wall: Wall }) {
     <div className="space-y-6">
       {wall.tiers.map(({ tier, partners }) => (
         <div key={tier.id}>
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold-500">{tier.name}</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-gold-700">{tier.name}</p>
           <Grid partners={partners} />
         </div>
       ))}

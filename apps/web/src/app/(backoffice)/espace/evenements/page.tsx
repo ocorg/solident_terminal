@@ -53,7 +53,7 @@ export default async function AgendaPage({ searchParams }: PageProps<'/espace/ev
             <li key={e.id} className="card space-y-3 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-gold-500">
+                  <p className="text-sm font-semibold text-gold-700">
                     {fmt(e.startAt, past)}
                     {e.endAt && ` → ${e.endAt.toDateString() === e.startAt.toDateString() ? e.endAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' }) : fmt(e.endAt)}`}
                   </p>

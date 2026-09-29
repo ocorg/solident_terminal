@@ -5,13 +5,14 @@ import { PageHeader, SectionTitle } from '@/components/site/page-header'
 import { PersonCard } from '@/components/site/person-card'
 import { Link } from '@/i18n/navigation'
 import { localized } from '@/lib/localized'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/qui-sommes-nous'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'About' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/qui-sommes-nous'), title: t('title'), description: t('intro') }
 }
 
 export default async function AboutPage({ params }: PageProps<'/[locale]/qui-sommes-nous'>) {

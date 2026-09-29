@@ -6,13 +6,14 @@ import { PageHeader, SectionTitle } from '@/components/site/page-header'
 import { PersonCard } from '@/components/site/person-card'
 import { localized } from '@/lib/localized'
 import { org } from '@/lib/org'
+import { alternatesFor } from '@/lib/seo'
 
 export const revalidate = 3600
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/contact'>): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Contact' })
-  return { title: t('title'), description: t('intro') }
+  return { alternates: alternatesFor(locale, '/contact'), title: t('title'), description: t('intro') }
 }
 
 export default async function ContactPage({ params }: PageProps<'/[locale]/contact'>) {

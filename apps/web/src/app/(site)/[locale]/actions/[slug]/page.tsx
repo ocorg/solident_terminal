@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation'
 import { donorWall, sponsorWall } from '@/lib/donations'
 import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
+import { alternatesFor } from '@/lib/seo'
 
 type Figure = { value: number; labelFr: string; labelAr?: string | null; labelEn?: string | null }
 
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/actions/
   const { locale, slug } = await params
   const a = await getAction(slug)
   if (!a) return {}
-  return { title: localized(a, 'title', locale), description: localized(a, 'body', locale).slice(0, 160), openGraph: { images: a.coverUrl ? [a.coverUrl] : [] } }
+  return { alternates: alternatesFor(locale, `/actions/${slug}`), title: localized(a, 'title', locale), description: localized(a, 'body', locale).slice(0, 160), openGraph: { images: a.coverUrl ? [a.coverUrl] : [] } }
 }
 
 export default async function ActionPage({ params }: PageProps<'/[locale]/actions/[slug]'>) {
@@ -48,7 +49,7 @@ export default async function ActionPage({ params }: PageProps<'/[locale]/action
         // eslint-disable-next-line @next/next/no-img-element
         <img src={a.coverUrl} alt="" className="mb-6 aspect-video w-full rounded-xl object-cover shadow-card" />
       )}
-      <p className="text-sm font-semibold text-gold-500">
+      <p className="text-sm font-semibold text-gold-700">
         {a.dateEnd && a.dateEnd.getTime() !== a.dateStart.getTime() ? format.dateTimeRange(a.dateStart, a.dateEnd, opts) : format.dateTime(a.dateStart, opts)}
         {a.location && ` · ${a.location}`}
       </p>

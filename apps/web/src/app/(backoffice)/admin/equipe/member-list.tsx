@@ -22,7 +22,7 @@ export function MemberList({ members }: { members: Member[] }) {
                 <p className="font-semibold">{m.fullName}</p>
                 <p className="text-sm text-ink-600">
                   {m.roleFr}
-                  {(!m.roleAr || !m.roleEn) && <span className="ms-2 text-xs text-gold-500">traduction manquante</span>}
+                  {(!m.roleAr || !m.roleEn) && <span className="ms-2 text-xs text-gold-700">traduction manquante</span>}
                 </p>
                 <p className="text-xs text-ink-600">
                   {[m.isBoard && 'Bureau', m.isPublicContact && `Contact public · ${m.phone}`].filter(Boolean).join(' · ') || 'Non affiché'}
