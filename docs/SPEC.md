@@ -358,47 +358,38 @@ Dark mode for `/admin` only, swapping cream for `--navy-900` surfaces; the publi
 
 ## 9. Roadmap
 
-The donation page and progress bar go live by 25 Oct 2026, giving about a month of fundraising before the Jissr Attadamon caravan on 27 Nov 2026; Terminal migrates after the caravan.
+> Updated 27 Oct 2026. The original plan is kept below for reference; **what actually happened and what comes next is in `docs/HANDOVER.md`** (decisions log, open items, calendar).
 
-| Phase | Dates | Scope | Done when |
-| --- | --- | --- | --- |
-| 0. Foundations | 28 Sep – 4 Oct 2026 | Monorepo, Neon project + branches, Prisma schema + first migration, Better Auth magic link, R2 buckets, Pusher app, next-intl with FR/AR/EN, design tokens | Login works; empty pages render in 3 languages incl. RTL |
-| 1. Fundraising launch | 5 – 25 Oct 2026 | Accueil, Qui sommes-nous, Soutenir (don + sponsoring), Contact, Jissr Attadamon campaign, `/admin` campaigns + donations + users | First confirmed donation moves the bar live |
-| 2. Events and content | 26 Oct – 15 Nov 2026 | Événements + registrations, Solifun hub, bénévolat, Programmes, Actions map with the 14 caravans, Partenaires, `/admin` HR + media screens | Solifun sign-ups off Google Forms; all past actions published |
-| 3. Caravan period | 16 Nov – 5 Dec 2026 | Freeze features; live bar, daily content updates, post-caravan report page | Caravan report online |
-| 4. Terminal migration | Dec 2026 – Jan 2027 | Move Terminal data Supabase → Neon, profiles → `users`, storage → R2, RLS → server guards, email digests re-pointed, cutover weekend | Terminal runs on Neon; Supabase project archived |
-| 5. Later | 2027 | Custom domain (then R2 custom domain + Cloudflare DNS), newsletter, annual report pages | — |
-
-### Terminal migration checklist
-
-- [ ] Export every Supabase table and map it to the Prisma schema
-- [ ] Rebuild each RLS policy as a `requireRole` check and list them side by side
-- [ ] Copy the `covers` and avatar buckets to R2 and rewrite stored URLs
-- [ ] Move members to Better Auth users with the same email so nobody re-registers
-- [ ] Re-point the cron-job.org digest to the new route
-- [ ] Dry-run on a Neon branch, then cut over on a quiet weekend
+| Phase | Planned | Actual |
+| --- | --- | --- |
+| 0. Foundations | 28 Sep – 4 Oct 2026 | Done 26 Sep 2026 |
+| 1. Fundraising launch | 5 – 25 Oct 2026 | Built by 27 Sep. **Public fundraising closed** until the law 18-18 authorization is granted (admin switch in `/admin/campagnes`) |
+| 2. Events and content | 26 Oct – 15 Nov 2026 | Built by 27 Sep. Content (photos, logos, dossier, translations) still to supply |
+| 3. Caravan period | 16 Nov – 5 Dec 2026 | Feature freeze; post-caravan report page ready (action page + linked campaign) |
+| 4. Terminal migration | Dec 2026 – Jan 2027 | **Done early (26–27 Sep)**: Terminal rebuilt as `/espace` in the same app, Supabase data imported |
+| Extra (not planned) | — | Installable app (PWA) + phone notifications (28 Sep); design, accessibility and SEO pass (29 Sep) |
+| 5. Later | 2027 | Custom domain (then R2 custom domain + Cloudflare DNS), newsletter, annual report pages |
 
 ## 10. Decisions and open questions
 
 | Decided | Choice |
 | --- | --- |
 | Stack | Next.js + Neon + Prisma + Better Auth + Pusher + Cloudflare R2 on Vercel |
-| Repo | Existing `solident_terminal` repo restructured into a pnpm monorepo (`apps/terminal`, `apps/web`, `packages/db`) |
+| Repo | pnpm monorepo: `apps/web` (site + `/espace` + `/admin`) and `packages/db`. The separate Terminal app was removed |
 | Pusher | Included from day one |
-| Database | One Neon database shared by the site and Terminal |
-| Terminal | Migrates from Supabase to Neon (after the caravan) |
-| Languages | Arabic, French, English |
-| Donations | RIB displayed + progress bar per campaign |
+| Database | One Neon database (branches `production` and `dev`) |
+| Terminal | Rebuilt as `/espace` (26 Sep), same login as the site |
+| Languages | French (default), Arabic, English; Arabic RTL. Visitors on `/` are sent to their browser language |
+| Donations | RIB + declaration form + live progress bar per campaign, **only while public fundraising is open** (law 18-18 authorization required) |
+| Donor wall | Opt-in names only, never amounts |
 | Solifun | Section inside the Solident site |
-| Admin | `/admin` with roles |
-| Registrations | Collect names only; HR processes later |
-| Email | Same Gmail SMTP account Terminal uses |
-| Domain and media | Free `vercel.app` domain for now; photos and board contacts public, beneficiary faces blurred |
+| Admin | `/admin` with roles (admin, treasurer, hr, media); members use `/espace`; accounts approved by an admin |
+| Registrations | Name + phone required; email, city, profile, note optional |
+| Email | Same Gmail SMTP account as the old Terminal |
+| Domain and media | Free `solident-web.vercel.app` for now; photos and board contacts public, beneficiary faces blurred |
+| Translations | Claude drafts AR/EN; a member should proofread |
+| App | One installable PWA "Solident" for everyone; phone notifications for members |
 
 ### Open questions
 
-- [ ] Default language when a visitor arrives: French or Arabic?
-- [ ] Registration form: is phone required, and which extra fields (e.g. padel level, bike ownership) per activity?
-- [ ] Show a public donor wall (names of non-anonymous donors) or only totals?
-- [ ] Who writes and checks the Arabic and English translations?
-- [ ] Preferred Vercel subdomain, e.g. `solident.vercel.app`?
+See `docs/HANDOVER.md` §4 (owner to-do and proposals waiting for a board decision).
