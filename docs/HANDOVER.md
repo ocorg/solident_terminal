@@ -58,7 +58,8 @@ Both artifacts are private until the owner shares them from their Share menu.
 - [x] Cron: `CRON_SECRET` is set and the cron-job.org digest job runs every 15 min (verified 27 Sep)
 
 ### Inventory follow-ups
-- [ ] After the inventory push: seed the production demo (`DB_ENV_FILE=.env.production pnpm db:inventory-demo seed`, from `packages/db`), show the board, then "Vider les données de démonstration" (Catalogue tab, admins) before entering real stock
+- [x] Inventory live on production (27 Oct, commit f61dadb) and production demo seeded
+- [ ] Show the demo to the board, then "Vider les données de démonstration" (Catalogue tab, admins) before entering real stock
 - [ ] Logistique: make sure the people who run the stock hold a non-"Membre" position in "Cellule Organisation & Logistiques" (or are space admins), otherwise they cannot validate bilans or edit the catalogue
 - Idea: the public needs list below could reuse each project's Besoins (`inventory_needs`) instead of a new table
 
