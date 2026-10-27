@@ -1,45 +1,149 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { inputClass } from '@/components/form-fields'
 import { tagTone, type Tone } from '@/lib/inventory/labels'
+import { setDirtySource } from '@/lib/unsaved'
 
 /** Uppercase status tag on a low-opacity background (no pills, no emoji). */
 export function Tag({ tone, children, className = '' }: { tone: Tone; children: React.ReactNode; className?: string }) {
   return <span className={`inline-block rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tagTone[tone]} ${className}`}>{children}</span>
 }
 
+const SheetDirtyContext = createContext<((id: string, dirty: boolean) => void) | null>(null)
+
+/** Inside a Sheet: report whether this form holds typed data (blocks accidental closing). */
+export function useSheetDirty(dirty: boolean) {
+  const report = useContext(SheetDirtyContext)
+  const id = useId()
+  // Layout effect: the panel knows about typed data before the next click can be handled.
+  useLayoutEffect(() => {
+    report?.(id, dirty)
+    return () => report?.(id, false)
+  }, [report, id, dirty])
+}
+
+/** True once the values differ from the first render (any field touched, even one character). */
+export function useChanged(values: unknown) {
+  const [initial] = useState(() => JSON.stringify(values))
+  return JSON.stringify(values) !== initial
+}
+
 /**
  * Side panel on desktop, bottom sheet on phones. Native <dialog>: focus trap, Escape and the
  * back gesture close it. Content is only rendered while open.
+ * When a form inside holds typed data (useSheetDirty, or the `dirty` prop), a click outside,
+ * Escape, the back gesture or "Fermer" ask for confirmation instead of closing.
  */
-export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; footer?: React.ReactNode }) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  dirty = false,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+  footer?: React.ReactNode
+  dirty?: boolean
+}) {
   const ref = useRef<HTMLDialogElement>(null)
+  const openRef = useRef(open)
+  const forms = useRef(new Map<string, boolean>())
+  const [formsDirty, setFormsDirty] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const sourceId = useId()
+  const isDirty = dirty || formsDirty
+
+  const report = useCallback((id: string, d: boolean) => {
+    if (d) forms.current.set(id, true)
+    else forms.current.delete(id)
+    setFormsDirty(forms.current.size > 0)
+  }, [])
+
+  // Also protects against closing or reloading the tab.
   useEffect(() => {
+    setDirtySource(sourceId, open && isDirty)
+    return () => setDirtySource(sourceId, false)
+  }, [sourceId, open, isDirty])
+
+  useEffect(() => {
+    openRef.current = open
     const d = ref.current
     if (!d) return
     if (open && !d.open) d.showModal()
     if (!open && d.open) d.close()
   }, [open])
+
+  // Read live values (not the last render) so a very fast click after typing is still caught.
+  const dirtyNow = () => dirty || forms.current.size > 0
+
+  function requestClose() {
+    if (dirtyNow()) setConfirming(true)
+    else onClose()
+  }
+  function discard() {
+    setConfirming(false)
+    onClose()
+  }
+
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
+      onCancel={(e) => {
+        // Escape / back gesture: same rule as a click outside.
+        e.preventDefault()
+        requestClose()
+      }}
+      onClose={() => {
+        // The browser can force-close a dialog; reopen it if data would be lost.
+        if (openRef.current && dirtyNow()) {
+          ref.current?.showModal()
+          setConfirming(true)
+          return
+        }
+        if (openRef.current) onClose()
+      }}
+      onClick={(e) => e.target === ref.current && requestClose()}
       aria-label={title}
       className="m-0 mt-auto max-h-[92dvh] w-full max-w-none rounded-t-[12px] bg-white p-0 text-navy-900 shadow-card-hover backdrop:bg-navy-900/40 sm:me-0 sm:ms-auto sm:mt-0 sm:h-dvh sm:max-h-none sm:w-[440px] sm:rounded-none sm:rounded-s-[12px]"
     >
       {open && (
-        <div className="flex max-h-[92dvh] flex-col sm:h-dvh sm:max-h-none">
-          <div className="flex items-center justify-between gap-3 border-b border-navy-100 px-5 py-4">
-            <h2 className="font-heading text-lg font-bold">{title}</h2>
-            <button type="button" onClick={onClose} className="-me-2 rounded-[8px] px-3 py-2 text-sm font-semibold text-navy-700 transition hover:bg-navy-100" aria-label="Fermer">
-              Fermer
-            </button>
+        <SheetDirtyContext.Provider value={report}>
+          <div className="relative flex max-h-[92dvh] flex-col sm:h-dvh sm:max-h-none">
+            <div className="flex items-center justify-between gap-3 border-b border-navy-100 px-5 py-4">
+              <h2 className="font-heading text-lg font-bold">{title}</h2>
+              <button type="button" onClick={requestClose} className="-me-2 rounded-[8px] px-3 py-2 text-sm font-semibold text-navy-700 transition hover:bg-navy-100" aria-label="Fermer">
+                Fermer
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            {footer && <div className="border-t border-navy-100 bg-cream-50 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>}
+            {confirming && (
+              <div role="alertdialog" aria-labelledby={`${sourceId}-t`} aria-describedby={`${sourceId}-d`} className="absolute inset-0 z-30 flex items-end bg-navy-900/30 sm:items-center">
+                <div className="m-3 w-full space-y-3 rounded-[12px] border-s-4 border-gold-500 bg-white p-5 shadow-card-hover">
+                  <p id={`${sourceId}-t`} className="font-heading text-lg font-bold">
+                    Des informations ne sont pas enregistrées
+                  </p>
+                  <p id={`${sourceId}-d`} className="text-sm text-ink-600">
+                    Vous avez commencé à remplir ce formulaire. Si vous fermez maintenant, ce que vous avez saisi sera perdu.
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" onClick={discard} className="btn btn-ghost min-h-11 text-danger">
+                      Fermer sans enregistrer
+                    </button>
+                    <button type="button" autoFocus onClick={() => setConfirming(false)} className="btn btn-primary min-h-11">
+                      Continuer la saisie
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-          {footer && <div className="border-t border-navy-100 bg-cream-50 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>}
-        </div>
+        </SheetDirtyContext.Provider>
       )}
     </dialog>
   )

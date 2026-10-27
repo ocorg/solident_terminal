@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { SiteFooter } from '@/components/site/footer'
 import { ServiceWorkerRegister } from '@/components/service-worker'
 import { SiteHeader } from '@/components/site/header'
+import { UnsavedGuard } from '@/components/unsaved-guard'
 import { getFundraising } from '@/lib/fundraising'
 import { alternatesFor } from '@/lib/seo'
 import { localeDir, routing } from '@/i18n/routing'
@@ -38,6 +39,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<'/[lo
   setRequestLocale(locale)
   const dir = localeDir(locale)
   const t = await getTranslations('Nav')
+  const u = await getTranslations('Unsaved')
 
   return (
     <html lang={locale} dir={dir} className={`${fontVariables} h-full antialiased`}>
@@ -52,6 +54,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<'/[lo
           </main>
           <SiteFooter />
           <ServiceWorkerRegister />
+          <UnsavedGuard labels={{ title: u('title'), body: u('body'), stay: u('stay'), leave: u('leave') }} />
           <Toaster position={dir === 'rtl' ? 'bottom-left' : 'bottom-right'} dir={dir} richColors duration={4000} />
         </NextIntlClientProvider>
       </body>

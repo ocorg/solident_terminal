@@ -23,7 +23,7 @@ export function FundraisingCard({ open, authorization }: { open: boolean; author
   }
 
   return (
-    <section className={`card border-s-4 p-5 ${open ? 'border-success' : 'border-gold-500'}`}>
+    <section data-guard-dirty={dirty} className={`card border-s-4 p-5 ${open ? 'border-success' : 'border-gold-500'}`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-bold text-navy-700">Collecte publique sur le site</h2>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${open ? 'bg-success/15 text-success' : 'bg-gold-100 text-navy-900'}`}>

@@ -111,4 +111,15 @@ Replaces the logistics Google Sheet. **Stock is never stored: it is a ledger** (
 - [x] Demo: `pnpm db:inventory-demo seed|clear` (21 items, 4 holders, project "[Démo] Caravane test inventaire" with needs, collecte and a validated bilan). Anything written on a demo item or the demo project is flagged demo too. Admin button "Vider les données de démonstration" in the Catalogue tab. Seeded on dev; **production: run `DB_ENV_FILE=.env.production pnpm db:inventory-demo seed` after the deploy has migrated the DB**
 - E2E checked on dev (21 checks with Playwright: phone collecte with new item + photo, autoclave transfer, over-consumption blocked, offline count survives tab close and syncs, changed-stock warning, read-only bilan, member restrictions, offboarding guard)
 
+## Unsaved-data guard (27 Oct 2026) — every form, site + back office
+
+- `components/unsaved-guard.tsx` (mounted in both root layouts; public labels from `messages/*.json` → `Unsaved`, back office French) + `lib/unsaved.ts`. A `<form>` field counts as unsaved when its value differs from its original (recorded at page load from the HTML, or at first focus for fields that appear later); typed-then-erased = not dirty. Then a link click (menu, logo, footer, language switch) opens a "Continuer la saisie / Quitter sans enregistrer" dialog, and closing/reloading the tab triggers the browser warning. A submit makes the current values the new reference
+- Opt-outs: `data-no-guard` on search/filter forms (`/espace/membres`, `/espace/taches`, inventory Historique). Inline editors that are not `<form>`s declare `data-guard-dirty={dirty}` (fundraising card)
+- Inventory panels (`Sheet` in `components/inventory/ui.tsx`): forms call `useSheetDirty(useChanged({...state}))` (or pass `dirty` to the Sheet); click outside, Escape, back gesture and "Fermer" then show the same warning inside the panel. Successful saves close without warning. **New forms inside a Sheet must call `useSheetDirty`**; new page forms are covered automatically
+- Not covered: the browser back button inside the app (Next.js cannot cancel it); typed data then is lost only if the page is left that way
+
+## Dependency security update (27 Oct 2026)
+
+`pnpm audit` was 33 advisories (GitHub Dependabot showed 58, 6 critical) → **0**. Upgraded next + eslint-config-next 16.3.6 → **16.4.3**, better-auth 1.7.6 → **1.7.14**, nodemailer 9 → **10.2.1** (same API; Gmail SMTP login verified), zod → 4.6.7; root `pnpm.overrides` force sharp ≥ 0.35.5, source-map-js ≥ 1.2.2, fast-uri 3 ≥ 3.1.9. `pnpm-workspace.yaml` `allowBuilds`: `@swc/core` and `@parcel/watcher` set to false (prebuilt binaries). Lint now clean (only the intentional `_hp` honeypot warnings). To re-check later: `pnpm audit` from the root.
+
 Next phases after Phase 0: see roadmap in `docs/SPEC.md` §9 (fundraising launch by 25 Oct 2026, caravan 27–29 Nov 2026). Phase 4 is done.

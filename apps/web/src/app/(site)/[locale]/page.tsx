@@ -31,6 +31,8 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
     getFundraising(),
   ])
   const actionDate = (d: Date) => format.dateTime(d, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  // Server component re-rendered every 5 minutes: reading the clock here is intended.
+  // eslint-disable-next-line react-hooks/purity
   const daysLeft = nextEvent ? Math.max(0, Math.ceil((nextEvent.startsAt.getTime() - Date.now()) / 86_400_000)) : null
   const heroStat = stats[0]
 

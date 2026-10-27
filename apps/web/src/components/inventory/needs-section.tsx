@@ -8,7 +8,7 @@ import { Spinner } from '@/components/spinner'
 import { copyNeeds, removeNeed, setNeed } from '@/lib/inventory/actions'
 import { formatQty } from '@/lib/inventory/labels'
 import { ItemPicker, type PickerItem } from './item-picker'
-import { QtyStepper, selectClass, Sheet, Tag } from './ui'
+import { QtyStepper, selectClass, Sheet, Tag, useChanged, useSheetDirty } from './ui'
 
 export type NeedRow = { id: string; itemId: string; itemName: string; unit: string; qtyNeeded: string; collected: string; stock: string; note: string | null }
 
@@ -91,6 +91,7 @@ function NeedForm({ projectId, need, items, onDone }: { projectId: string; need:
   const [qty, setQty] = useState(need?.qtyNeeded ?? '')
   const [note, setNote] = useState(need?.note ?? '')
   const [busy, setBusy] = useState<string | null>(null)
+  useSheetDirty(useChanged({ itemId, qty, note }))
   async function save() {
     if (!itemId) return
     setBusy('save')

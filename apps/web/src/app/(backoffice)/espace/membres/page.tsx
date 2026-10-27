@@ -23,7 +23,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/espace/m
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-heading text-2xl font-bold text-navy-700">Membres ({members.length})</h1>
-        <form action="/espace/membres" className="flex gap-2">
+        <form action="/espace/membres" className="flex gap-2" data-no-guard>
           <input name="q" defaultValue={q} placeholder="Chercher un membre…" className="rounded-[10px] border border-navy-100 bg-white px-3 py-2 text-sm" />
           <button type="submit" className="btn btn-ghost px-3 py-2 text-sm">
             Chercher

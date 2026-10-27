@@ -8,7 +8,7 @@ import { createItem } from '@/lib/inventory/actions'
 import { CATEGORIES, categoryLabel } from '@/lib/inventory/labels'
 import type { ItemDTO } from '@/lib/inventory/queries'
 import { PhotoInput } from './photo-input'
-import { ItemThumb, selectClass } from './ui'
+import { ItemThumb, selectClass, useChanged, useSheetDirty } from './ui'
 
 export type PickerItem = Pick<ItemDTO, 'id' | 'name' | 'unit' | 'category' | 'photoUrl' | 'subcategory'>
 
@@ -103,6 +103,7 @@ export function NewItemForm({ initialName = '', onCancel, onCreated }: { initial
   const [subcategory, setSubcategory] = useState('')
   const [photo, setPhoto] = useState<{ key: string; url: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  useSheetDirty(useChanged({ name, category, unit, subcategory, photo: photo?.key ?? null }))
 
   async function save() {
     setBusy(true)

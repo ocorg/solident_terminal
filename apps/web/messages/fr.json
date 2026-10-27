@@ -356,5 +356,11 @@
     "text": "Désolé, cette page n’a pas pu se charger. Réessayez dans un instant.",
     "retry": "Réessayer",
     "home": "Retour à l’accueil"
+  },
+  "Unsaved": {
+    "title": "Des informations ne sont pas enregistrées",
+    "body": "Vous avez commencé à remplir un formulaire. Si vous quittez cette page, ce que vous avez saisi sera perdu.",
+    "stay": "Continuer la saisie",
+    "leave": "Quitter sans enregistrer"
   }
 }

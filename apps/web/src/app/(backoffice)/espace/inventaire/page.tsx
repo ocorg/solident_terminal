@@ -153,7 +153,7 @@ async function HistoryTab({
   const sel = 'h-11 w-full rounded-[10px] border border-navy-100 bg-white px-3 text-sm'
   return (
     <div className="space-y-4">
-      <form method="get" className="card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6">
+      <form method="get" className="card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6" data-no-guard>
         <input type="hidden" name="onglet" value="historique" />
         <select name="article" defaultValue={f.itemId ?? ''} className={sel} aria-label="Article">
           <option value="">Tous les articles</option>

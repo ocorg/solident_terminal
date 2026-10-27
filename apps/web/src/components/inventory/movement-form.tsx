@@ -9,7 +9,7 @@ import { recordMovement, type MovementInput } from '@/lib/inventory/actions'
 import { formatQty, normalizeQty, SOURCES, sourceLabel } from '@/lib/inventory/labels'
 import type { BalanceDTO, Person } from '@/lib/inventory/queries'
 import { ItemPicker, type PickerItem } from './item-picker'
-import { QtyStepper, Sheet, selectClass } from './ui'
+import { QtyStepper, Sheet, selectClass, useChanged, useSheetDirty } from './ui'
 
 export type MovementKind = 'entree' | 'transfert' | 'sortie'
 export type MovementContext = {
@@ -93,6 +93,7 @@ function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx
   const [estimate, setEstimate] = useState(false)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  useSheetDirty(useChanged({ itemId, qty, source, outType, toId, fromId, projectId, estimate, note }))
 
   // Who holds the selected item (for "from" choices and the balance hint).
   const holdersOfItem = useMemo(() => {

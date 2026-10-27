@@ -10,7 +10,7 @@ import { CATEGORIES, categoryLabel, formatQty } from '@/lib/inventory/labels'
 import type { ItemDTO } from '@/lib/inventory/queries'
 import { NewItemForm } from './item-picker'
 import { PhotoInput } from './photo-input'
-import { ItemThumb, selectClass, Sheet, Tag } from './ui'
+import { ItemThumb, selectClass, Sheet, Tag, useChanged, useSheetDirty } from './ui'
 
 export function CatalogView({ items, canClearDemo }: { items: ItemDTO[]; canClearDemo: boolean }) {
   const router = useRouter()
@@ -78,6 +78,7 @@ function EditItem({ item, onDone }: { item: ItemDTO; onDone: () => void }) {
   const router = useRouter()
   const [f, setF] = useState({ name: item.name, category: item.category, subcategory: item.subcategory ?? '', unit: item.unit, minQty: item.minQty ?? '', notes: item.notes ?? '' })
   const [busy, setBusy] = useState<string | null>(null)
+  useSheetDirty(useChanged(f))
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value })
 
   async function save() {

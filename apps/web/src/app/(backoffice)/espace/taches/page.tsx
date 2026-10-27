@@ -64,7 +64,7 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
           </Link>
         ))}
       </div>
-      <form className="flex flex-wrap items-center gap-2 text-sm" action="/espace/taches">
+      <form className="flex flex-wrap items-center gap-2 text-sm" action="/espace/taches" data-no-guard>
         <input type="hidden" name="vue" value={view} />
         {status && <input type="hidden" name="statut" value={status} />}
         <select name="contexte" aria-label="Filtrer par projet ou cellule" defaultValue={contextId ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">

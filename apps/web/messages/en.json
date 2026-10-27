@@ -356,5 +356,11 @@
     "text": "Sorry, this page could not load. Please try again in a moment.",
     "retry": "Try again",
     "home": "Back to home"
+  },
+  "Unsaved": {
+    "title": "Some information has not been sent",
+    "body": "You have started filling in a form. If you leave this page, what you typed will be lost.",
+    "stay": "Keep filling in",
+    "leave": "Leave without saving"
   }
 }

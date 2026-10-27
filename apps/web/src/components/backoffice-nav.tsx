@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export type NavItem = { href: string; label: string; badge?: number }
 
@@ -13,8 +13,9 @@ export type NavItem = { href: string; label: string; badge?: number }
  */
 export function BackofficeNav({ items, extra = [], root, label }: { items: NavItem[]; extra?: NavItem[]; root: string; label: string }) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
-  useEffect(() => setOpen(false), [pathname])
+  // The menu belongs to the page it was opened on: navigating closes it.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const open = openOn === pathname
 
   const isActive = (href: string) => (href === root ? pathname === root : pathname.startsWith(href))
   const current = [...items].reverse().find((i) => isActive(i.href)) ?? items[0]
@@ -44,7 +45,7 @@ export function BackofficeNav({ items, extra = [], root, label }: { items: NavIt
       <div className="md:hidden">
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpenOn(open ? null : pathname)}
           aria-expanded={open}
           className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
         >

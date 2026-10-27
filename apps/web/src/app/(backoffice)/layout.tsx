@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import { ServiceWorkerRegister } from '@/components/service-worker'
+import { UnsavedGuard } from '@/components/unsaved-guard'
 import { fontVariables } from '../fonts'
 import '../globals.css'
 
@@ -19,6 +20,7 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
       <body className="grain flex min-h-full flex-col bg-cream-50 font-sans text-navy-900">
         {children}
         <ServiceWorkerRegister />
+        <UnsavedGuard />
         <Toaster position="bottom-right" richColors duration={4000} />
       </body>
     </html>

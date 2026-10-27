@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Logo } from '@/components/brand/logo'
 import { Link, usePathname } from '@/i18n/navigation'
 import { LocaleSwitcher } from './locale-switcher'
@@ -11,10 +11,10 @@ import { navItems, supportItems } from './nav-items'
 export function SiteHeader({ fundraisingOpen }: { fundraisingOpen: boolean }) {
   const t = useTranslations('Nav')
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
+  // The menu belongs to the page it was opened on: navigating closes it.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const open = openOn === pathname
 
-  // Close the mobile menu after navigating.
-  useEffect(() => setOpen(false), [pathname])
 
   const cta = fundraisingOpen ? { href: '/soutenir/don', label: t('donate') } : { href: '/soutenir/sponsoring', label: t('support') }
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
@@ -48,7 +48,7 @@ export function SiteHeader({ fundraisingOpen }: { fundraisingOpen: boolean }) {
           </Link>
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => setOpenOn(open ? null : pathname)}
             aria-expanded={open}
             aria-controls="menu-mobile"
             className="btn btn-ghost px-3 py-2 text-sm xl:hidden"

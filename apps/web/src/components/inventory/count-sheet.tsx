@@ -402,7 +402,11 @@ function AddLine({ countId, items, members, me, onAdded }: { countId: string; it
       </button>
       <Sheet
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false)
+          setItemId(null)
+        }}
+        dirty={!!itemId}
         title="Ajouter une ligne"
         footer={
           <button type="button" onClick={add} disabled={busy || !itemId} className="btn btn-primary min-h-12 w-full disabled:opacity-60">
@@ -514,6 +518,7 @@ function ValidateButton({ count, lines, invalid, flush }: { count: CountDTO; lin
       <Sheet
         open={open}
         onClose={() => !busy && setOpen(false)}
+        dirty={Object.keys(overrides).length > 0}
         title="Valider l’inventaire"
         footer={
           <div className="flex gap-2">
