@@ -128,6 +128,14 @@ model User {
   emailQueue         EmailQueueItem[]
   pushSubscriptions  PushSubscription[]
 
+  inventoryItemsCreated     InventoryItem[]      @relation("InventoryItemCreatedBy")
+  inventoryOut              InventoryMovement[]  @relation("InventoryFromHolder")
+  inventoryIn               InventoryMovement[]  @relation("InventoryToHolder")
+  inventoryMovementsCreated InventoryMovement[]  @relation("InventoryMovementCreatedBy")
+  inventoryCountsCreated    InventoryCount[]     @relation("InventoryCountCreatedBy")
+  inventoryCountsValidated  InventoryCount[]     @relation("InventoryCountValidatedBy")
+  inventoryCountLines       InventoryCountLine[] @relation("InventoryCountLineHolder")
+
   @@map("users")
 }
 
@@ -641,6 +649,7 @@ model Project {
   startDate       DateTime?      @map("start_date") @db.Date
   endDate         DateTime?      @map("end_date") @db.Date
   imageUrl        String?        @map("image_url")
+  isDemo          Boolean        @default(false) @map("is_demo") // inventory demo project
   createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -650,6 +659,10 @@ model Project {
   positions  ProjectPosition[]
   members    ProjectMember[]
   proposals  ProjectProposal[]
+
+  inventoryMovements InventoryMovement[]
+  inventoryCounts    InventoryCount[]
+  inventoryNeeds     InventoryNeed[]
 
   @@index([parentProjectId])
   @@map("projects")
@@ -868,4 +881,162 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ───────────────────────── Inventory (members area, /espace/inventaire) ─────────────────────────
+// Stock is never stored as a number: it is a ledger of movements, and every balance is computed
+// from it (packages/db/src/inventory.ts). Every item is held by a member; big equipment = quantity 1.
+// is_demo rows are demo data, removed by "Vider les données de démonstration" (the only hard delete).
+
+enum InventoryCategory {
+  consommable
+  instrument
+  equipement
+}
+
+// entree (collecte): to only, source required · consommation / perte: from only ·
+// transfert: from and to, different members · ajustement: to only (surplus found during a count)
+enum InventoryMovementType {
+  entree
+  consommation
+  perte
+  transfert
+  ajustement
+}
+
+enum InventorySource {
+  don
+  achat
+  emprunt
+}
+
+enum InventoryCountStatus {
+  brouillon
+  valide
+}
+
+enum InventoryLineOutcome {
+  ok
+  consommation
+  perte
+  ajustement
+}
+
+model InventoryItem {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  category    InventoryCategory
+  subcategory String?
+  unit        String            @default("pièces")
+  minQty      Decimal?          @map("min_qty") @db.Decimal(10, 2)
+  photoUrl    String?           @map("photo_url")
+  notes       String?
+  isDemo      Boolean           @default(false) @map("is_demo")
+  isDeleted   Boolean           @default(false) @map("is_deleted")
+  createdById String            @map("created_by") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy  User                 @relation("InventoryItemCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  movements  InventoryMovement[]
+  countLines InventoryCountLine[]
+  needs      InventoryNeed[]
+
+  @@index([category, isDeleted])
+  @@map("inventory_items")
+}
+
+// Append-only ledger. A wrong movement is corrected by its reverse (reverses_id), never edited.
+model InventoryMovement {
+  id           String                @id @default(uuid()) @db.Uuid
+  itemId       String                @map("item_id") @db.Uuid
+  qty          Decimal               @db.Decimal(10, 2)
+  fromHolderId String?               @map("from_holder_id") @db.Uuid
+  toHolderId   String?               @map("to_holder_id") @db.Uuid
+  type         InventoryMovementType
+  source       InventorySource?
+  isEstimate   Boolean               @default(false) @map("is_estimate")
+  projectId    String?               @map("project_id") @db.Uuid
+  countId      String?               @map("count_id") @db.Uuid
+  reversesId   String?               @unique @map("reverses_id") @db.Uuid
+  note         String?
+  isDemo       Boolean               @default(false) @map("is_demo")
+  createdById  String                @map("created_by") @db.Uuid
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  item       InventoryItem      @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  fromHolder User?              @relation("InventoryFromHolder", fields: [fromHolderId], references: [id], onDelete: Restrict)
+  toHolder   User?              @relation("InventoryToHolder", fields: [toHolderId], references: [id], onDelete: Restrict)
+  project    Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  count      InventoryCount?    @relation(fields: [countId], references: [id], onDelete: Restrict)
+  reverses   InventoryMovement? @relation("InventoryReversal", fields: [reversesId], references: [id], onDelete: Restrict)
+  reversedBy InventoryMovement? @relation("InventoryReversal")
+  createdBy  User               @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([itemId])
+  @@index([fromHolderId])
+  @@index([toHolderId])
+  @@index([projectId])
+  @@index([countId])
+  @@index([createdAt])
+  @@map("inventory_movements")
+}
+
+// One "inventaire" session, usually after an activity. A validated count is frozen (read-only).
+model InventoryCount {
+  id            String               @id @default(uuid()) @db.Uuid
+  projectId     String?              @map("project_id") @db.Uuid
+  status        InventoryCountStatus @default(brouillon)
+  notes         String?
+  isDemo        Boolean              @default(false) @map("is_demo")
+  createdById   String               @map("created_by") @db.Uuid
+  validatedById String?              @map("validated_by") @db.Uuid
+  validatedAt   DateTime?            @map("validated_at") @db.Timestamptz(3)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy   User                 @relation("InventoryCountCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  validatedBy User?                @relation("InventoryCountValidatedBy", fields: [validatedById], references: [id], onDelete: Restrict)
+  lines       InventoryCountLine[]
+  movements   InventoryMovement[]
+
+  @@index([projectId, status])
+  @@map("inventory_counts")
+}
+
+model InventoryCountLine {
+  id          String                @id @default(uuid()) @db.Uuid
+  countId     String                @map("count_id") @db.Uuid
+  itemId      String                @map("item_id") @db.Uuid
+  holderId    String                @map("holder_id") @db.Uuid
+  // Balance shown when the line was added; compared with the ledger at validation to warn the validator.
+  snapshotQty Decimal               @default(0) @map("snapshot_qty") @db.Decimal(10, 2)
+  expectedQty Decimal?              @map("expected_qty") @db.Decimal(10, 2) // frozen at validation
+  countedQty  Decimal?              @map("counted_qty") @db.Decimal(10, 2)
+  outcome     InventoryLineOutcome? // set at validation
+  note        String?
+
+  count  InventoryCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  item   InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  holder User           @relation("InventoryCountLineHolder", fields: [holderId], references: [id], onDelete: Restrict)
+
+  @@unique([countId, itemId, holderId])
+  @@map("inventory_count_lines")
+}
+
+// Checklist of what an activity needs.
+model InventoryNeed {
+  id        String  @id @default(uuid()) @db.Uuid
+  projectId String  @map("project_id") @db.Uuid
+  itemId    String  @map("item_id") @db.Uuid
+  qtyNeeded Decimal @map("qty_needed") @db.Decimal(10, 2)
+  note      String?
+  isDemo    Boolean @default(false) @map("is_demo")
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  item    InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, itemId])
+  @@map("inventory_needs")
 }

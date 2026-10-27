@@ -8,6 +8,7 @@ const items = [
   { href: '/espace/projets', label: 'Projets' },
   { href: '/espace/cellules', label: 'Cellules' },
   { href: '/espace/evenements', label: 'Agenda' },
+  { href: '/espace/inventaire', label: 'Inventaire' },
   { href: '/espace/propositions', label: 'Propositions' },
   { href: '/espace/membres', label: 'Membres' },
   { href: '/espace/notifications', label: 'Notifications' },

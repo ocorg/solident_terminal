@@ -88,5 +88,6 @@ function pushTitle(type: string) {
   if (type.startsWith('task_')) return 'Tâche mise à jour'
   if (type === 'event_invited') return 'Invitation'
   if (type.startsWith('proposal_')) return 'Proposition de projet'
+  if (type.startsWith('inventory_')) return 'Inventaire'
   return 'Solident'
 }

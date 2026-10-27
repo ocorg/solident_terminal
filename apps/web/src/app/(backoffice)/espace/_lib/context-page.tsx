@@ -7,6 +7,7 @@ import { priorityRank, projectStatusLabel, projectStatusStyle, taskPriorityLabel
 import { taskFormData } from '../taches/data'
 import { NewTaskButton } from '../taches/task-widgets'
 import { ContextEditorToggle, CoverField, MembersManager } from './context-widgets'
+import { ProjectTabs } from './project-tabs'
 
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
@@ -97,6 +98,8 @@ export async function ContextPage({ type, id }: { type: ContextType; id: string 
           />
         )}
       </div>
+
+      {type === 'project' && <ProjectTabs projectId={id} active="apercu" />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="space-y-3 lg:col-span-2">

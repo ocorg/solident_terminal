@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@solident/db'
+import { getBalances } from '@solident/db/inventory'
 import { fail, ok, run } from '@/lib/action'
 import { requireRole } from '@/lib/guards'
 import { sendMail } from '@/lib/mail'
@@ -20,6 +21,14 @@ export async function updateUser(input: z.input<typeof schema>) {
 
     const before = await prisma.user.findUnique({ where: { id: d.id } })
     if (!before) return fail('Utilisateur introuvable.')
+    // Inventory: stock must never end up held by nobody.
+    if (before.isActive && !d.isActive) {
+      const held = (await getBalances(prisma, { holderIds: [d.id] })).filter((b) => b.qty.isPositive())
+      if (held.length)
+        return fail(
+          `${before.name} détient encore ${held.length} article(s) de l’inventaire. Transférez ce matériel à un autre membre (Espace membres → Inventaire), puis désactivez le compte.`,
+        )
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id: d.id }, data: { isActive: d.isActive, role: d.role } })

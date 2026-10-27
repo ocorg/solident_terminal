@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./inventory": "./src/inventory.ts"
   },
   "scripts": {
     "generate": "prisma generate",
@@ -20,7 +21,8 @@
     "db:status": "prisma migrate status",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:user": "tsx scripts/user.ts"
+    "db:user": "tsx scripts/user.ts",
+    "db:inventory-demo": "tsx scripts/inventory-demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-neon": "7.10.0",

@@ -10,7 +10,8 @@
     "db:status": "pnpm --filter @solident/db migrate:status",
     "db:seed": "pnpm --filter @solident/db seed",
     "db:studio": "pnpm --filter @solident/db studio",
-    "db:user": "pnpm --filter @solident/db db:user"
+    "db:user": "pnpm --filter @solident/db db:user",
+    "db:inventory-demo": "pnpm --filter @solident/db db:inventory-demo"
   },
   "pnpm": {
     "overrides": {

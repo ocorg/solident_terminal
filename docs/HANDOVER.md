@@ -1,6 +1,6 @@
 # Solident — handover for a new chat
 
-**Read this first, then `CLAUDE.md` (technical log) and `docs/SPEC.md` (original spec).** Last updated 27 Oct 2026. Last coding session: 29 Sep 2026; nothing in the repo changed between those dates. Items marked *(unconfirmed)* were waiting on the owner at the end of that session: ask before assuming they are done.
+**Read this first, then `CLAUDE.md` (technical log) and `docs/SPEC.md` (original spec).** Last updated 27 Oct 2026. Last coding session: 27 Oct 2026 (inventory module). Items marked *(unconfirmed)* were waiting on the owner at the end of that session: ask before assuming they are done.
 
 ## 1. What exists
 
@@ -31,6 +31,7 @@ Both artifacts are private until the owner shares them from their Share menu.
 
 | Date | Decision |
 | --- | --- |
+| 27 Oct | **Inventory module** (`/espace/inventaire` + project tab Inventaire) replaces the logistics Google Sheet. Stock = ledger of movements, items held by members only. Rights: members log their own collecte and move their own stock; Logistique managers + space admins run the catalogue, move anyone's stock, undo; project managers own Besoins + bilan. Project pages get tabs Aperçu / Inventaire. Demo data on dev **and** production (wiped from the Catalogue tab before real use). No dark mode (back office has none) |
 | 29 Sep | Design pass: keep brand fonts/colours, make them "alive" (brushstroke ring, smile divider, count-ups, scroll reveals, marquee, live countdown); all motion off with reduce-motion and in print. Colour rules in `CLAUDE.md` (gold-700 for small text on light, etc.) |
 | 29 Sep | SEO: per-page canonical + hreflang (`alternatesFor`), NGO + Event JSON-LD, home title "soins dentaires gratuits au Maroc" |
 | 28 Sep | Installable app (PWA): **one app "Solident" for everyone**, opens on the public site, **no install button**, phone notifications for members (enable per device in Paramètres). The "Envoyer un test" button sends to the current device only |
@@ -55,6 +56,11 @@ Both artifacts are private until the owner shares them from their Share menu.
 - [ ] Share the guide doc and the presentation with the board
 - [ ] Rotate R2 + Pusher keys before a public launch (they were once pasted in chat). He said "forget it" on 27 Sep, so remind him only before a real launch
 - [x] Cron: `CRON_SECRET` is set and the cron-job.org digest job runs every 15 min (verified 27 Sep)
+
+### Inventory follow-ups
+- [ ] After the inventory push: seed the production demo (`DB_ENV_FILE=.env.production pnpm db:inventory-demo seed`, from `packages/db`), show the board, then "Vider les données de démonstration" (Catalogue tab, admins) before entering real stock
+- [ ] Logistique: make sure the people who run the stock hold a non-"Membre" position in "Cellule Organisation & Logistiques" (or are space admins), otherwise they cannot validate bilans or edit the catalogue
+- Idea: the public needs list below could reuse each project's Besoins (`inventory_needs`) instead of a new table
 
 ### Proposed, waiting for a board decision
 - **Public needs list per action** (consumables, instruments, medicines, services with need / pledged / received; professionals click "Je peux fournir"; new admin screen "Dons en nature"). About 2–3 days of work. **Can only go public under the 18-18 authorization**, so it would use the same switch. Open questions: also list documents professionals must provide? Show in-kind donors' names? Who maintains it (Médias or a logistics person)?

@@ -19,8 +19,8 @@ export default async function SpaceLayout({ children }: LayoutProps<'/espace'>) 
   const isStaff = (STAFF_ROLES as readonly string[]).includes(user.role)
 
   return (
-    <div className="flex flex-1 flex-col bg-cream-50">
-      <header className="flex items-center justify-between gap-3 bg-navy-900 px-4 py-3 text-white sm:px-6">
+    <div className="flex flex-1 flex-col bg-cream-50 print:bg-white">
+      <header className="flex items-center justify-between gap-3 bg-navy-900 px-4 py-3 text-white sm:px-6 print:hidden">
         <Link href="/espace" className="flex min-w-0 items-center gap-2 whitespace-nowrap font-heading text-lg font-bold">
           <Logo size={26} variant="badge" />
           <span>
@@ -43,8 +43,10 @@ export default async function SpaceLayout({ children }: LayoutProps<'/espace'>) 
           <SignOutButton compact className="border-white/30 hover:bg-white/10" />
         </div>
       </header>
-      <SpaceNav unread={unread} pendingProposals={pendingProposals} isStaff={isStaff} />
-      <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
+      <div className="contents print:hidden">
+        <SpaceNav unread={unread} pendingProposals={pendingProposals} isStaff={isStaff} />
+      </div>
+      <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 print:max-w-none print:p-0">{children}</main>
     </div>
   )
 }

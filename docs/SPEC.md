@@ -223,6 +223,8 @@ The website adds 12 tables to the shared schema; `users` and `events` are shared
 
 Campaign total = `SUM(amount_dh)` of `donations` where status = `confirmed`, recalculated inside the confirm transaction.
 
+**Inventory (added 27 Oct 2026, members area):** `inventory_items` (catalogue), `inventory_movements` (append-only ledger; a holder's balance = Σ qty in − Σ qty out), `inventory_counts` + `inventory_count_lines` (post-activity counts; validated = frozen), `inventory_needs` (per project). Details in `CLAUDE.md` → "Inventory module".
+
 ### Form field to column mapping
 
 | Form | Input id | Column | Rule |

@@ -7,5 +7,6 @@ export function notificationLink(type: string, targetId: string | null | undefin
   if (type.startsWith('proposal_')) return '/espace/propositions'
   if (type === 'project_member_added') return `/espace/projets/${targetId}`
   if (type === 'cellule_member_added') return `/espace/cellules/${targetId}`
+  if (type.startsWith('inventory_')) return `/espace/inventaire?article=${targetId}`
   return null
 }
