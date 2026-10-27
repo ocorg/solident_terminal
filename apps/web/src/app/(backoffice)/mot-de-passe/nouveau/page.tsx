@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { AuthCard } from '@/components/auth-card'
 import { ResetForm } from './reset-form'
 
-export const metadata: Metadata = { title: 'Nouveau mot de passe · Solident' }
+export const metadata: Metadata = { title: 'Nouveau mot de passe | Solident' }
 
 export default async function NouveauMotDePassePage({ searchParams }: PageProps<'/mot-de-passe/nouveau'>) {
   const { token, error } = await searchParams

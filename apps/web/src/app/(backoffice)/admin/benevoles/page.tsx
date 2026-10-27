@@ -1,7 +1,12 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma, type VolunteerStatus as Status } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { VolunteerStatus } from './status-select'
+
+export const metadata: Metadata = { title: 'Bénévoles' }
 
 const tabs: { key: Status | 'all'; label: string }[] = [
   { key: 'new', label: 'Nouvelles' },
@@ -25,19 +30,19 @@ export default async function BenevolesPage({ searchParams }: PageProps<'/admin/
 
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Bénévoles</h1>
-      <div className="flex flex-wrap gap-2">
+      <h1 className="font-heading text-3xl font-bold text-navy-900">Bénévoles<span className="brand-dot" aria-hidden /></h1>
+      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-[12px] bg-navy-100/60 p-1">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/admin/benevoles?statut=${t.key}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${current === t.key ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
+            className={`flex min-h-10 items-center gap-1 rounded-[9px] px-3 text-sm font-semibold transition ${current === t.key ? 'bg-white text-navy-900 shadow-sm' : 'text-ink-600 hover:text-navy-900'}`}
           >
             {t.label} <span className="font-normal">({count(t.key)})</span>
           </Link>
         ))}
       </div>
-      {apps.length === 0 && <p className="card p-6 text-ink-600">Aucune candidature dans cette liste.</p>}
+      {apps.length === 0 && <EmptyState icon={<IconInbox />} title="Aucune candidature dans cette liste" />}
       <ul className="space-y-3">
         {apps.map((a) => (
           <li key={a.id} className="card p-5">

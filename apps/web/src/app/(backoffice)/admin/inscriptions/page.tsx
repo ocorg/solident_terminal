@@ -1,7 +1,12 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma, type RegistrationStatus as Status } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { RegistrationStatus } from './status-select'
+
+export const metadata: Metadata = { title: 'Inscriptions' }
 
 const profileLabel = { etudiant: 'Étudiant·e', praticien: 'Praticien·ne', public: 'Public' }
 const statusTabs: { key: Status | 'all'; label: string }[] = [
@@ -34,17 +39,17 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
 
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Inscriptions</h1>
+      <h1 className="font-heading text-3xl font-bold text-navy-900">Inscriptions<span className="brand-dot" aria-hidden /></h1>
       {events.length === 0 ? (
-        <p className="card p-6 text-ink-600">Aucune inscription pour l’instant. Elles apparaîtront ici dès qu’un événement aura des inscrits.</p>
+        <EmptyState icon={<IconInbox />} title="Aucune inscription pour l’instant">Elles apparaîtront ici dès qu’un événement aura des inscrits</EmptyState>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="inline-flex max-w-full flex-wrap gap-1 rounded-[12px] bg-navy-100/60 p-1">
             {events.map((e) => (
               <Link
                 key={e.id}
                 href={`/admin/inscriptions?evenement=${e.id}`}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${e.id === eventId ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
+                className={`flex min-h-10 items-center gap-1 rounded-[9px] px-3 text-sm font-semibold transition ${e.id === eventId ? 'bg-white text-navy-900 shadow-sm' : 'text-ink-600 hover:text-navy-900'}`}
               >
                 {e.titleFr} <span className="font-normal">({e._count.registrations}{e.capacity ? `/${e.capacity}` : ''})</span>
               </Link>
@@ -52,9 +57,9 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2">
+            <div className="inline-flex max-w-full flex-wrap gap-1 rounded-[12px] bg-navy-100/60 p-1">
               {statusTabs.map((t) => (
-                <Link key={t.key} href={href({ statut: t.key })} className={`rounded-full px-3 py-1 text-sm ${status === t.key ? 'bg-gold-500 font-semibold text-navy-900' : 'bg-white text-navy-700'}`}>
+                <Link key={t.key} href={href({ statut: t.key })} className={`flex min-h-10 items-center gap-1 rounded-[9px] px-3 text-sm font-semibold transition ${status === t.key ? 'bg-white text-navy-900 shadow-sm' : 'text-ink-600 hover:text-navy-900'}`}>
                   {t.label}
                 </Link>
               ))}
@@ -67,7 +72,7 @@ export default async function InscriptionsPage({ searchParams }: PageProps<'/adm
           </div>
 
           {registrations.length === 0 ? (
-            <p className="card p-6 text-ink-600">Aucune inscription dans cette liste.</p>
+            <EmptyState icon={<IconInbox />} title="Aucune inscription dans cette liste" />
           ) : (
             <div className="card overflow-x-auto">
               <table className="stack-table w-full min-w-[820px] text-sm">

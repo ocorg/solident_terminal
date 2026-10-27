@@ -1,8 +1,15 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@solident/db'
 import { ImageField } from '@/components/admin/image-field'
 import { requireRolePage } from '@/lib/guards'
 import { ProgrammeForm } from '../../programme-form'
+
+export async function generateMetadata({ params }: PageProps<'/admin/contenu/programmes/[id]'>): Promise<Metadata> {
+  const { id } = await params
+  const row = /^[0-9a-f-]{36}$/i.test(id) ? await prisma.programme.findUnique({ where: { id }, select: { titleFr: true } }) : null
+  return { title: row?.titleFr ?? 'Programme' }
+}
 
 export default async function EditProgrammePage({ params }: PageProps<'/admin/contenu/programmes/[id]'>) {
   await requireRolePage('admin', 'media')

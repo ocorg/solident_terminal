@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: LayoutProps<'/[locale]'>): Pr
   const t = await getTranslations({ locale, namespace: 'Metadata' })
   return {
     metadataBase: new URL(siteUrl()),
-    title: { default: t('homeTitle'), template: `%s · ${t('title')}` },
+    title: { default: t('homeTitle'), template: `%s | ${t('title')}` },
     description: t('description'),
     alternates: alternatesFor(locale, ''),
     appleWebApp: { capable: true, title: 'Solident', statusBarStyle: 'default' },

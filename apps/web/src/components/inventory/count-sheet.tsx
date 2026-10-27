@@ -9,7 +9,8 @@ import { addCountLine, deleteCountDraft, removeCountLine, saveCountLines, valida
 import { formatQty, normalizeQty } from '@/lib/inventory/labels'
 import type { CountDTO } from '@/lib/inventory/queries'
 import { ItemPicker, type PickerItem } from './item-picker'
-import { ItemThumb, QtyStepper, selectClass, Sheet, Tag } from './ui'
+import { IconCheck, IconCount, IconPlus, IconTrash } from '@/components/ui/icons'
+import { ActionBar, Btn, Choice, FormSection, ItemThumb, QtyStepper, selectClass, Sheet, Tag, useConfirm } from '@/components/ui'
 
 // Field rule: never lose typed counts. Every keystroke goes to localStorage first, then to the
 // server (debounced). Without network the draft stays on the phone and is sent when it returns.
@@ -225,26 +226,13 @@ export function CountSheet({
         </div>
         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un article…" className={`${inputClass} h-11 py-0`} aria-label="Rechercher un article" />
-          <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Afficher">
-            {(
-              [
-                ['tout', 'Tout'],
-                ['moi', 'Mon matériel'],
-                ['restant', 'À compter'],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                role="radio"
-                aria-checked={filter === k}
-                onClick={() => setFilter(k)}
-                className={`min-h-11 rounded-[8px] border px-3 text-sm font-semibold transition ${filter === k ? 'border-navy-700 bg-navy-700 text-white' : 'border-navy-100 bg-white text-navy-700 hover:bg-navy-100'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Choice
+            options={['tout', 'moi', 'restant'] as const}
+            value={filter}
+            onChange={setFilter}
+            label="Afficher"
+            labelOf={(k) => ({ tout: 'Tout', moi: 'Mon matériel', restant: 'À compter' })[k]}
+          />
         </div>
       </div>
 
@@ -263,7 +251,7 @@ export function CountSheet({
               return (
                 <li key={l.id} className={`card space-y-3 border-s-4 p-3 ${bad ? 'border-danger' : gap === null ? 'border-navy-100' : gap === 0 ? 'border-success' : gap < 0 ? 'border-gold-500' : 'border-navy-700'}`}>
                   <div className="flex items-center gap-3">
-                    <ItemThumb url={l.item.photoUrl} name={l.item.name} size={44} />
+                    <ItemThumb url={l.item.photoUrl} name={l.item.name} category={l.item.category} size={44} />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold leading-tight text-navy-900">{l.item.name}</p>
                       <p className="text-sm text-ink-600">
@@ -276,17 +264,17 @@ export function CountSheet({
                         )}
                       </p>
                     </div>
-                    {canRemoveLines && <RemoveLine id={l.id} onRemoved={() => router.refresh()} />}
+                    {canRemoveLines && <RemoveLine id={l.id} name={l.item.name} onRemoved={() => router.refresh()} />}
                   </div>
                   <div className="flex items-center gap-2">
                     <QtyStepper value={st.countedQty} onChange={(v) => setLine(l.id, { countedQty: v })} label={`Quantité comptée, ${l.item.name}`} className="flex-1" />
                     <button
                       type="button"
                       onClick={() => setLine(l.id, { countedQty: l.snapshotQty })}
-                      className="min-h-12 shrink-0 rounded-[10px] border border-navy-100 bg-white px-3 text-sm font-semibold text-success transition hover:bg-success/10 active:scale-95"
-                      title="Le compte est conforme"
+                      className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-[10px] bg-success/10 px-3 text-sm font-semibold text-success transition hover:bg-success hover:text-white active:scale-95"
+                      title="Le compte correspond à l’attendu"
                     >
-                      = OK
+                      <IconCheck className="size-4" /> OK
                     </button>
                   </div>
                   {bad && <p className="text-sm font-semibold text-danger">Nombre invalide (ex. 3 ou 2,5).</p>}
@@ -346,9 +334,9 @@ export function CountSheet({
             {sync.kind === 'error' && <span className="font-semibold text-danger">{sync.message}</span>}
             {sync.kind === 'idle' && (unsaved ? <span className="text-ink-600">Modifications en attente…</span> : <span className="text-success">{sync.savedAt ? `Enregistré à ${time(sync.savedAt)}` : 'Tout est enregistré'}</span>)}
           </p>
-          <button type="button" onClick={() => void flush()} disabled={sync.kind === 'saving'} className="btn btn-ghost min-h-12 shrink-0 px-3">
-            Enregistrer
-          </button>
+          <Btn variant="quiet" onClick={() => void flush()} disabled={sync.kind === 'saving'} className="hidden shrink-0 sm:inline-flex">
+            Enregistrer maintenant
+          </Btn>
           {canValidate && <ValidateButton count={count} lines={lines} invalid={invalid} flush={flush} />}
         </div>
       </div>
@@ -356,26 +344,23 @@ export function CountSheet({
   )
 }
 
-function RemoveLine({ id, onRemoved }: { id: string; onRemoved: () => void }) {
+function RemoveLine({ id, name, onRemoved }: { id: string; name: string; onRemoved: () => void }) {
+  const { ask, dialog } = useConfirm()
   const [busy, setBusy] = useState(false)
+  async function remove() {
+    if (!(await ask({ title: `Retirer « ${name} » de l’inventaire ?`, body: 'La ligne ne sera pas comptée. Le stock ne change pas.', confirm: 'Retirer la ligne', danger: true }))) return
+    setBusy(true)
+    const res = await removeCountLine({ lineId: id })
+    setBusy(false)
+    if (res.status === 'error') return void toast.error(res.message)
+    toast.success('Ligne retirée')
+    onRemoved()
+  }
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={async () => {
-        if (!confirm('Retirer cette ligne de l’inventaire ?')) return
-        setBusy(true)
-        const res = await removeCountLine({ lineId: id })
-        setBusy(false)
-        if (res.status === 'error') return void toast.error(res.message)
-        toast.success('Ligne retirée')
-        onRemoved()
-      }}
-      className="shrink-0 rounded-[8px] px-2 py-2 text-sm text-ink-600 transition hover:bg-danger/10 hover:text-danger"
-      aria-label="Retirer la ligne"
-    >
-      {busy ? <Spinner /> : 'Retirer'}
-    </button>
+    <>
+      <Btn variant="quiet" size="sm" busy={busy} icon={<IconTrash className="size-4" />} onClick={remove} aria-label={`Retirer ${name}`} className="shrink-0 px-2 hover:text-danger" />
+      {dialog}
+    </>
   )
 }
 
@@ -397,8 +382,18 @@ function AddLine({ countId, items, members, me, onAdded }: { countId: string; it
   }
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="w-full rounded-[10px] border border-dashed border-navy-700/40 px-3 py-3 font-semibold text-navy-700 transition hover:bg-navy-100">
-        + Ajouter une ligne (article trouvé, non listé)
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-3 rounded-[12px] border border-dashed border-navy-700/30 px-4 py-3 text-start font-semibold text-navy-700 transition hover:border-navy-700 hover:bg-navy-100/40"
+      >
+        <span className="flex size-9 items-center justify-center rounded-[8px] bg-navy-100">
+          <IconPlus className="size-4" />
+        </span>
+        <span>
+          Ajouter une ligne
+          <span className="block text-xs font-normal text-ink-600">Un article trouvé qui n’est pas dans la liste</span>
+        </span>
       </button>
       <Sheet
         open={open}
@@ -408,21 +403,34 @@ function AddLine({ countId, items, members, me, onAdded }: { countId: string; it
         }}
         dirty={!!itemId}
         title="Ajouter une ligne"
+        subtitle="Un article trouvé pendant le comptage."
+        icon={<IconPlus />}
         footer={
-          <button type="button" onClick={add} disabled={busy || !itemId} className="btn btn-primary min-h-12 w-full disabled:opacity-60">
-            {busy && <Spinner />} Ajouter
-          </button>
+          <ActionBar
+            primary={
+              <Btn variant="primary" size="lg" icon={<IconPlus />} busy={busy} disabled={!itemId} onClick={add}>
+                Ajouter la ligne
+              </Btn>
+            }
+            cancel={
+              <Btn
+                variant="quiet"
+                onClick={() => {
+                  setOpen(false)
+                  setItemId(null)
+                }}
+              >
+                Annuler
+              </Btn>
+            }
+          />
         }
       >
-        <div className="space-y-4">
-          <div>
-            <p className="mb-1 text-sm font-semibold">Article</p>
+        <div className="space-y-5">
+          <FormSection title="Article">
             <ItemPicker items={items} value={itemId} onChange={setItemId} />
-          </div>
-          <div>
-            <label htmlFor="add-holder" className="mb-1 block text-sm font-semibold">
-              Détenu par
-            </label>
+          </FormSection>
+          <FormSection title="Détenu par" htmlFor="add-holder">
             <select id="add-holder" value={holderId} onChange={(e) => setHolderId(e.target.value)} className={selectClass}>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -430,7 +438,7 @@ function AddLine({ countId, items, members, me, onAdded }: { countId: string; it
                 </option>
               ))}
             </select>
-          </div>
+          </FormSection>
           <p className="text-sm text-ink-600">Le système affichera la quantité attendue d’après l’historique (souvent 0 pour un article non listé ; l’écart sera un surplus).</p>
         </div>
       </Sheet>
@@ -440,27 +448,25 @@ function AddLine({ countId, items, members, me, onAdded }: { countId: string; it
 
 function DeleteDraft({ countId, visible, projectId }: { countId: string; visible: boolean; projectId: string | null }) {
   const router = useRouter()
+  const { ask, dialog } = useConfirm()
   const [busy, setBusy] = useState(false)
   if (!visible) return null
+  async function remove() {
+    if (!(await ask({ title: 'Supprimer ce brouillon ?', body: 'Toutes les quantités saisies dans cet inventaire seront perdues. Le stock ne change pas.', confirm: 'Supprimer le brouillon', danger: true }))) return
+    setBusy(true)
+    const res = await deleteCountDraft({ countId })
+    setBusy(false)
+    if (res.status === 'error') return void toast.error(res.message)
+    clearStore(countId)
+    toast.success('Brouillon supprimé')
+    router.push(projectId ? `/espace/projets/${projectId}/inventaire` : '/espace/inventaire?onglet=inventaires')
+  }
   return (
-    <div className="text-center">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={async () => {
-          if (!confirm('Supprimer ce brouillon d’inventaire ? Les quantités saisies seront perdues.')) return
-          setBusy(true)
-          const res = await deleteCountDraft({ countId })
-          setBusy(false)
-          if (res.status === 'error') return void toast.error(res.message)
-          clearStore(countId)
-          toast.success('Brouillon supprimé')
-          router.push(projectId ? `/espace/projets/${projectId}/inventaire` : '/espace/inventaire?onglet=inventaires')
-        }}
-        className="inline-flex items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-danger transition hover:bg-danger/10"
-      >
-        {busy && <Spinner />} Supprimer le brouillon
-      </button>
+    <div className="flex justify-center border-t border-navy-100 pt-4">
+      <Btn variant="dangerQuiet" size="sm" busy={busy} icon={<IconTrash className="size-4" />} onClick={remove}>
+        Supprimer ce brouillon
+      </Btn>
+      {dialog}
     </div>
   )
 }
@@ -512,23 +518,29 @@ function ValidateButton({ count, lines, invalid, flush }: { count: CountDTO; lin
 
   return (
     <>
-      <button type="button" onClick={openReview} disabled={busy} className="btn btn-primary min-h-12 shrink-0 px-4 disabled:opacity-70">
-        {busy && !open && <Spinner />} Valider
-      </button>
+      <Btn variant="primary" size="lg" icon={<IconCheck />} busy={busy && !open} onClick={openReview} className="shrink-0">
+        Valider
+      </Btn>
       <Sheet
         open={open}
         onClose={() => !busy && setOpen(false)}
         dirty={Object.keys(overrides).length > 0}
         title="Valider l’inventaire"
+        subtitle="Vérifiez les écarts avant de figer l’inventaire."
+        icon={<IconCount />}
         footer={
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setOpen(false)} disabled={busy} className="btn btn-ghost min-h-12 flex-1">
-              Retour
-            </button>
-            <button type="button" onClick={() => confirm(!!changes)} disabled={busy} className="btn btn-primary min-h-12 flex-1 disabled:opacity-70">
-              {busy && <Spinner />} {changes ? 'Valider quand même' : 'Confirmer'}
-            </button>
-          </div>
+          <ActionBar
+            primary={
+              <Btn variant="primary" size="lg" icon={<IconCheck />} busy={busy} onClick={() => confirm(!!changes)}>
+                {changes ? 'Valider quand même' : 'Valider l’inventaire'}
+              </Btn>
+            }
+            cancel={
+              <Btn variant="quiet" disabled={busy} onClick={() => setOpen(false)}>
+                Retour au comptage
+              </Btn>
+            }
+          />
         }
       >
         <div className="space-y-4 text-sm">

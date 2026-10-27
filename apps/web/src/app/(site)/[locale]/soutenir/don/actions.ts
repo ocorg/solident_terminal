@@ -7,7 +7,7 @@ import { donationAlertEmail, donationThanksEmail } from '@/lib/donation-emails'
 import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
 import { sendMail } from '@/lib/mail'
-import { createUploadUrl, UPLOAD_RULES } from '@/lib/r2'
+import { createUploadUrl, IMAGE_MAX_BYTES, UPLOAD_RULES } from '@/lib/r2'
 import { allow } from '@/lib/rate-limit'
 
 // Error codes are translated on the client (messages Donate.err*).
@@ -19,6 +19,7 @@ export async function getProofUploadUrl(input: { contentType: string; size: numb
     if (!(await getFundraising()).open) return fail('errCampaign')
     const rule = UPLOAD_RULES.proof
     if (!(rule.types as readonly string[]).includes(contentType) || size <= 0 || size > rule.maxBytes) return fail('errFile')
+    if (contentType.startsWith('image/') && size > IMAGE_MAX_BYTES) return fail('errFile')
     if (!(await allow('proof-upload', 5, 600))) return fail('errTooMany')
     const month = new Date().toISOString().slice(0, 7)
     const { key, uploadUrl } = await createUploadUrl({ bucket: 'private', kind: 'proof', folder: `proofs/${month}`, contentType, size })

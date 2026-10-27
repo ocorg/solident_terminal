@@ -1,7 +1,12 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma, type InquiryKind } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { StatusSelect } from './status-select'
+
+export const metadata: Metadata = { title: 'Messages' }
 
 const tabs: { key: InquiryKind | 'all'; label: string }[] = [
   { key: 'all', label: 'Tous' },
@@ -24,19 +29,19 @@ export default async function MessagesPage({ searchParams }: PageProps<'/admin/m
 
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Messages</h1>
-      <div className="flex flex-wrap gap-2">
+      <h1 className="font-heading text-3xl font-bold text-navy-900">Messages<span className="brand-dot" aria-hidden /></h1>
+      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-[12px] bg-navy-100/60 p-1">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/admin/messages?type=${t.key}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${current === t.key ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
+            className={`flex min-h-10 items-center gap-1 rounded-[9px] px-3 text-sm font-semibold transition ${current === t.key ? 'bg-white text-navy-900 shadow-sm' : 'text-ink-600 hover:text-navy-900'}`}
           >
             {t.label}
           </Link>
         ))}
       </div>
-      {inquiries.length === 0 && <p className="card p-6 text-ink-600">Aucun message.</p>}
+      {inquiries.length === 0 && <EmptyState icon={<IconInbox />} title="Aucun message" />}
       <ul className="space-y-3">
         {inquiries.map((q) => (
           <li key={q.id} className={`card p-5 ${q.status === 'closed' ? 'opacity-85' : ''}`}>
@@ -44,7 +49,7 @@ export default async function MessagesPage({ searchParams }: PageProps<'/admin/m
               <div>
                 <p className="font-semibold">
                   {[q.organisation, q.fullName].filter(Boolean).join(' · ') || q.email}
-                  <span className={`ms-2 rounded-full px-2 py-0.5 text-xs font-semibold ${q.kind === 'sponsor' ? 'bg-gold-100 text-navy-900' : 'bg-navy-100 text-navy-700'}`}>
+                  <span className={`ms-2 rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${q.kind === 'sponsor' ? 'bg-gold-100 text-navy-900' : 'bg-navy-100 text-navy-700'}`}>
                     {q.kind === 'sponsor' ? `Sponsoring${q.tier ? ` · ${q.tier.name}` : ''}` : 'Contact'}
                   </span>
                 </p>

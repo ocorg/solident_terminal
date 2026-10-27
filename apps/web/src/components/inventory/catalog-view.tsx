@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { inputClass } from '@/components/form-fields'
-import { Spinner } from '@/components/spinner'
 import { clearDemoData, setItemArchived, setItemPhoto, updateItem } from '@/lib/inventory/actions'
 import { CATEGORIES, categoryLabel, formatQty } from '@/lib/inventory/labels'
 import type { ItemDTO } from '@/lib/inventory/queries'
+import { IconArchive, IconCheck, IconEdit, IconPlus, IconTrash, IconUndo } from '@/components/ui/icons'
 import { NewItemForm } from './item-picker'
 import { PhotoInput } from './photo-input'
-import { ItemThumb, selectClass, Sheet, Tag, useChanged, useSheetDirty } from './ui'
+import { ActionBar, Btn, FormSection, ItemThumb, selectClass, Sheet, SheetFooter, Tag, useChanged, useConfirm, useSheetClose, useSheetDirty } from '@/components/ui'
 
 export function CatalogView({ items, canClearDemo }: { items: ItemDTO[]; canClearDemo: boolean }) {
   const router = useRouter()
@@ -22,32 +22,35 @@ export function CatalogView({ items, canClearDemo }: { items: ItemDTO[]; canClea
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink-600">
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} className="size-4 accent-navy-700" />
           Afficher les articles archivés
         </label>
-        <button type="button" onClick={() => setAdding(true)} className="btn btn-primary min-h-11">
-          + Nouvel article
-        </button>
+        <Btn variant="primary" icon={<IconPlus />} onClick={() => setAdding(true)}>
+          Nouvel article
+        </Btn>
       </div>
 
       <ul className="card divide-y divide-navy-100 p-0">
         {list.map((i) => (
           <li key={i.id}>
-            <button type="button" onClick={() => setEditing(i)} className="flex w-full items-center gap-3 px-4 py-3 text-start transition hover:bg-navy-100/40">
-              <ItemThumb url={i.photoUrl} name={i.name} size={40} />
+            <button type="button" onClick={() => setEditing(i)} className="group flex w-full items-center gap-3 px-4 py-3 text-start transition hover:bg-navy-100/40">
+              <ItemThumb url={i.photoUrl} name={i.name} category={i.category} size={44} />
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-navy-900">{i.name}</span>
                 <span className="block text-xs text-ink-600">
                   {categoryLabel[i.category]}
-                  {i.subcategory && ` · ${i.subcategory}`} · {i.unit}
-                  {i.minQty && ` · seuil ${formatQty(i.minQty)}`}
+                  {i.subcategory && ` · ${i.subcategory}`} · en {i.unit}
+                  {i.minQty && ` · alerte sous ${formatQty(i.minQty)}`}
                 </span>
               </span>
-              {i.isDemo && <Tag tone="gold">Démo</Tag>}
-              {i.isDeleted && <Tag tone="muted">Archivé</Tag>}
-              {!i.photoUrl && !i.isDeleted && <Tag tone="muted">Sans photo</Tag>}
+              <span className="hidden gap-1 sm:flex">
+                {i.isDemo && <Tag tone="gold">Démo</Tag>}
+                {i.isDeleted && <Tag tone="muted">Archivé</Tag>}
+                {!i.photoUrl && !i.isDeleted && <Tag tone="muted">Sans photo</Tag>}
+              </span>
+              <IconEdit className="size-4 shrink-0 text-ink-600 opacity-0 transition group-hover:opacity-100" />
             </button>
           </li>
         ))}
@@ -56,18 +59,17 @@ export function CatalogView({ items, canClearDemo }: { items: ItemDTO[]; canClea
 
       {canClearDemo && hasDemo && <ClearDemo />}
 
-      <Sheet open={adding} onClose={() => setAdding(false)} title="Nouvel article">
-        {adding && (
-          <NewItemForm
-            onCancel={() => setAdding(false)}
-            onCreated={() => {
-              setAdding(false)
-              router.refresh()
-            }}
-          />
-        )}
+      <Sheet open={adding} onClose={() => setAdding(false)} title="Nouvel article" subtitle="Ajouter un article au catalogue." icon={<IconPlus />}>
+        <NewItemForm
+          showBack={false}
+          onCancel={() => setAdding(false)}
+          onCreated={() => {
+            setAdding(false)
+            router.refresh()
+          }}
+        />
       </Sheet>
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing ? `Modifier · ${editing.name}` : 'Modifier'}>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing?.name ?? 'Article'} subtitle="Modifier la fiche de l’article." icon={<IconEdit />}>
         {editing && <EditItem item={editing} onDone={() => setEditing(null)} />}
       </Sheet>
     </div>
@@ -76,6 +78,8 @@ export function CatalogView({ items, canClearDemo }: { items: ItemDTO[]; canClea
 
 function EditItem({ item, onDone }: { item: ItemDTO; onDone: () => void }) {
   const router = useRouter()
+  const close = useSheetClose()
+  const { ask, dialog } = useConfirm()
   const [f, setF] = useState({ name: item.name, category: item.category, subcategory: item.subcategory ?? '', unit: item.unit, minQty: item.minQty ?? '', notes: item.notes ?? '' })
   const [busy, setBusy] = useState<string | null>(null)
   useSheetDirty(useChanged(f))
@@ -91,6 +95,15 @@ function EditItem({ item, onDone }: { item: ItemDTO; onDone: () => void }) {
     onDone()
   }
   async function archive() {
+    if (!item.isDeleted) {
+      const okToGo = await ask({
+        title: `Archiver « ${item.name} » ?`,
+        body: 'L’article disparaît du stock et des listes de choix. Son historique est conservé, et vous pourrez le restaurer.',
+        confirm: 'Archiver',
+        danger: true,
+      })
+      if (!okToGo) return
+    }
     setBusy('archive')
     const res = await setItemArchived({ id: item.id, archived: !item.isDeleted })
     setBusy(null)
@@ -105,21 +118,16 @@ function EditItem({ item, onDone }: { item: ItemDTO; onDone: () => void }) {
     router.refresh()
   }
 
-  const field = 'mb-1 block text-sm font-semibold'
   return (
-    <div className="space-y-4">
-      <PhotoInput onUploaded={(key) => photo(key)} preview={item.photoUrl} />
-      <div>
-        <label htmlFor="it-name" className={field}>
-          Nom
-        </label>
+    <div className="space-y-5">
+      <FormSection title="Photo" hint="Enregistrée tout de suite.">
+        <PhotoInput onUploaded={(key) => photo(key)} preview={item.photoUrl} />
+      </FormSection>
+      <FormSection title="Nom" htmlFor="it-name">
         <input id="it-name" value={f.name} onChange={set('name')} className={`${inputClass} h-12`} />
-      </div>
+      </FormSection>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="it-cat" className={field}>
-            Catégorie
-          </label>
+        <FormSection title="Catégorie" htmlFor="it-cat">
           <select id="it-cat" value={f.category} onChange={set('category')} className={selectClass}>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -127,82 +135,80 @@ function EditItem({ item, onDone }: { item: ItemDTO; onDone: () => void }) {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label htmlFor="it-sub" className={field}>
-            Sous-catégorie
-          </label>
+        </FormSection>
+        <FormSection title="Sous-catégorie" htmlFor="it-sub">
           <input id="it-sub" value={f.subcategory} onChange={set('subcategory')} className={`${inputClass} h-12`} placeholder="Ex. Daviers" />
-        </div>
-        <div>
-          <label htmlFor="it-unit" className={field}>
-            Unité
-          </label>
+        </FormSection>
+        <FormSection title="Unité" htmlFor="it-unit">
           <input id="it-unit" value={f.unit} onChange={set('unit')} className={`${inputClass} h-12`} />
-        </div>
-        <div>
-          <label htmlFor="it-min" className={field}>
-            Seuil stock bas
-          </label>
-          <input id="it-min" inputMode="decimal" value={f.minQty} onChange={set('minQty')} className={`${inputClass} h-12`} placeholder="Aucun" />
-        </div>
+        </FormSection>
+        <FormSection title="Alerte stock bas" htmlFor="it-min">
+          <input id="it-min" inputMode="decimal" value={f.minQty} onChange={set('minQty')} className={`${inputClass} h-12`} placeholder="Aucune" />
+        </FormSection>
       </div>
-      <div>
-        <label htmlFor="it-notes" className={field}>
-          Notes
-        </label>
-        <textarea id="it-notes" value={f.notes} onChange={set('notes')} rows={3} className={inputClass} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={save} disabled={!!busy} className="btn btn-primary min-h-11 flex-1 disabled:opacity-60">
-          {busy === 'save' && <Spinner />} Enregistrer
-        </button>
-        <button type="button" onClick={archive} disabled={!!busy} className="btn btn-ghost min-h-11 disabled:opacity-60">
-          {busy === 'archive' && <Spinner />} {item.isDeleted ? 'Restaurer' : 'Archiver'}
-        </button>
-      </div>
+      <FormSection title="Notes" htmlFor="it-notes">
+        <textarea id="it-notes" value={f.notes} onChange={set('notes')} rows={3} className={inputClass} placeholder="Ex. modèle, précautions de transport…" />
+      </FormSection>
+      {dialog}
+      <SheetFooter>
+        <ActionBar
+          primary={
+            <Btn variant="primary" size="lg" icon={<IconCheck />} busy={busy === 'save'} disabled={!!busy} onClick={save}>
+              Enregistrer
+            </Btn>
+          }
+          cancel={
+            <Btn variant="quiet" onClick={close}>
+              Annuler
+            </Btn>
+          }
+          danger={
+            item.isDeleted ? (
+              <Btn variant="quiet" icon={<IconUndo className="size-4" />} busy={busy === 'archive'} disabled={!!busy} onClick={archive}>
+                Restaurer
+              </Btn>
+            ) : (
+              <Btn variant="dangerQuiet" icon={<IconArchive className="size-4" />} busy={busy === 'archive'} disabled={!!busy} onClick={archive}>
+                Archiver
+              </Btn>
+            )
+          }
+        />
+      </SheetFooter>
     </div>
   )
 }
 
 function ClearDemo() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const { ask, dialog } = useConfirm()
   const [busy, setBusy] = useState(false)
   async function clear() {
+    const okToGo = await ask({
+      title: 'Supprimer toutes les données de démonstration ?',
+      body: 'Action définitive. Tout ce qui est marqué « démo » est supprimé, y compris les essais faits sur des articles ou le projet de démonstration. Les données réelles ne sont pas touchées.',
+      confirm: 'Supprimer la démo',
+      danger: true,
+    })
+    if (!okToGo) return
     setBusy(true)
     const res = await clearDemoData()
     setBusy(false)
     if (res.status === 'error') return void toast.error(res.message)
     const d = res.data
     toast.success(`Démo supprimée : ${d.items} articles, ${d.movements} mouvements, ${d.counts} inventaires, ${d.projects} projet(s)`)
-    setOpen(false)
     router.refresh()
   }
   return (
-    <section className="rounded-[12px] border-s-4 border-danger bg-white p-4 shadow-card">
-      <h3 className="font-heading font-bold">Données de démonstration</h3>
-      <p className="mt-1 text-sm text-ink-600">Supprime définitivement tous les articles, mouvements, besoins et inventaires de démonstration, ainsi que le projet « [Démo] ». Les données réelles ne sont pas touchées.</p>
-      <button type="button" onClick={() => setOpen(true)} className="btn mt-3 min-h-11 bg-danger text-white hover:brightness-90">
+    <section className="flex flex-col gap-4 rounded-[12px] border border-danger/20 bg-danger/5 p-4 sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1">
+        <h3 className="font-heading font-bold text-navy-900">Données de démonstration</h3>
+        <p className="mt-1 text-sm text-ink-600">À supprimer avant de saisir le vrai stock. Les données réelles ne sont pas touchées.</p>
+      </div>
+      <Btn variant="danger" icon={<IconTrash className="size-4" />} busy={busy} onClick={clear} className="shrink-0">
         Vider les données de démonstration
-      </button>
-      <Sheet
-        open={open}
-        onClose={() => !busy && setOpen(false)}
-        title="Confirmer la suppression"
-        footer={
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setOpen(false)} disabled={busy} className="btn btn-ghost min-h-11 flex-1">
-              Annuler
-            </button>
-            <button type="button" onClick={clear} disabled={busy} className="btn min-h-11 flex-1 bg-danger text-white hover:brightness-90 disabled:opacity-70">
-              {busy && <Spinner />} Supprimer la démo
-            </button>
-          </div>
-        }
-      >
-        <p>Cette action est définitive. Tout ce qui est marqué « démo » sera supprimé, y compris les essais faits sur des articles ou le projet de démonstration.</p>
-      </Sheet>
+      </Btn>
+      {dialog}
     </section>
   )
 }

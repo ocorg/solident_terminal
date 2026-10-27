@@ -31,6 +31,7 @@ Both artifacts are private until the owner shares them from their Share menu.
 
 | Date | Decision |
 | --- | --- |
+| 27 Oct | **Design system + full UI pass** (back office + site): one button hierarchy (one main action, quiet cancel, destructive apart and confirmed), forms in side panels, key numbers first with colour only where action is needed, no emoji/pills, icons, category colours in the inventory, empty states with a next step. Tab titles use " \| ". Uploaded images ≤ 100 KB. Rules in `CLAUDE.md` → Design system |
 | 27 Oct | **No form loses typed data by accident**: on every form (site in 3 languages + back office), leaving with typed data asks "Continuer la saisie / Quitter sans enregistrer"; inventory panels no longer close on a click outside, Escape or "Fermer" when they hold data |
 | 27 Oct | Security update of libraries: `pnpm audit` 0 known vulnerabilities (Next 16.4.3, Better Auth 1.7.14, nodemailer 10, zod 4.6.7 + overrides). Re-run `pnpm audit` every few months |
 | 27 Oct | **Inventory module** (`/espace/inventaire` + project tab Inventaire) replaces the logistics Google Sheet. Stock = ledger of movements, items held by members only. Rights: members log their own collecte and move their own stock; Logistique managers + space admins run the catalogue, move anyone's stock, undo; project managers own Besoins + bilan. Project pages get tabs Aperçu / Inventaire. Demo data on dev **and** production (wiped from the Catalogue tab before real use). No dark mode (back office has none) |

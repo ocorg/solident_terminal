@@ -1,9 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/sign-out-button'
 import { requireRolePage, STAFF_ROLES } from '@/lib/guards'
 import { AdminNav } from './admin-nav'
+
+export const metadata: Metadata = { title: { default: 'Administration | Solident', template: '%s | Administration' } }
 
 const roleLabel = { admin: 'Admin', treasurer: 'Trésorerie', hr: 'Ressources humaines', media: 'Médias', member: 'Membre' }
 

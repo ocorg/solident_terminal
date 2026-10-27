@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { saveAction, type ActionInput } from './actions'
 
 const slugify = (s: string) =>
@@ -146,7 +147,7 @@ export function ActionForm({
         ))}
         {figs.length < 12 && (
           <button type="button" onClick={addFig} className="text-sm font-semibold text-navy-700 underline">
-            + Ajouter un chiffre
+            Ajouter un chiffre
           </button>
         )}
       </fieldset>
@@ -155,14 +156,11 @@ export function ActionForm({
         <input type="checkbox" checked={v.isPublished} onChange={set('isPublished')} className="size-4 accent-navy-700" />
         Publiée (visible sur le site, la carte et la frise)
       </label>
-      <div className="flex items-center gap-3">
-        <div className="w-56">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer l’action'}</SubmitButton>
-        </div>
-        <button type="button" onClick={() => router.push('/admin/contenu')} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer l’action'}
+        loading={loading}
+        onCancel={() => router.push('/admin/contenu')}
+      />
     </form>
   )
 }

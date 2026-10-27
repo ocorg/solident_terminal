@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { EmptyState } from '@/components/ui/blocks'
+import { IconCheck } from '@/components/ui/icons'
 import { Spinner } from '@/components/spinner'
 import { markRead } from './actions'
 
@@ -34,7 +36,11 @@ export function NotificationList({ items }: { items: N[] }) {
           {busy && <Spinner />} Tout marquer comme lu ({unread})
         </button>
       )}
-      {items.length === 0 && <p className="card p-6 text-ink-600">Aucune notification.</p>}
+      {items.length === 0 && (
+        <EmptyState icon={<IconCheck />} title="Tout est lu">
+          Aucune notification pour l’instant.
+        </EmptyState>
+      )}
       <ul className="card divide-y divide-navy-100">
         {items.map((n) => (
           <li key={n.id}>

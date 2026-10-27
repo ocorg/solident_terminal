@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { AuthCard } from '@/components/auth-card'
 import { ForgotForm } from './forgot-form'
 
-export const metadata: Metadata = { title: 'Mot de passe oublié · Solident' }
+export const metadata: Metadata = { title: 'Mot de passe oublié | Solident' }
 
 export default function MotDePasseOubliePage() {
   return (

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma } from '@solident/db'
+import { IconCalendar, IconPin } from '@/components/ui/icons'
 import { Link } from '@/i18n/navigation'
 import { getFundraising } from '@/lib/fundraising'
 import { localized } from '@/lib/localized'
@@ -32,6 +33,8 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
   const t = await getTranslations('Events')
   const format = await getFormatter()
   const state = registrationState(e, await takenPlaces(prisma, e.id))
+  // eslint-disable-next-line react-hooks/purity -- server page: the countdown is computed at render time
+  const daysLeft = e.startsAt > new Date() ? Math.ceil((e.startsAt.getTime() - Date.now()) / 86_400_000) : null
   const long = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' } as const
 
   const base = siteUrl()
@@ -66,16 +69,26 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
           <h1 className="font-heading text-3xl font-bold text-navy-900 md:text-4xl">{localized(e, 'title', locale)}</h1>
           <div className="divider-dot my-5" />
           <dl className="mb-6 grid gap-3 sm:grid-cols-2">
-            <div className="card p-4">
+            <div className="card flex gap-3 p-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-gold-100 text-gold-700">
+                <IconCalendar />
+              </span>
+              <div>
               <dt className="text-sm text-ink-600">{t('when')}</dt>
               <dd className="font-semibold">
                 {e.endsAt ? format.dateTimeRange(e.startsAt, e.endsAt, long) : format.dateTime(e.startsAt, long)}
               </dd>
+              </div>
             </div>
             {e.location && (
-              <div className="card p-4">
-                <dt className="text-sm text-ink-600">{t('where')}</dt>
-                <dd className="font-semibold">{e.location}</dd>
+              <div className="card flex gap-3 p-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-navy-100 text-navy-700">
+                  <IconPin />
+                </span>
+                <div>
+                  <dt className="text-sm text-ink-600">{t('where')}</dt>
+                  <dd className="font-semibold">{e.location}</dd>
+                </div>
               </div>
             )}
           </dl>
@@ -86,8 +99,16 @@ export default async function EventPage({ params }: PageProps<'/[locale]/eveneme
           {e.registrationOpen || state.placesLeft === 0 ? (
             <RegistrationPanel eventId={e.id} initial={{ open: state.open, placesLeft: state.placesLeft }} />
           ) : e.type === 'caravane' ? (
-            <div className="card space-y-4 bg-navy-700 p-6 text-white">
+            <div className="card space-y-4 bg-navy-900 p-6 text-white lg:sticky lg:top-24">
+              {daysLeft !== null && (
+                <p className="font-heading text-5xl font-bold text-gold-500">{(await getTranslations('Home'))('countdown', { days: daysLeft })}</p>
+              )}
               <p className="font-heading text-xl font-bold">{localized(e, 'title', locale)}</p>
+              {e.location && (
+                <p className="flex items-center gap-2 text-sm text-white/80">
+                  <IconPin className="size-4" /> {e.location}
+                </p>
+              )}
               <Link href={(await getFundraising()).open ? '/soutenir/don' : '/soutenir/sponsoring'} className="btn btn-cta">
                 {(await getTranslations('Home'))((await getFundraising()).open ? 'nextEventCta' : 'ctaSponsor')}
               </Link>

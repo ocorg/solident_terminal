@@ -3,7 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { Btn, Sheet } from '@/components/ui'
+import { IconCheck, IconInbox, IconPlus, IconTrash } from '@/components/ui/icons'
+import { askConfirm } from '@/components/ui/confirm-host'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { Spinner } from '@/components/spinner'
 import { reviewProposal, submitProposal, withdrawProposal } from './actions'
 
@@ -28,14 +32,13 @@ export function ProposalForm({ projects, people }: { projects: { id: string; nam
     router.refresh()
   }
 
-  if (!open)
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="btn btn-primary">
-        + Proposer un projet
-      </button>
-    )
   return (
-    <form onSubmit={onSubmit} className="card w-full space-y-4 p-5">
+    <>
+      <Btn variant="primary" icon={<IconPlus />} onClick={() => setOpen(true)}>
+        Proposer un projet
+      </Btn>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Proposer un projet" subtitle="Les administrateurs de l’espace examinent chaque proposition." icon={<IconInbox />}>
+    <form onSubmit={onSubmit} className="space-y-4">
       <Field id="p-title" label="Titre *">
         <input id="p-title" required minLength={3} maxLength={160} value={v.title} onChange={set('title')} className={inputClass} />
       </Field>
@@ -70,15 +73,14 @@ export function ProposalForm({ projects, people }: { projects: { id: string; nam
           </select>
         </Field>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="w-48">
-          <SubmitButton loading={loading}>Envoyer</SubmitButton>
-        </div>
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={'Envoyer'}
+        loading={loading}
+        onCancel={() => setOpen(false)}
+      />
     </form>
+      </Sheet>
+    </>
   )
 }
 
@@ -98,12 +100,12 @@ export function ReviewButtons({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} placeholder="Note pour l’auteur·e (facultatif)" className={`${inputClass} flex-1 py-2`} />
-      <button type="button" disabled={busy !== null} onClick={() => decide('approuve')} className="btn bg-success px-3 py-2 text-sm text-white">
-        {busy === 'approuve' && <Spinner />} Approuver
-      </button>
-      <button type="button" disabled={busy !== null} onClick={() => decide('rejete')} className="btn btn-ghost px-3 py-2 text-sm text-danger">
-        {busy === 'rejete' && <Spinner />} Rejeter
-      </button>
+      <Btn variant="dangerQuiet" busy={busy === 'rejete'} disabled={busy !== null} onClick={() => decide('rejete')}>
+        Rejeter
+      </Btn>
+      <Btn variant="primary" icon={<IconCheck />} busy={busy === 'approuve'} disabled={busy !== null} onClick={() => decide('approuve')} className="!bg-success hover:!brightness-90">
+        Approuver
+      </Btn>
     </div>
   )
 }
@@ -116,7 +118,7 @@ export function WithdrawButton({ id }: { id: string }) {
       type="button"
       disabled={busy}
       onClick={async () => {
-        if (!confirm('Retirer cette proposition ?')) return
+        if (!(await askConfirm({ title: 'Retirer cette proposition ?', body: 'Elle ne sera plus examinée.', confirm: 'Retirer', danger: true }))) return
         setBusy(true)
         const res = await withdrawProposal({ id })
         setBusy(false)
@@ -124,9 +126,9 @@ export function WithdrawButton({ id }: { id: string }) {
         toast.success('Proposition retirée')
         router.refresh()
       }}
-      className="inline-flex items-center gap-1 text-sm text-danger underline"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-2 text-sm font-semibold text-danger transition hover:bg-danger/10"
     >
-      {busy && <Spinner />} Retirer
+      {busy ? <Spinner /> : <IconTrash className="size-4" />} Retirer
     </button>
   )
 }

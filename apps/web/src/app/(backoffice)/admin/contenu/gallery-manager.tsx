@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { askConfirm } from '@/components/ui/confirm-host'
 import { shrinkImage, uploadToR2 } from '@/components/admin/upload'
 import { Spinner } from '@/components/spinner'
 import { addGalleryImage, deleteGalleryImage } from '@/lib/media-actions'
@@ -40,7 +41,7 @@ export function GalleryManager({ actionId, photos }: { actionId: string; photos:
   }
 
   async function remove(id: string) {
-    if (!confirm('Supprimer cette photo ?')) return
+    if (!(await askConfirm({ title: 'Supprimer cette photo ?', body: 'Elle disparaît de la galerie de l’action. Action définitive.', confirm: 'Supprimer la photo', danger: true }))) return
     setDeleting(id)
     const res = await deleteGalleryImage({ id })
     setDeleting(null)
@@ -62,7 +63,7 @@ export function GalleryManager({ actionId, photos }: { actionId: string; photos:
               <Spinner /> Envoi {progress}
             </>
           ) : (
-            '+ Ajouter des photos'
+            'Ajouter des photos'
           )}
         </button>
       </div>

@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
 import { ServiceWorkerRegister } from '@/components/service-worker'
+import { ConfirmHost } from '@/components/ui/confirm-host'
 import { UnsavedGuard } from '@/components/unsaved-guard'
 import { fontVariables } from '../fonts'
 import '../globals.css'
 
 export const metadata: Metadata = {
-  title: 'Solident · Espace membres',
+  title: 'Solident | Espace membres',
   robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: 'Solident', statusBarStyle: 'default' },
 }
@@ -21,6 +22,7 @@ export default function BackofficeLayout({ children }: { children: React.ReactNo
         {children}
         <ServiceWorkerRegister />
         <UnsavedGuard />
+        <ConfirmHost />
         <Toaster position="bottom-right" richColors duration={4000} />
       </body>
     </html>

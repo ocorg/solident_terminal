@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { StatTile } from '@/components/ui/blocks'
+import { IconCount, IconEntry, IconTransfer, IconWarning } from '@/components/ui/icons'
 import { prisma, type InventoryMovementType } from '@solident/db'
 import { CatalogView } from '@/components/inventory/catalog-view'
 import { EquipmentView } from '@/components/inventory/equipment-view'
@@ -48,6 +50,10 @@ export default async function InventoryPage({ searchParams }: PageProps<'/espace
     projects: projects.map((p) => ({ id: p.id, name: p.name })),
   }
 
+  const drafts = await prisma.inventoryCount.count({ where: { status: 'brouillon' } })
+  const low = live.filter((i) => i.low).length
+  const unassigned = live.filter((i) => i.category === 'equipement' && Number(i.total) <= 0).length
+
   const tabHref = (key: TabKey) => (key === 'stock' ? '/espace/inventaire' : `/espace/inventaire?onglet=${key}`)
 
   return (
@@ -61,14 +67,22 @@ export default async function InventoryPage({ searchParams }: PageProps<'/espace
           <p className="text-ink-600">Le matériel de l’association, qui le détient, et tout ce qui entre et sort.</p>
         </div>
         <div className={`grid w-full gap-2 sm:flex sm:w-auto ${rights.canManageProject ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <MovementButton kind="entree" ctx={ctx} className="btn btn-primary min-h-12 px-3 text-sm sm:text-base">
+          <MovementButton kind="entree" ctx={ctx} variant="primary" size="lg" className="max-sm:!flex-col max-sm:!gap-1 max-sm:!px-2 max-sm:!text-xs">
             Nouvelle entrée
           </MovementButton>
-          <MovementButton kind="transfert" ctx={ctx} className="btn btn-ghost min-h-12 px-3 text-sm sm:text-base">
+          <MovementButton kind="transfert" ctx={ctx} size="lg" className="max-sm:!flex-col max-sm:!gap-1 max-sm:!px-2 max-sm:!text-xs">
             Transfert
           </MovementButton>
-          {rights.canManageProject && <NewCountButton className="btn btn-ghost min-h-12 px-3 text-sm sm:text-base" />}
+          {rights.canManageProject && <NewCountButton size="lg" className="max-sm:!flex-col max-sm:!gap-1 max-sm:!px-2 max-sm:!text-xs" />}
         </div>
+      </div>
+
+      {/* Key numbers first: colour only where something needs attention. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="Articles suivis" value={live.length} hint={`${live.filter((i) => i.category === 'consommable').length} consommables · ${live.filter((i) => i.category === 'instrument').length} instruments · ${live.filter((i) => i.category === 'equipement').length} équipements`} icon={<IconEntry />} />
+        <StatTile label="Stock bas" value={low} hint={low ? 'sous le seuil d’alerte' : 'tout est au-dessus du seuil'} tone={low ? 'danger' : 'muted'} icon={<IconWarning />} href="/espace/inventaire?onglet=stock" />
+        <StatTile label="Équipements sans détenteur" value={unassigned} hint={unassigned ? 'à attribuer à un membre' : 'chaque équipement a un détenteur'} tone={unassigned ? 'danger' : 'muted'} icon={<IconTransfer />} href="/espace/inventaire?onglet=equipements" />
+        <StatTile label="Inventaires en cours" value={drafts} hint={drafts ? 'brouillons à terminer' : 'aucun brouillon'} tone={drafts ? 'gold' : 'muted'} icon={<IconCount />} href="/espace/inventaire?onglet=inventaires" />
       </div>
 
       <nav aria-label="Sections de l’inventaire" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

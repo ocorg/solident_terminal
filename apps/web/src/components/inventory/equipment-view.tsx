@@ -3,7 +3,7 @@
 import { formatQty } from '@/lib/inventory/labels'
 import type { ItemDTO } from '@/lib/inventory/queries'
 import { MovementButton, type MovementContext } from './movement-form'
-import { ItemThumb, Tag } from './ui'
+import { ItemThumb, Tag } from '@/components/ui'
 
 /** Big equipment: who holds each one right now, with a one-tap transfer. */
 export function EquipmentView({ items, ctx }: { items: ItemDTO[]; ctx: MovementContext }) {
@@ -18,7 +18,7 @@ export function EquipmentView({ items, ctx }: { items: ItemDTO[]; ctx: MovementC
         return (
           <li key={i.id} className={`card space-y-3 border-s-4 p-4 ${holders.length ? 'border-navy-700' : 'border-danger'}`}>
             <div className="flex items-center gap-3">
-              <ItemThumb url={i.photoUrl} name={i.name} size={48} />
+              <ItemThumb url={i.photoUrl} name={i.name} category={i.category} size={48} />
               <div className="min-w-0 flex-1">
                 <p className="font-heading font-bold text-navy-900">{i.name}</p>
                 <p className="text-xs text-ink-600">
@@ -38,7 +38,7 @@ export function EquipmentView({ items, ctx }: { items: ItemDTO[]; ctx: MovementC
                   {Number(h.qty) !== 1 && <span className="text-ink-600"> × {formatQty(h.qty)}</span>}
                 </span>
                 {(h.holderId === ctx.me.id || ctx.canMoveAny) && (
-                  <MovementButton kind="transfert" ctx={ctx} defaults={{ itemId: i.id, fromHolderId: h.holderId }} className="btn btn-primary min-h-11 shrink-0 px-4">
+                  <MovementButton kind="transfert" ctx={ctx} defaults={{ itemId: i.id, fromHolderId: h.holderId }} variant="primary" className="shrink-0">
                     Transférer
                   </MovementButton>
                 )}

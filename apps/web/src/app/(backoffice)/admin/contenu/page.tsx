@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
+
+export const metadata: Metadata = { title: 'Contenu' }
 
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
@@ -17,7 +20,7 @@ export default async function ContenuPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Programmes</h1>
+        <h1 className="font-heading text-3xl font-bold text-navy-900">Programmes<span className="brand-dot" aria-hidden /></h1>
         <ul className="card divide-y divide-navy-100">
           {programmes.map((p) => (
             <li key={p.id} className="flex flex-wrap items-center gap-4 p-4">
@@ -44,7 +47,7 @@ export default async function ContenuPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-heading text-2xl font-bold text-navy-700">Actions</h2>
           <Link href="/admin/contenu/actions/nouvelle" className="btn btn-primary">
-            + Nouvelle action
+            Nouvelle action
           </Link>
         </div>
         {missingPins > 0 && (

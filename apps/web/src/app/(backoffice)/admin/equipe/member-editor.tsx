@@ -3,8 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
-import { Spinner } from '@/components/spinner'
+import { askConfirm } from '@/components/ui/confirm-host'
+import { Btn, FormActions } from '@/components/ui'
+import { IconTrash } from '@/components/ui/icons'
+import { Field, inputClass } from '@/components/form-fields'
 import { deleteMember, saveMember, type MemberInput } from './actions'
 
 type Values = Omit<MemberInput, 'order'> & { order: string }
@@ -34,7 +36,7 @@ export function MemberEditor({ initial, nextOrder, onDone }: { initial?: MemberI
   }
 
   async function onDelete() {
-    if (!initial?.id || !confirm(`Supprimer ${initial.fullName} ? Sa photo sera aussi supprimée.`)) return
+    if (!initial?.id || !(await askConfirm({ title: `Supprimer ${initial.fullName} ?`, body: 'Sa fiche et sa photo seront supprimées du site.', confirm: 'Supprimer', danger: true }))) return
     setDeleting(true)
     const res = await deleteMember({ id: initial.id })
     setDeleting(false)
@@ -75,21 +77,18 @@ export function MemberEditor({ initial, nextOrder, onDone }: { initial?: MemberI
           Contact public (téléphone affiché sur Contact et Sponsoring)
         </label>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-48">
-          <SubmitButton loading={saving}>{initial ? 'Enregistrer' : 'Ajouter'}</SubmitButton>
-        </div>
-        {onDone && (
-          <button type="button" onClick={onDone} className="text-sm text-ink-600 underline">
-            Annuler
-          </button>
-        )}
-        {initial?.id && (
-          <button type="button" onClick={onDelete} disabled={deleting} className="ms-auto inline-flex items-center gap-2 text-sm text-danger underline">
-            {deleting && <Spinner />} Supprimer ce membre
-          </button>
-        )}
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Ajouter'}
+        loading={saving}
+        onCancel={onDone}
+        danger={
+          initial?.id ? (
+            <Btn variant="dangerQuiet" icon={<IconTrash className="size-4" />} busy={deleting} onClick={onDelete}>
+              Supprimer ce membre
+            </Btn>
+          ) : undefined
+        }
+      />
     </form>
   )
 }

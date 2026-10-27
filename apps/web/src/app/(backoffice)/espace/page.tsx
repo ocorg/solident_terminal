@@ -1,9 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+import { EmptyState, PriorityMark, StatTile, StatusTag } from '@/components/ui/blocks'
+import { IconCalendar, IconCheck, IconClock, IconTasks, IconUsers, IconWarning } from '@/components/ui/icons'
+import type { Tone } from '@/components/ui/tones'
 import { prisma } from '@solident/db'
 import { BrushRing, ProgressRing } from '@/components/motion/brush-ring'
 import { CountUp } from '@/components/motion/count-up'
 import { contextNames, requireMemberPage } from '@/lib/space'
-import { priorityRank, taskPriorityLabel, taskStatusLabel, taskStatusStyle, teamEventTypeLabel } from '@/lib/space-labels'
+import { priorityRank, taskPriorityLabel, taskPriorityColor, taskStatusLabel, taskStatusTone, teamEventTypeLabel } from '@/lib/space-labels'
+
+export const metadata: Metadata = { title: 'Tableau de bord' }
 
 const when = (d: Date) => d.toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' })
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'Africa/Casablanca' })
@@ -38,11 +44,12 @@ export default async function SpaceDashboard() {
   const total = count('a_faire') + count('en_cours') + count('bloque') + count('termine')
   const donePct = total ? Math.round((count('termine') / total) * 100) : 0
 
-  const tiles: { label: string; value: number; href: string; alert?: boolean }[] = [
-    { label: 'Mes tâches ouvertes', value: myTasks.length, href: '/espace/taches?vue=moi' },
-    { label: 'En cours (équipe)', value: count('en_cours'), href: '/espace/taches?statut=en_cours' },
-    { label: 'Bloquées (équipe)', value: count('bloque'), href: '/espace/taches?statut=bloque', alert: count('bloque') > 0 },
-    { label: 'Terminées (équipe)', value: count('termine'), href: '/espace/taches?statut=termine' },
+  // Colour only where something needs attention; the rest stays quiet.
+  const tiles: { label: string; value: number; href: string; tone: Tone; icon: React.ReactNode; hint: string }[] = [
+    { label: 'Mes tâches ouvertes', value: myTasks.length, href: '/espace/taches?vue=moi', tone: myTasks.length ? 'navy' : 'muted', icon: <IconTasks />, hint: 'qui me sont assignées' },
+    { label: 'En cours', value: count('en_cours'), href: '/espace/taches?statut=en_cours', tone: 'muted', icon: <IconClock />, hint: 'dans toute l’équipe' },
+    { label: 'Bloquées', value: count('bloque'), href: '/espace/taches?statut=bloque', tone: count('bloque') ? 'danger' : 'muted', icon: <IconWarning />, hint: 'à débloquer' },
+    { label: 'Terminées', value: count('termine'), href: '/espace/taches?statut=termine', tone: 'muted', icon: <IconCheck />, hint: 'dans toute l’équipe' },
   ]
 
   return (
@@ -75,11 +82,8 @@ export default async function SpaceDashboard() {
 
       <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {tiles.map((s) => (
-          <li key={s.label} data-reveal>
-            <Link href={s.href} className={`card card-hover flex h-full flex-col p-5 ${s.alert ? 'border-s-4 border-danger' : ''}`}>
-              <CountUp value={s.value} className={`font-heading text-3xl font-bold ${s.alert ? 'text-danger' : 'text-navy-700'}`} />
-              <span className="text-sm text-ink-600">{s.label}</span>
-            </Link>
+          <li key={s.label} data-reveal className="[&>*]:h-full">
+            <StatTile label={s.label} value={<CountUp value={s.value} />} hint={s.hint} tone={s.tone} icon={s.icon} href={s.href} />
           </li>
         ))}
       </ul>
@@ -93,12 +97,9 @@ export default async function SpaceDashboard() {
             </Link>
           </div>
           {myTasks.length === 0 ? (
-            <p className="card flex items-center gap-3 p-5 text-ink-600">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-success/10 font-bold text-success" aria-hidden>
-                ✓
-              </span>
-              Aucune tâche ouverte qui vous est assignée. Profitez-en pour donner un coup de main à un projet.
-            </p>
+            <EmptyState icon={<IconCheck />} title="Rien en attente pour vous">
+              Aucune tâche ouverte ne vous est assignée. Profitez-en pour donner un coup de main à un projet.
+            </EmptyState>
           ) : (
             <ul className="card divide-y divide-navy-100">
               {myTasks.slice(0, 8).map((t) => {
@@ -106,10 +107,10 @@ export default async function SpaceDashboard() {
                 return (
                   <li key={t.id}>
                     <Link href={`/espace/taches/${t.id}`} className="flex flex-wrap items-center gap-3 p-4 transition hover:bg-cream-50">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${taskStatusStyle[t.status]}`}>{taskStatusLabel[t.status]}</span>
+                      <StatusTag tone={taskStatusTone[t.status]}>{taskStatusLabel[t.status]}</StatusTag>
                       <span className="min-w-40 flex-1 font-semibold">{t.title}</span>
                       <span className="text-xs text-ink-600">{names.get(t.contextId) ?? ''}</span>
-                      <span className="text-xs">{taskPriorityLabel[t.priority]}</span>
+                      <PriorityMark color={taskPriorityColor[t.priority]} label={taskPriorityLabel[t.priority]} />
                       {t.dueDate && (
                         <span className={`text-xs ${late ? 'font-bold text-danger' : 'text-ink-600'}`}>
                           {late ? 'En retard · ' : ''}
@@ -132,7 +133,17 @@ export default async function SpaceDashboard() {
             </Link>
           </div>
           {events.length === 0 ? (
-            <p className="card p-5 text-ink-600">Rien de prévu pour l’instant. Une réunion à caler ? Créez-la dans l’agenda.</p>
+            <EmptyState
+              icon={<IconCalendar />}
+              title="Rien de prévu"
+              action={
+                <Link href="/espace/evenements" className="text-sm font-semibold text-navy-700 underline">
+                  Ouvrir l’agenda
+                </Link>
+              }
+            >
+              Une réunion à caler ? Créez-la dans l’agenda.
+            </EmptyState>
           ) : (
             <ul className="space-y-2">
               {events.map((e) => (
@@ -154,12 +165,17 @@ export default async function SpaceDashboard() {
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-bold text-navy-700">Mes projets et cellules</h2>
         {projects.length + cellules.length === 0 ? (
-          <p className="card p-5 text-ink-600">
-            Vous ne faites encore partie d’aucun projet ni d’aucune cellule.{' '}
-            <Link href="/espace/projets" className="font-semibold text-navy-700 underline">
-              Découvrir les projets
-            </Link>
-          </p>
+          <EmptyState
+            icon={<IconUsers />}
+            title="Pas encore d’équipe"
+            action={
+              <Link href="/espace/projets" className="btn btn-primary">
+                Découvrir les projets
+              </Link>
+            }
+          >
+            Vous ne faites encore partie d’aucun projet ni d’aucune cellule.
+          </EmptyState>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((m) => (

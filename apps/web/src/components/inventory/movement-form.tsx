@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { inputClass } from '@/components/form-fields'
-import { Spinner } from '@/components/spinner'
 import { recordMovement, type MovementInput } from '@/lib/inventory/actions'
 import { formatQty, normalizeQty, SOURCES, sourceLabel } from '@/lib/inventory/labels'
 import type { BalanceDTO, Person } from '@/lib/inventory/queries'
+import { IconEntry, IconOut, IconTransfer } from '@/components/ui/icons'
 import { ItemPicker, type PickerItem } from './item-picker'
-import { QtyStepper, Sheet, selectClass, useChanged, useSheetDirty } from './ui'
+import { ActionBar, Btn, Choice, FormSection, QtyStepper, Sheet, SheetFooter, selectClass, useChanged, useSheetClose, useSheetDirty, type BtnVariant } from '@/components/ui'
 
 export type MovementKind = 'entree' | 'transfert' | 'sortie'
 export type MovementContext = {
@@ -23,56 +23,40 @@ export type MovementContext = {
   projects: { id: string; name: string }[]
 }
 
-const title: Record<MovementKind, string> = { entree: 'Nouvelle entrée (collecte)', transfert: 'Transfert', sortie: 'Consommation ou perte' }
-
-function Choice<T extends string>({ options, value, onChange, label, labelOf }: { options: readonly T[]; value: T; onChange: (v: T) => void; label: string; labelOf: (v: T) => string }) {
-  return (
-    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label={label}>
-      {options.map((o) => (
-        <button
-          key={o}
-          type="button"
-          role="radio"
-          aria-checked={value === o}
-          onClick={() => onChange(o)}
-          className={`min-h-12 rounded-[8px] border px-2 text-sm font-semibold transition active:scale-[0.98] ${value === o ? 'border-navy-700 bg-navy-700 text-white' : 'border-navy-100 bg-white text-navy-700 hover:bg-navy-100'}`}
-        >
-          {labelOf(o)}
-        </button>
-      ))}
-    </div>
-  )
+const meta: Record<MovementKind, { title: string; subtitle: string; icon: React.ReactNode; submit: string; done: string }> = {
+  entree: { title: 'Nouvelle entrée', subtitle: 'Matériel collecté : don, achat ou emprunt.', icon: <IconEntry />, submit: 'Enregistrer l’entrée', done: 'Collecte enregistrée' },
+  transfert: { title: 'Transfert', subtitle: 'Le matériel change de mains entre deux membres.', icon: <IconTransfer />, submit: 'Enregistrer le transfert', done: 'Transfert enregistré' },
+  sortie: { title: 'Consommation ou perte', subtitle: 'Du matériel utilisé, perdu ou cassé.', icon: <IconOut />, submit: 'Enregistrer la sortie', done: 'Sortie enregistrée' },
 }
+export const movementIcon = (kind: MovementKind, className?: string) =>
+  kind === 'entree' ? <IconEntry className={className} /> : kind === 'transfert' ? <IconTransfer className={className} /> : <IconOut className={className} />
 
-function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
-  return (
-    <label htmlFor={htmlFor} className="mb-1 block text-sm font-semibold text-navy-900">
-      {children}
-    </label>
-  )
-}
-
-/** Button that opens the movement sheet. */
+/** Button that opens the movement panel. */
 export function MovementButton({
   kind,
   ctx,
   defaults,
-  className = 'btn btn-primary',
+  variant = 'secondary',
+  size = 'md',
+  className = '',
   children,
 }: {
   kind: MovementKind
   ctx: MovementContext
   defaults?: { itemId?: string; fromHolderId?: string; projectId?: string }
+  variant?: BtnVariant
+  size?: 'sm' | 'md' | 'lg'
   className?: string
   children?: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const m = meta[kind]
   return (
     <>
-      <button type="button" className={className} onClick={() => setOpen(true)}>
-        {children ?? title[kind]}
-      </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={title[kind]}>
+      <Btn variant={variant} size={size} icon={movementIcon(kind, 'size-5')} className={className} onClick={() => setOpen(true)}>
+        {children ?? m.title}
+      </Btn>
+      <Sheet open={open} onClose={() => setOpen(false)} title={m.title} subtitle={m.subtitle} icon={m.icon}>
         <MovementForm kind={kind} ctx={ctx} defaults={defaults} onDone={() => setOpen(false)} />
       </Sheet>
     </>
@@ -81,6 +65,7 @@ export function MovementButton({
 
 function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx: MovementContext; defaults?: { itemId?: string; fromHolderId?: string; projectId?: string }; onDone: () => void }) {
   const router = useRouter()
+  const close = useSheetClose()
   const [items, setItems] = useState(ctx.items)
   const [itemId, setItemId] = useState<string | null>(defaults?.itemId ?? null)
   const item = items.find((i) => i.id === itemId)
@@ -93,6 +78,7 @@ function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx
   const [estimate, setEstimate] = useState(false)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
   useSheetDirty(useChanged({ itemId, qty, source, outType, toId, fromId, projectId, estimate, note }))
 
   // Who holds the selected item (for "from" choices and the balance hint).
@@ -111,7 +97,7 @@ function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx
     setItemId(id)
     const it = items.find((i) => i.id === id)
     if (it?.category === 'equipement') setQty('1')
-    // Logistics: preselect the only holder of an equipment item.
+    // Logistics: preselect the only holder of an item.
     if (id && kind !== 'entree' && ctx.canMoveAny) {
       const hs = ctx.balances.filter((b) => b.itemId === id && Number(b.qty) > 0)
       if (hs.length === 1) setFromId(hs[0]!.holderId)
@@ -131,78 +117,82 @@ function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx
     const res = await recordMovement(input)
     setBusy(false)
     if (res.status === 'error') return void toast.error(res.message)
-    toast.success(kind === 'entree' ? 'Collecte enregistrée' : kind === 'transfert' ? 'Transfert enregistré' : 'Sortie enregistrée')
+    toast.success(meta[kind].done)
     router.refresh()
     onDone()
   }
 
   const canChooseFrom = ctx.canMoveAny
   const fromOptions = canChooseFrom ? holdersOfItem : holdersOfItem.filter((h) => h.holderId === ctx.me.id)
+  const missing = !itemId ? 'Choisissez un article' : !qtyOk ? 'Indiquez une quantité' : kind !== 'sortie' && !toId ? 'Choisissez un membre' : null
 
+  const picker = (
+    <ItemPicker
+      items={kind === 'entree' ? items : items.filter((i) => ctx.balances.some((b) => b.itemId === i.id && Number(b.qty) > 0 && (canChooseFrom || b.holderId === ctx.me.id)))}
+      value={itemId}
+      onChange={pickItem}
+      allowCreate={kind === 'entree'}
+      onCreated={(it) => setItems((list) => [...list, it])}
+      onCreatingChange={setCreating}
+    />
+  )
   return (
-    <div className="space-y-5">
-      <div>
-        <Label>Article</Label>
-        <ItemPicker
-          items={kind === 'entree' ? items : items.filter((i) => ctx.balances.some((b) => b.itemId === i.id && Number(b.qty) > 0 && (canChooseFrom || b.holderId === ctx.me.id)))}
-          value={itemId}
-          onChange={pickItem}
-          allowCreate={kind === 'entree'}
-          onCreated={(it) => setItems((list) => [...list, it])}
-        />
-      </div>
+    <div className="space-y-6">
+      {/* Same place in the tree while creating an item, so the picker keeps its state. */}
+      <FormSection title={creating ? 'Nouvel article' : 'Article'}>{picker}</FormSection>
+      {/* Creating a new item takes over the panel: its own fields and buttons. */}
+      {!creating && (
+        <>
 
       {kind !== 'entree' && itemId && (
-        <div>
-          <Label htmlFor="mv-from">Détenu par</Label>
+        <FormSection title="Détenu par" htmlFor="mv-from">
           {fromOptions.length ? (
             <select id="mv-from" value={fromId} onChange={(e) => setFromId(e.target.value)} className={selectClass} disabled={!canChooseFrom}>
               {!fromOptions.some((h) => h.holderId === fromId) && <option value="">Choisir…</option>}
               {fromOptions.map((h) => (
                 <option key={h.holderId} value={h.holderId}>
-                  {h.name} ({formatQty(h.qty)} {item?.unit})
+                  {h.name} — {formatQty(h.qty)} {item?.unit}
                 </option>
               ))}
             </select>
           ) : (
-            <p className="rounded-[8px] border-s-4 border-danger bg-danger/10 px-3 py-2 text-sm text-danger">Vous ne détenez pas cet article.</p>
+            <p className="rounded-[10px] border-s-4 border-danger bg-danger/10 px-3 py-2 text-sm text-danger">Vous ne détenez pas cet article.</p>
           )}
-        </div>
+        </FormSection>
       )}
 
       {kind === 'sortie' && (
-        <div>
-          <Label>Type</Label>
+        <FormSection title="Que s’est-il passé ?">
           <Choice options={['consommation', 'perte'] as const} value={outType} onChange={setOutType} label="Type de sortie" labelOf={(v) => (v === 'consommation' ? 'Consommé' : 'Perdu / cassé')} />
-        </div>
+        </FormSection>
       )}
 
-      <div>
-        <Label htmlFor="mv-qty">
-          Quantité{item && <span className="font-normal text-ink-600"> ({item.unit})</span>}
-        </Label>
+      <FormSection
+        title={`Quantité${item ? ` (${item.unit})` : ''}`}
+        htmlFor="mv-qty"
+        hint={
+          kind !== 'entree' && itemId ? (
+            <span className={tooMuch ? 'font-semibold text-danger' : ''}>
+              Disponible : {formatQty(fromBalance)} {item?.unit}
+            </span>
+          ) : undefined
+        }
+      >
         <QtyStepper id="mv-qty" value={qty} onChange={setQty} label="Quantité" />
-        {kind !== 'entree' && itemId && (
-          <p className={`mt-1 text-sm ${tooMuch ? 'font-semibold text-danger' : 'text-ink-600'}`}>
-            Disponible : {formatQty(fromBalance)} {item?.unit}
-          </p>
-        )}
-        <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink-600">
           <input type="checkbox" checked={estimate} onChange={(e) => setEstimate(e.target.checked)} className="size-5 accent-navy-700" />
           Quantité estimée (affichée avec ≈)
         </label>
-      </div>
+      </FormSection>
 
       {kind === 'entree' && (
-        <div>
-          <Label>Provenance</Label>
+        <FormSection title="Provenance">
           <Choice options={SOURCES} value={source} onChange={setSource} label="Provenance" labelOf={(s) => sourceLabel[s]} />
-        </div>
+        </FormSection>
       )}
 
       {(kind === 'transfert' || (kind === 'entree' && ctx.canMoveAny)) && (
-        <div>
-          <Label htmlFor="mv-to">{kind === 'transfert' ? 'Donner à' : 'Détenu par'}</Label>
+        <FormSection title={kind === 'transfert' ? 'Donner à' : 'Qui garde ce matériel ?'} htmlFor="mv-to">
           <select id="mv-to" value={toId} onChange={(e) => setToId(e.target.value)} className={selectClass}>
             <option value="">Choisir un membre…</option>
             {ctx.members
@@ -214,36 +204,42 @@ function MovementForm({ kind, ctx, defaults, onDone }: { kind: MovementKind; ctx
                 </option>
               ))}
           </select>
-        </div>
+        </FormSection>
       )}
 
-      <div>
-        <Label htmlFor="mv-project">Projet / activité</Label>
-        <select id="mv-project" value={projectId} onChange={(e) => setProjectId(e.target.value)} className={selectClass}>
-          <option value="">Aucun (stock général)</option>
-          {ctx.projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+      <div className="space-y-4 rounded-[12px] bg-white p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-ink-600">Détails facultatifs</p>
+        <FormSection title="Projet / activité" htmlFor="mv-project">
+          <select id="mv-project" value={projectId} onChange={(e) => setProjectId(e.target.value)} className={selectClass}>
+            <option value="">Aucun (stock général)</option>
+            {ctx.projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </FormSection>
+        <FormSection title="Note" htmlFor="mv-note">
+          <input id="mv-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={kind === 'entree' ? 'Ex. don du cabinet Dr X' : 'Ex. cassé pendant le transport'} className={`${inputClass} h-12`} />
+        </FormSection>
       </div>
 
-      <div>
-        <Label htmlFor="mv-note">Note (facultatif)</Label>
-        <input id="mv-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={kind === 'entree' ? 'Ex. don du cabinet Dr X' : ''} className={`${inputClass} h-12`} />
-      </div>
-
-      <div className="sticky bottom-0 -mx-5 border-t border-navy-100 bg-white px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={busy || !itemId || !qtyOk || tooMuch || (kind !== 'sortie' && !toId) || (kind !== 'entree' && !fromId)}
-          className="btn btn-primary min-h-12 w-full disabled:opacity-60"
-        >
-          {busy && <Spinner />} Enregistrer
-        </button>
-      </div>
+      <SheetFooter>
+        <ActionBar
+          primary={
+            <Btn variant="primary" size="lg" icon={movementIcon(kind)} busy={busy} disabled={!!missing || tooMuch || (kind !== 'entree' && !fromId)} onClick={submit} title={missing ?? undefined}>
+              {meta[kind].submit}
+            </Btn>
+          }
+          cancel={
+            <Btn variant="quiet" onClick={close}>
+              Annuler
+            </Btn>
+          }
+        />
+      </SheetFooter>
+        </>
+      )}
     </div>
   )
 }

@@ -123,7 +123,7 @@ export function PushSettings() {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${state === 'on' ? 'bg-success/15 text-success' : 'bg-navy-100 text-ink-600'}`}>
+      <span className={`rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${state === 'on' ? 'bg-success/10 text-success' : 'bg-cream-100 text-ink-600'}`}>
         {state === 'on' ? 'Activées' : 'Désactivées'}
       </span>
       {state === 'off' ? (

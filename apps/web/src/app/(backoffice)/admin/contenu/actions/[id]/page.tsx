@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@solident/db'
@@ -5,6 +6,12 @@ import { ImageField } from '@/components/admin/image-field'
 import { requireRolePage } from '@/lib/guards'
 import { ActionForm } from '../../action-form'
 import { GalleryManager } from '../../gallery-manager'
+
+export async function generateMetadata({ params }: PageProps<'/admin/contenu/actions/[id]'>): Promise<Metadata> {
+  const { id } = await params
+  const row = /^[0-9a-f-]{36}$/i.test(id) ? await prisma.action.findUnique({ where: { id }, select: { titleFr: true } }) : null
+  return { title: row?.titleFr ?? 'Action' }
+}
 
 const isoDay = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 

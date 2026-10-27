@@ -4,12 +4,16 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { inputClass } from '@/components/form-fields'
-import { Spinner } from '@/components/spinner'
-import { TASK_STATUSES, taskStatusLabel, taskStatusStyle } from '@/lib/space-labels'
+import { Btn, Sheet, SheetButton } from '@/components/ui'
+import { askConfirm } from '@/components/ui/confirm-host'
+import { IconArchive, IconEdit, IconPlus, IconTasks, IconTrash, IconUndo } from '@/components/ui/icons'
+import { tagTone } from '@/components/ui/tones'
+import { TASK_STATUSES, taskStatusLabel, taskStatusTone } from '@/lib/space-labels'
 import type { TaskStatus } from '@solident/db'
 import { addComment, deleteTask, setTaskArchived, setTaskStatus } from './actions'
 import { TaskForm } from './task-form'
 
+/** Status as a segmented control: the current status is filled with its colour. */
 export function StatusButtons({ id, status, canChange }: { id: string; status: TaskStatus; canChange: boolean }) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
@@ -22,19 +26,20 @@ export function StatusButtons({ id, status, canChange }: { id: string; status: T
     router.refresh()
   }
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-2 gap-1 rounded-[12px] bg-navy-100/60 p-1 sm:grid-cols-4" role="radiogroup" aria-label="Statut de la tâche">
       {TASK_STATUSES.map((s) => (
         <button
           key={s}
           type="button"
-          disabled={!canChange || busy !== null || s === status}
-          onClick={() => change(s)}
-          className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold transition active:scale-95 disabled:cursor-default ${
-            s === status ? `${taskStatusStyle[s]} ring-2 ring-navy-700` : 'bg-white text-ink-600 shadow-card hover:bg-navy-100 disabled:opacity-50'
+          role="radio"
+          aria-checked={s === status}
+          disabled={!canChange || busy !== null}
+          onClick={() => s !== status && change(s)}
+          className={`min-h-11 rounded-[9px] px-3 text-sm font-semibold transition disabled:cursor-default ${
+            s === status ? `${tagTone[taskStatusTone[s]]} shadow-sm ring-1 ring-black/5` : 'text-ink-600 hover:bg-white/70 hover:text-navy-900 disabled:hover:bg-transparent'
           }`}
         >
-          {busy === s && <Spinner />}
-          {taskStatusLabel[s]}
+          {busy === s ? '…' : taskStatusLabel[s]}
         </button>
       ))}
     </div>
@@ -58,13 +63,14 @@ export function CommentForm({ taskId }: { taskId: string }) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={2} maxLength={3000} required placeholder="Écrire un commentaire…" className={`${inputClass} flex-1`} />
-      <button type="submit" disabled={loading} className="btn btn-primary self-end">
-        {loading && <Spinner />} Envoyer
-      </button>
+      <Btn type="submit" variant="primary" busy={loading} className="self-end">
+        Envoyer
+      </Btn>
     </form>
   )
 }
 
+/** Task actions: edit (main), archive (quiet), delete (destructive, kept apart, confirmed). */
 export function ManageTask({
   task,
   contexts,
@@ -87,7 +93,13 @@ export function ManageTask({
     router.refresh()
   }
   async function remove() {
-    if (!confirm(`Supprimer définitivement « ${task.title} » et ses commentaires ?`)) return
+    const okToGo = await askConfirm({
+      title: `Supprimer « ${task.title} » ?`,
+      body: 'La tâche et ses commentaires seront supprimés définitivement. Pour la garder sans l’afficher, archivez-la plutôt.',
+      confirm: 'Supprimer définitivement',
+      danger: true,
+    })
+    if (!okToGo) return
     setBusy('delete')
     const res = await deleteTask({ id: task.id })
     setBusy(null)
@@ -97,40 +109,28 @@ export function ManageTask({
     router.refresh()
   }
 
-  if (editing) {
-    return (
-      <div className="card p-5">
-        <TaskForm contexts={contexts} people={people} initial={task} onDone={() => setEditing(false)} />
-      </div>
-    )
-  }
   return (
-    <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => setEditing(true)} className="btn btn-ghost px-3 py-1.5 text-sm">
+    <div className="flex flex-wrap items-center gap-2">
+      <Btn variant="primary" icon={<IconEdit className="size-4" />} onClick={() => setEditing(true)}>
         Modifier
-      </button>
-      <button type="button" onClick={archive} disabled={busy !== null} className="btn btn-ghost px-3 py-1.5 text-sm">
-        {busy === 'archive' && <Spinner />} {task.archived ? 'Désarchiver' : 'Archiver'}
-      </button>
-      <button type="button" onClick={remove} disabled={busy !== null} className="btn btn-ghost px-3 py-1.5 text-sm text-danger">
-        {busy === 'delete' && <Spinner />} Supprimer
-      </button>
+      </Btn>
+      <Btn variant="quiet" icon={task.archived ? <IconUndo className="size-4" /> : <IconArchive className="size-4" />} busy={busy === 'archive'} disabled={busy !== null} onClick={archive}>
+        {task.archived ? 'Désarchiver' : 'Archiver'}
+      </Btn>
+      <Btn variant="dangerQuiet" icon={<IconTrash className="size-4" />} busy={busy === 'delete'} disabled={busy !== null} onClick={remove} className="ms-auto">
+        Supprimer
+      </Btn>
+      <Sheet open={editing} onClose={() => setEditing(false)} title="Modifier la tâche" subtitle={task.title} icon={<IconEdit />}>
+        <TaskForm contexts={contexts} people={people} initial={task} onDone={() => setEditing(false)} />
+      </Sheet>
     </div>
   )
 }
 
 export function NewTaskButton(props: Omit<React.ComponentProps<typeof TaskForm>, 'onDone'>) {
-  const [open, setOpen] = useState(false)
-  if (!open)
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="btn btn-primary">
-        + Nouvelle tâche
-      </button>
-    )
   return (
-    <div className="card w-full p-5">
-      <p className="mb-3 font-semibold text-navy-700">Nouvelle tâche</p>
-      <TaskForm {...props} onDone={() => setOpen(false)} />
-    </div>
+    <SheetButton label="Nouvelle tâche" icon={<IconPlus />} title="Nouvelle tâche" subtitle="Une chose à faire, pour qui, et pour quand." sheetIcon={<IconTasks />}>
+      {(close) => <TaskForm {...props} onDone={close} />}
+    </SheetButton>
   )
 }

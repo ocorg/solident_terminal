@@ -25,6 +25,9 @@ function r2() {
   return client
 }
 
+/** Owner rule (27 Oct 2026): no uploaded image above 100 KB. */
+export const IMAGE_MAX_BYTES = 100 * 1024
+
 export type Bucket = 'public' | 'private'
 const bucketName = (b: Bucket) => env(b === 'public' ? 'R2_PUBLIC_BUCKET' : 'R2_PRIVATE_BUCKET')
 
@@ -58,6 +61,8 @@ export async function createUploadUrl(opts: {
   if (!Number.isInteger(opts.size) || opts.size <= 0 || opts.size > rule.maxBytes) {
     throw new Error(`Fichier trop volumineux (max ${Math.round(rule.maxBytes / 1024 / 1024)} Mo)`)
   }
+  // Every image is compressed in the browser to 100 KB max (components/admin/upload.ts shrinkImage).
+  if (opts.contentType.startsWith('image/') && opts.size > IMAGE_MAX_BYTES) throw new Error('Image trop lourde (max 100 Ko)')
   const folder = opts.folder.replace(/[^a-z0-9/_-]/gi, '').replace(/^\/+|\/+$/g, '')
   const key = `${folder}/${randomUUID()}.${EXT[opts.contentType]}`
 

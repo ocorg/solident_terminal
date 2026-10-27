@@ -1,7 +1,7 @@
 import { categoryPlural, CATEGORIES, formatQty, outcomeLabel, outcomeTone } from '@/lib/inventory/labels'
 import type { CountDTO } from '@/lib/inventory/queries'
 import { PrintButton } from './print-button'
-import { Tag } from './ui'
+import { Tag } from '@/components/ui'
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Casablanca' })
 const r2 = (x: number) => Math.round(x * 100) / 100

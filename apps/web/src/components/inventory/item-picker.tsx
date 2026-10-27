@@ -3,33 +3,42 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { inputClass } from '@/components/form-fields'
-import { Spinner } from '@/components/spinner'
 import { createItem } from '@/lib/inventory/actions'
 import { CATEGORIES, categoryLabel } from '@/lib/inventory/labels'
 import type { ItemDTO } from '@/lib/inventory/queries'
+import { IconBack, IconCheck, IconPlus } from '@/components/ui/icons'
 import { PhotoInput } from './photo-input'
-import { ItemThumb, selectClass, useChanged, useSheetDirty } from './ui'
+import { ActionBar, Btn, Choice, FormSection, ItemThumb, SheetFooter, selectClass, useChanged, useSheetDirty } from '@/components/ui'
 
 export type PickerItem = Pick<ItemDTO, 'id' | 'name' | 'unit' | 'category' | 'photoUrl' | 'subcategory'>
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
-/** Search the catalogue; optionally create a new item on the spot (with a photo from the camera). */
+/**
+ * Search the catalogue; optionally create a new item on the spot (with a photo from the camera).
+ * While creating, the picker takes over the panel (`onCreatingChange` lets the parent hide its own fields).
+ */
 export function ItemPicker({
   items,
   value,
   onChange,
   allowCreate = false,
   onCreated,
+  onCreatingChange,
 }: {
   items: PickerItem[]
   value: string | null
   onChange: (id: string | null) => void
   allowCreate?: boolean
   onCreated?: (item: PickerItem) => void
+  onCreatingChange?: (creating: boolean) => void
 }) {
   const [q, setQ] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreatingState] = useState(false)
+  const setCreating = (v: boolean) => {
+    setCreatingState(v)
+    onCreatingChange?.(v)
+  }
   const selected = items.find((i) => i.id === value)
   const matches = useMemo(() => {
     const f = fold(q.trim())
@@ -38,17 +47,18 @@ export function ItemPicker({
 
   if (selected)
     return (
-      <div className="flex items-center gap-3 rounded-[10px] border border-navy-100 bg-white p-2">
-        <ItemThumb url={selected.photoUrl} name={selected.name} size={44} />
+      <div className="flex items-center gap-3 rounded-[12px] border border-navy-700/20 bg-white p-3 shadow-sm">
+        <ItemThumb url={selected.photoUrl} name={selected.name} category={selected.category} size={52} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{selected.name}</p>
-          <p className="text-xs text-ink-600">
-            {categoryLabel[selected.category]} · {selected.unit}
+          <p className="font-semibold leading-tight text-navy-900">{selected.name}</p>
+          <p className="mt-0.5 text-xs text-ink-600">
+            {categoryLabel[selected.category]}
+            {selected.subcategory && ` · ${selected.subcategory}`} · en {selected.unit}
           </p>
         </div>
-        <button type="button" onClick={() => onChange(null)} className="rounded-[8px] px-3 py-2 text-sm font-semibold text-navy-700 hover:bg-navy-100">
+        <Btn variant="quiet" size="sm" onClick={() => onChange(null)}>
           Changer
-        </button>
+        </Btn>
       </div>
     )
 
@@ -67,14 +77,14 @@ export function ItemPicker({
 
   return (
     <div className="space-y-2">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un article…" className={`${inputClass} h-12`} aria-label="Rechercher un article" />
-      <ul className="max-h-64 divide-y divide-navy-100 overflow-y-auto rounded-[10px] border border-navy-100 bg-white">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un article…" className={`${inputClass} h-12`} aria-label="Rechercher un article" data-no-guard />
+      <ul className="max-h-64 divide-y divide-navy-100 overflow-y-auto rounded-[12px] border border-navy-100 bg-white">
         {matches.map((i) => (
           <li key={i.id}>
-            <button type="button" onClick={() => onChange(i.id)} className="flex w-full items-center gap-3 px-3 py-2 text-start transition hover:bg-navy-100/60 active:bg-navy-100">
-              <ItemThumb url={i.photoUrl} name={i.name} size={36} />
+            <button type="button" onClick={() => onChange(i.id)} className="flex w-full items-center gap-3 px-3 py-2.5 text-start transition hover:bg-navy-100/50 active:bg-navy-100">
+              <ItemThumb url={i.photoUrl} name={i.name} category={i.category} size={36} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{i.name}</span>
+                <span className="block truncate font-medium text-navy-900">{i.name}</span>
                 <span className="block text-xs text-ink-600">
                   {categoryLabel[i.category]}
                   {i.subcategory && ` · ${i.subcategory}`}
@@ -83,11 +93,21 @@ export function ItemPicker({
             </button>
           </li>
         ))}
-        {!matches.length && <li className="px-3 py-3 text-sm text-ink-600">Aucun article trouvé.</li>}
+        {!matches.length && <li className="px-3 py-4 text-center text-sm text-ink-600">Aucun article trouvé{q.trim() && ` pour « ${q.trim()} »`}.</li>}
       </ul>
       {allowCreate && (
-        <button type="button" onClick={() => setCreating(true)} className="w-full rounded-[10px] border border-dashed border-navy-700/40 px-3 py-3 text-sm font-semibold text-navy-700 transition hover:bg-navy-100">
-          + Nouvel article{q.trim() && ` « ${q.trim()} »`}
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="flex w-full items-center gap-3 rounded-[12px] border border-dashed border-navy-700/30 px-3 py-3 text-start text-sm font-semibold text-navy-700 transition hover:border-navy-700 hover:bg-navy-100/40"
+        >
+          <span className="flex size-9 items-center justify-center rounded-[8px] bg-navy-100">
+            <IconPlus className="size-4" />
+          </span>
+          <span>
+            Créer un nouvel article{q.trim() && ` « ${q.trim()} »`}
+            <span className="block text-xs font-normal text-ink-600">S’il n’existe pas encore dans le catalogue</span>
+          </span>
         </button>
       )}
     </div>
@@ -96,7 +116,8 @@ export function ItemPicker({
 
 const UNITS = ['pièces', 'boîtes', 'paquets', 'kits', 'flacons', 'litres', 'ml', 'rouleaux']
 
-export function NewItemForm({ initialName = '', onCancel, onCreated }: { initialName?: string; onCancel: () => void; onCreated: (item: PickerItem) => void }) {
+/** Create a catalogue item. Its actions go in the panel's bottom bar. */
+export function NewItemForm({ initialName = '', onCancel, onCreated, showBack = true }: { initialName?: string; onCancel: () => void; onCreated: (item: PickerItem) => void; showBack?: boolean }) {
   const [name, setName] = useState(initialName)
   const [category, setCategory] = useState<PickerItem['category']>('consommable')
   const [unit, setUnit] = useState('pièces')
@@ -115,43 +136,56 @@ export function NewItemForm({ initialName = '', onCancel, onCreated }: { initial
   }
 
   return (
-    <div className="space-y-3 rounded-[10px] border-s-4 border-gold-500 bg-gold-100/40 p-3">
-      <p className="text-sm font-semibold">Nouvel article</p>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom (ex. Gants nitrile M)" className={`${inputClass} h-12`} aria-label="Nom de l’article" autoFocus />
-      <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Catégorie">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="radio"
-            aria-checked={category === c}
-            onClick={() => {
-              setCategory(c)
-              if (c !== 'consommable') setUnit('pièces')
-            }}
-            className={`min-h-11 rounded-[8px] border px-2 text-sm font-semibold transition ${category === c ? 'border-navy-700 bg-navy-700 text-white' : 'border-navy-100 bg-white text-navy-700 hover:bg-navy-100'}`}
-          >
-            {categoryLabel[c]}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <select value={unit} onChange={(e) => setUnit(e.target.value)} className={selectClass} aria-label="Unité">
-          {UNITS.map((u) => (
-            <option key={u}>{u}</option>
-          ))}
-        </select>
-        <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Sous-catégorie" className={`${inputClass} h-12`} aria-label="Sous-catégorie (facultatif)" />
-      </div>
-      <PhotoInput onUploaded={(key, url) => setPhoto({ key, url })} />
-      <div className="flex gap-2">
-        <button type="button" onClick={onCancel} className="btn btn-ghost flex-1">
-          Annuler
+    <div className="space-y-5">
+      {showBack && (
+        <button type="button" onClick={onCancel} className="-ms-2 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-sm font-semibold text-navy-700 transition hover:bg-navy-100">
+          <IconBack className="size-4" /> Retour à la recherche
         </button>
-        <button type="button" onClick={save} disabled={busy || name.trim().length < 2} className="btn btn-primary flex-1 disabled:opacity-60">
-          {busy && <Spinner />} Créer
-        </button>
+      )}
+      <FormSection title="Nom de l’article" htmlFor="new-item-name">
+        <input id="new-item-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Gants nitrile taille M" className={`${inputClass} h-12`} autoFocus />
+      </FormSection>
+      <FormSection title="Catégorie">
+        <Choice
+          options={CATEGORIES}
+          value={category}
+          onChange={(c) => {
+            setCategory(c)
+            if (c !== 'consommable') setUnit('pièces')
+          }}
+          label="Catégorie"
+          labelOf={(c) => categoryLabel[c]}
+        />
+      </FormSection>
+      <div className="grid grid-cols-2 gap-3">
+        <FormSection title="Unité" htmlFor="new-item-unit">
+          <select id="new-item-unit" value={unit} onChange={(e) => setUnit(e.target.value)} className={selectClass}>
+            {UNITS.map((u) => (
+              <option key={u}>{u}</option>
+            ))}
+          </select>
+        </FormSection>
+        <FormSection title="Sous-catégorie" htmlFor="new-item-sub">
+          <input id="new-item-sub" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Facultatif" className={`${inputClass} h-12`} />
+        </FormSection>
       </div>
+      <FormSection title="Photo" hint="Facultatif, mais très utile pour les instruments.">
+        <PhotoInput onUploaded={(key, url) => setPhoto({ key, url })} />
+      </FormSection>
+      <SheetFooter>
+        <ActionBar
+          primary={
+            <Btn variant="primary" size="lg" icon={<IconCheck />} busy={busy} disabled={name.trim().length < 2} onClick={save}>
+              Créer l’article
+            </Btn>
+          }
+          cancel={
+            <Btn variant="quiet" onClick={onCancel}>
+              {showBack ? 'Retour' : 'Annuler'}
+            </Btn>
+          }
+        />
+      </SheetFooter>
     </div>
   )
 }

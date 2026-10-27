@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { countStatusLabel } from '@/lib/inventory/labels'
-import { Tag } from './ui'
+import { Tag } from '@/components/ui'
 
 export type CountRow = {
   id: string

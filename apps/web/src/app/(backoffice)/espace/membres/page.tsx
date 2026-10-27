@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/blocks'
 import { prisma } from '@solident/db'
 import { Avatar } from '@/components/space/avatar'
 import { requireMemberPage } from '@/lib/space'
@@ -21,11 +22,11 @@ export default async function MembersPage({ searchParams }: PageProps<'/espace/m
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Membres ({members.length})</h1>
-        <form action="/espace/membres" className="flex gap-2" data-no-guard>
-          <input name="q" defaultValue={q} placeholder="Chercher un membre…" className="rounded-[10px] border border-navy-100 bg-white px-3 py-2 text-sm" />
-          <button type="submit" className="btn btn-ghost px-3 py-2 text-sm">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader title="Membres" description={`${members.length} membre${members.length > 1 ? 's' : ''} actif${members.length > 1 ? 's' : ''}, leurs projets et cellules.`} />
+        <form action="/espace/membres" className="flex w-full gap-2 sm:w-auto" data-no-guard>
+          <input name="q" type="search" defaultValue={q} placeholder="Chercher un membre…" className="min-h-11 flex-1 rounded-[10px] border border-navy-100 bg-white px-3 text-sm sm:w-64" />
+          <button type="submit" className="btn btn-ghost min-h-11 px-4 py-0 text-sm">
             Chercher
           </button>
         </form>
@@ -53,14 +54,14 @@ export default async function MembersPage({ searchParams }: PageProps<'/espace/m
               <ul className="mt-2 flex flex-wrap gap-1">
                 {m.projectMemberships.map((pm) => (
                   <li key={pm.project.id}>
-                    <Link href={`/espace/projets/${pm.project.id}`} className={`rounded-full px-2 py-0.5 text-xs ${isManagementPosition(pm.position.name) ? 'bg-gold-100 font-semibold text-navy-900' : 'bg-navy-100 text-navy-700'}`}>
+                    <Link href={`/espace/projets/${pm.project.id}`} className={`rounded-[6px] px-2 py-0.5 text-xs ${isManagementPosition(pm.position.name) ? 'bg-gold-100 font-semibold text-navy-900' : 'bg-navy-100 text-navy-700'}`}>
                       {pm.project.name}
                     </Link>
                   </li>
                 ))}
                 {m.celluleMemberships.map((cm) => (
                   <li key={cm.cellule.id}>
-                    <Link href={`/espace/cellules/${cm.cellule.id}`} className={`rounded-full px-2 py-0.5 text-xs ${isManagementPosition(cm.position.name) ? 'bg-gold-100 font-semibold text-navy-900' : 'bg-solifun-sky/15 text-navy-700'}`}>
+                    <Link href={`/espace/cellules/${cm.cellule.id}`} className={`rounded-[6px] px-2 py-0.5 text-xs ${isManagementPosition(cm.position.name) ? 'bg-gold-100 font-semibold text-navy-900' : 'bg-solifun-sky/15 text-navy-700'}`}>
                       {cm.cellule.name}
                     </Link>
                   </li>

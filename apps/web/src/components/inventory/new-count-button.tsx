@@ -3,11 +3,24 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Spinner } from '@/components/spinner'
 import { createCount } from '@/lib/inventory/actions'
+import { IconCount } from '@/components/ui/icons'
+import { Btn, type BtnVariant } from '@/components/ui'
 
 /** Starts a count (or reopens the project's open draft) and goes to the count sheet. */
-export function NewCountButton({ projectId = null, className = 'btn btn-ghost', children = 'Nouvel inventaire' }: { projectId?: string | null; className?: string; children?: React.ReactNode }) {
+export function NewCountButton({
+  projectId = null,
+  variant = 'secondary',
+  size = 'md',
+  className = '',
+  children = 'Nouvel inventaire',
+}: {
+  projectId?: string | null
+  variant?: BtnVariant
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+  children?: React.ReactNode
+}) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   async function start() {
@@ -21,8 +34,8 @@ export function NewCountButton({ projectId = null, className = 'btn btn-ghost', 
     router.push(`/espace/inventaire/comptages/${res.data.id}`)
   }
   return (
-    <button type="button" onClick={start} disabled={busy} className={`${className} disabled:opacity-70`}>
-      {busy && <Spinner />} {children}
-    </button>
+    <Btn variant={variant} size={size} icon={<IconCount />} busy={busy} onClick={start} className={className}>
+      {children}
+    </Btn>
   )
 }

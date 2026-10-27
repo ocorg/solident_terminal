@@ -1,8 +1,13 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
 import { getFundraising } from '@/lib/fundraising'
 import { requireRolePage } from '@/lib/guards'
 import { FundraisingCard } from './fundraising-card'
+
+export const metadata: Metadata = { title: 'Campagnes' }
 
 const dh = (n: number) => new Intl.NumberFormat('fr-MA').format(n) + ' DH'
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -18,13 +23,13 @@ export default async function CampagnesPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Campagnes</h1>
+        <h1 className="font-heading text-3xl font-bold text-navy-900">Campagnes<span className="brand-dot" aria-hidden /></h1>
         <Link href="/admin/campagnes/nouvelle" className="btn btn-primary">
-          + Nouvelle campagne
+          Nouvelle campagne
         </Link>
       </div>
       <FundraisingCard open={fundraising.open} authorization={fundraising.authorization ?? ''} />
-      {campaigns.length === 0 && <p className="card p-6 text-ink-600">Aucune campagne.</p>}
+      {campaigns.length === 0 && <EmptyState icon={<IconInbox />} title="Aucune campagne" />}
       <div className="grid gap-4">
         {campaigns.map((c) => {
           const pct = c.goalDh ? Math.min(100, Math.round((c.raisedDh / c.goalDh) * 100)) : 0
@@ -34,7 +39,7 @@ export default async function CampagnesPage() {
                 <div>
                   <p className="font-semibold">
                     {c.titleFr}{' '}
-                    <span className={`ms-2 rounded-full px-2 py-0.5 text-xs font-semibold ${c.isActive ? 'bg-success/15 text-success' : 'bg-navy-100 text-ink-600'}`}>
+                    <span className={`ms-2 rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${c.isActive ? 'bg-success/10 text-success' : 'bg-navy-100 text-ink-600'}`}>
                       {c.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </p>

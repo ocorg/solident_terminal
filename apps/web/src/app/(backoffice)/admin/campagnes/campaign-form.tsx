@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { saveCampaign, type CampaignInput } from './actions'
 
 const slugify = (s: string) =>
@@ -109,14 +110,11 @@ export function CampaignForm({ initial, actions = [] }: { initial?: CampaignInpu
         <input type="checkbox" checked={v.isActive} onChange={set('isActive')} className="size-4 accent-navy-700" />
         Active : visible sur le site et ouverte aux dons
       </label>
-      <div className="flex items-center gap-3">
-        <div className="w-60">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer la campagne'}</SubmitButton>
-        </div>
-        <button type="button" onClick={() => router.push('/admin/campagnes')} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer la campagne'}
+        loading={loading}
+        onCancel={() => router.push('/admin/campagnes')}
+      />
     </form>
   )
 }

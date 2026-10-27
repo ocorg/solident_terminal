@@ -1,5 +1,6 @@
 'use client'
 
+import { IconEdit, IconPlus } from '@/components/ui/icons'
 import { useState } from 'react'
 import { ImageField } from '@/components/admin/image-field'
 import type { MemberInput } from './actions'
@@ -28,8 +29,8 @@ export function MemberList({ members }: { members: Member[] }) {
                   {[m.isBoard && 'Bureau', m.isPublicContact && `Contact public · ${m.phone}`].filter(Boolean).join(' · ') || 'Non affiché'}
                 </p>
               </div>
-              <button type="button" onClick={() => setEditing(editing === m.id ? null : m.id)} className="btn btn-ghost px-3 py-1.5 text-sm">
-                {editing === m.id ? 'Fermer' : 'Modifier'}
+              <button type="button" onClick={() => setEditing(editing === m.id ? null : m.id)} className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-3 text-sm font-semibold text-ink-600 transition hover:bg-navy-100/60 hover:text-navy-900">
+                {editing === m.id ? 'Fermer' : <><IconEdit className="size-4" /> Modifier</>}
               </button>
             </div>
             {editing === m.id && (
@@ -46,8 +47,9 @@ export function MemberList({ members }: { members: Member[] }) {
           <MemberEditor nextOrder={nextOrder} onDone={() => setEditing(null)} />
         </div>
       ) : (
-        <button type="button" onClick={() => setEditing('new')} className="btn btn-primary">
-          + Ajouter un membre
+        <button type="button" onClick={() => setEditing('new')} className="btn btn-primary gap-2">
+          <IconPlus className="size-5" />
+          Ajouter un membre
         </button>
       )}
     </div>

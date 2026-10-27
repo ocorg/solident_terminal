@@ -1,7 +1,12 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { registrationState } from '@/lib/registrations'
+
+export const metadata: Metadata = { title: 'Événements' }
 
 const typeLabel: Record<string, string> = { solifun: 'Solifun', caravane: 'Caravane', scientifique: 'Scientifique', ambassadeurs: 'Jeunes ambassadeurs', autre: 'Autre' }
 const when = (d: Date) => d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' })
@@ -18,14 +23,14 @@ export default async function AdminEventsPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Événements</h1>
+        <h1 className="font-heading text-3xl font-bold text-navy-900">Événements<span className="brand-dot" aria-hidden /></h1>
         {canEdit && (
           <Link href="/admin/evenements/nouveau" className="btn btn-primary">
             + Nouvel événement
           </Link>
         )}
       </div>
-      {events.length === 0 && <p className="card p-6 text-ink-600">Aucun événement.</p>}
+      {events.length === 0 && <EmptyState icon={<IconInbox />} title="Aucun événement" />}
       <ul className="card divide-y divide-navy-100">
         {events.map((e) => {
           const s = registrationState(e, e._count.registrations)

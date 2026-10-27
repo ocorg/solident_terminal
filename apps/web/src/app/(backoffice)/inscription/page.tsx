@@ -4,7 +4,7 @@ import { AuthCard } from '@/components/auth-card'
 import { getSession } from '@/lib/guards'
 import { RequestForm } from './request-form'
 
-export const metadata: Metadata = { title: 'Inscription · Solident' }
+export const metadata: Metadata = { title: 'Inscription | Solident' }
 
 export default async function InscriptionPage() {
   if (await getSession()) redirect('/espace')

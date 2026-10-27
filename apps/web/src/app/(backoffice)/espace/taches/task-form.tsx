@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { TASK_PRIORITIES, taskPriorityLabel } from '@/lib/space-labels'
 import { createTask, updateTask } from './actions'
 
@@ -96,16 +97,11 @@ export function TaskForm({ contexts, people, initial, defaultContextId, onDone }
           ))}
         </div>
       </fieldset>
-      <div className="flex items-center gap-3">
-        <div className="w-52">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer la tâche'}</SubmitButton>
-        </div>
-        {onDone && (
-          <button type="button" onClick={onDone} className="text-sm text-ink-600 underline">
-            Annuler
-          </button>
-        )}
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer la tâche'}
+        loading={loading}
+        onCancel={onDone}
+      />
     </form>
   )
 }

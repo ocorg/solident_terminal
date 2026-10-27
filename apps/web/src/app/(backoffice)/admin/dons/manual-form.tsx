@@ -3,7 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { Btn, Sheet } from '@/components/ui'
+import { IconMoney, IconPlus } from '@/components/ui/icons'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { addManual } from './actions'
 
 type Option = { id: string; label: string }
@@ -37,17 +40,13 @@ export function ManualDonationForm({ campaigns, partners }: { campaigns: Option[
     router.refresh()
   }
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="btn btn-primary">
-        + Ajouter un virement reçu
-      </button>
-    )
-  }
-
   return (
-    <form onSubmit={onSubmit} className="card space-y-4 p-5">
-      <p className="font-semibold text-navy-700">Virement vu sur le relevé, sans déclaration (ajouté directement comme confirmé)</p>
+    <>
+      <Btn variant="primary" icon={<IconPlus />} onClick={() => setOpen(true)}>
+        Ajouter un virement reçu
+      </Btn>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Ajouter un virement reçu" subtitle="Vu sur le relevé bancaire, sans déclaration : ajouté directement comme confirmé." icon={<IconMoney />}>
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field id="m-campaign" label="Campagne">
           <select id="m-campaign" value={form.campaignId} onChange={set('campaignId')} className={inputClass} required>
@@ -94,14 +93,13 @@ export function ManualDonationForm({ campaigns, partners }: { campaigns: Option[
       <Field id="m-note" label="Note interne (facultatif)">
         <input id="m-note" value={form.note} onChange={set('note')} maxLength={500} placeholder="ex. référence du relevé" className={inputClass} />
       </Field>
-      <div className="flex gap-3">
-        <div className="w-56">
-          <SubmitButton loading={loading}>Ajouter le don</SubmitButton>
-        </div>
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={'Ajouter le don'}
+        loading={loading}
+        onCancel={() => setOpen(false)}
+      />
     </form>
+      </Sheet>
+    </>
   )
 }

@@ -6,7 +6,7 @@ import { CountList } from '@/components/inventory/count-list'
 import { MovementButton, type MovementContext } from '@/components/inventory/movement-form'
 import { NeedsSection } from '@/components/inventory/needs-section'
 import { NewCountButton } from '@/components/inventory/new-count-button'
-import { Tag } from '@/components/inventory/ui'
+import { Tag } from '@/components/ui'
 import { formatQty, sourceLabel } from '@/lib/inventory/labels'
 import { loadInventory, loadProjectInventory, projectOptions } from '@/lib/inventory/queries'
 import { inventoryRights } from '@/lib/inventory/rights'
@@ -81,8 +81,8 @@ export default async function ProjectInventoryPage({ params }: PageProps<'/espac
             <h2 className="font-heading text-xl font-bold text-navy-700">Collecte</h2>
             <p className="text-sm text-ink-600">Tout ce qui a été collecté pour ce projet (dons, achats, emprunts).</p>
           </div>
-          <MovementButton kind="entree" ctx={ctx} defaults={{ projectId: id }} className="btn btn-primary min-h-12">
-            + Ajouter ma collecte
+          <MovementButton kind="entree" ctx={ctx} defaults={{ projectId: id }} variant="primary">
+            Ajouter ma collecte
           </MovementButton>
         </div>
         {byMember.size ? (
@@ -129,7 +129,7 @@ export default async function ProjectInventoryPage({ params }: PageProps<'/espac
             <p className="text-sm text-ink-600">Après l’activité : on recompte tout pour voir ce qui a été consommé, ce qui manque, et qui détient quoi.</p>
           </div>
           {rights.canManageProject && (
-            <NewCountButton projectId={id} className="btn btn-primary min-h-12">
+            <NewCountButton projectId={id} variant="primary">
               {drafts.length ? 'Continuer le bilan' : 'Nouveau bilan'}
             </NewCountButton>
           )}

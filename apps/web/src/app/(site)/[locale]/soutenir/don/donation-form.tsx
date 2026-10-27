@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { shrinkImage } from '@/components/admin/upload'
 import { Field, inputClass, SubmitButton } from '@/components/form-fields'
 import { declareDonation, getProofUploadUrl, type DonateError } from './actions'
 
@@ -31,11 +32,14 @@ export function DonationForm({ campaigns }: { campaigns: { id: string; title: st
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const file = fileRef.current?.files?.[0]
-    if (file && (!PROOF_TYPES.includes(file.type) || file.size > PROOF_MAX)) return void toast.error(t('errFile'))
+    const picked = fileRef.current?.files?.[0]
+    if (picked && !PROOF_TYPES.includes(picked.type)) return void toast.error(t('errFile'))
     if (form.showOnWall && form.donorName.trim().length < 2) return void toast.error(t('errName'))
     setLoading(true)
     try {
+      // Photos of receipts are compressed to 100 KB max (1600 px keeps the text readable); PDFs are sent as they are.
+      const file = picked?.type.startsWith('image/') ? await shrinkImage(picked, 1600).catch(() => null) : picked
+      if (picked && (!file || file.size > PROOF_MAX)) return void toast.error(t('errFile')) // finally resets loading
       const proofKey = file ? await uploadProof(file) : undefined
       const res = await declareDonation({
         locale,

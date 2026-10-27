@@ -1,5 +1,8 @@
+import type { Metadata } from 'next'
 import { requireRolePage } from '@/lib/guards'
 import { UploadTest } from './upload-test'
+
+export const metadata: Metadata = { title: 'Test envoi de fichiers' }
 
 export default async function UploadTestPage() {
   await requireRolePage('admin')

@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { MemberList } from './member-list'
+
+export const metadata: Metadata = { title: 'Équipe' }
 
 export default async function EquipePage() {
   await requireRolePage('admin', 'media')
@@ -8,7 +11,7 @@ export default async function EquipePage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Équipe</h1>
+      <h1 className="font-heading text-3xl font-bold text-navy-900">Équipe<span className="brand-dot" aria-hidden /></h1>
       <p className="text-sm text-ink-600">
         Photos : de préférence carrées, visage centré. Elles sont réduites automatiquement avant l’envoi. Sans photo, les initiales s’affichent.
       </p>

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { EmptyState, PageHeader } from '@/components/ui/blocks'
+import { IconUsers } from '@/components/ui/icons'
 import { prisma } from '@solident/db'
 import { AvatarStack } from '@/components/space/avatar'
 import { requireMemberPage } from '@/lib/space'
@@ -16,11 +18,16 @@ export default async function CellulesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Cellules</h1>
-        {user.isSpaceAdmin && <ContextEditorToggle label="+ Nouvelle cellule" type="cellule" />}
-      </div>
-      {cellules.length === 0 && <p className="card p-6 text-ink-600">Aucune cellule.</p>}
+      <PageHeader
+        title="Cellules"
+        description="Les équipes permanentes de l’association : médias, finances, logistique, RH."
+        actions={user.isSpaceAdmin ? <ContextEditorToggle label="Nouvelle cellule" type="cellule" /> : undefined}
+      />
+      {cellules.length === 0 && (
+        <EmptyState icon={<IconUsers />} title="Aucune cellule">
+          Les cellules créées apparaîtront ici.
+        </EmptyState>
+      )}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cellules.map((c) => (
           <li key={c.id}>

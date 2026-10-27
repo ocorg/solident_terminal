@@ -4,7 +4,7 @@ import { AuthCard } from '@/components/auth-card'
 import { getSession } from '@/lib/guards'
 import { LoginForm } from './login-form'
 
-export const metadata: Metadata = { title: 'Connexion · Solident' }
+export const metadata: Metadata = { title: 'Connexion | Solident' }
 
 const errors: Record<string, string> = {
   INVALID_TOKEN: 'Ce lien est invalide ou a déjà été utilisé. Demandez-en un nouveau.',

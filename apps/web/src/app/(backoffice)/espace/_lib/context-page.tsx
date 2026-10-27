@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { EmptyState, PriorityMark, StatusTag } from '@/components/ui/blocks'
+import { IconTasks } from '@/components/ui/icons'
 import { notFound } from 'next/navigation'
 import { prisma, type ContextType } from '@solident/db'
 import { AvatarStack } from '@/components/space/avatar'
 import { isContextManager, requireMemberPage } from '@/lib/space'
-import { priorityRank, projectStatusLabel, projectStatusStyle, taskPriorityLabel, taskStatusLabel, taskStatusStyle } from '@/lib/space-labels'
+import { priorityRank, projectStatusLabel, projectStatusTone, taskPriorityColor, taskPriorityLabel, taskStatusLabel, taskStatusTone } from '@/lib/space-labels'
 import { taskFormData } from '../taches/data'
 import { NewTaskButton } from '../taches/task-widgets'
 import { ContextEditorToggle, CoverField, MembersManager } from './context-widgets'
@@ -70,7 +72,11 @@ export async function ContextPage({ type, id }: { type: ContextType; id: string 
           </p>
           <h1 className="font-heading text-3xl font-bold text-navy-900">
             {ctx.name}
-            {project && <span className={`ms-3 rounded-full px-2 py-0.5 align-middle text-xs font-semibold ${projectStatusStyle[project.status]}`}>{projectStatusLabel[project.status]}</span>}
+            {project && (
+              <StatusTag tone={projectStatusTone[project.status]} className="ms-3 align-middle">
+                {projectStatusLabel[project.status]}
+              </StatusTag>
+            )}
           </h1>
           {project && (project.startDate || project.endDate) && (
             <p className="text-sm text-ink-600">
@@ -113,15 +119,19 @@ export async function ContextPage({ type, id }: { type: ContextType; id: string 
             <div className="h-full rounded-full bg-success" style={{ width: `${progress}%` }} />
           </div>
           {open.length === 0 ? (
-            <p className="card p-5 text-ink-600">Aucune tâche ouverte.</p>
+            <EmptyState icon={<IconTasks />} title="Aucune tâche ouverte">
+              Tout est fait, ou rien n’a encore été planifié.
+            </EmptyState>
           ) : (
             <ul className="card divide-y divide-navy-100">
               {open.map((t) => (
                 <li key={t.id}>
                   <Link href={`/espace/taches/${t.id}`} className="flex flex-wrap items-center gap-3 p-4 hover:bg-cream-50">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${taskStatusStyle[t.status]}`}>{taskStatusLabel[t.status]}</span>
+                    <StatusTag tone={taskStatusTone[t.status]} className="w-20 text-center">
+                      {taskStatusLabel[t.status]}
+                    </StatusTag>
                     <span className="min-w-40 flex-1 font-semibold">{t.title}</span>
-                    <span className="text-xs">{taskPriorityLabel[t.priority]}</span>
+                    <PriorityMark color={taskPriorityColor[t.priority]} label={taskPriorityLabel[t.priority]} />
                     <AvatarStack people={t.assignees.map((a) => a.user)} />
                   </Link>
                 </li>
@@ -153,7 +163,7 @@ export async function ContextPage({ type, id }: { type: ContextType; id: string 
                   <li key={c.id}>
                     <Link href={`/espace/projets/${c.id}`} className="card card-hover flex items-center justify-between p-3 text-sm">
                       <span className="font-semibold">{c.name}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${projectStatusStyle[c.status]}`}>{projectStatusLabel[c.status]}</span>
+                      <StatusTag tone={projectStatusTone[c.status]}>{projectStatusLabel[c.status]}</StatusTag>
                     </Link>
                   </li>
                 ))}

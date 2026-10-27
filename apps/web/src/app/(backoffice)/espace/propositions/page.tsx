@@ -1,11 +1,11 @@
-import Link from 'next/link'
-import { prisma, type ApprovalStatus } from '@solident/db'
+import { EmptyState, PageHeader, SegmentedLinks, StatusTag } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import { prisma } from '@solident/db'
 import { requireMemberPage } from '@/lib/space'
-import { approvalLabel } from '@/lib/space-labels'
+import { approvalLabel, approvalTone } from '@/lib/space-labels'
 import { ProposalForm, ReviewButtons, WithdrawButton } from './proposal-widgets'
 
 export const metadata = { title: 'Propositions' }
-const style: Record<ApprovalStatus, string> = { en_attente: 'bg-gold-100 text-navy-900', approuve: 'bg-success/15 text-success', rejete: 'bg-danger/15 text-danger' }
 const day = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Casablanca' })
 
 export default async function ProposalsPage({ searchParams }: PageProps<'/espace/propositions'>) {
@@ -21,35 +21,35 @@ export default async function ProposalsPage({ searchParams }: PageProps<'/espace
     prisma.project.findMany({ where: { approvalStatus: 'approuve' }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ])
-  const chip = (active: boolean) => `rounded-full px-3 py-1 text-sm font-semibold ${active ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-navy-700">Propositions</h1>
-          <p className="text-sm text-ink-600">{user.isSpaceAdmin ? 'Toutes les propositions de projets et d’activités.' : 'Vos propositions. Les administrateurs de l’espace les examinent.'}</p>
-        </div>
-        <ProposalForm projects={projects} people={people} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Link href="/espace/propositions" className={chip(!status)}>
-          Toutes
-        </Link>
-        {(['en_attente', 'approuve', 'rejete'] as const).map((s) => (
-          <Link key={s} href={`/espace/propositions?statut=${s}`} className={chip(status === s)}>
-            {approvalLabel[s]}
-          </Link>
-        ))}
-      </div>
-      {proposals.length === 0 && <p className="card p-6 text-ink-600">Aucune proposition.</p>}
+      <PageHeader
+        title="Propositions"
+        description={user.isSpaceAdmin ? 'Toutes les propositions de projets et d’activités.' : 'Vos propositions. Les administrateurs de l’espace les examinent.'}
+        actions={<ProposalForm projects={projects} people={people} />}
+      />
+      <SegmentedLinks
+        label="Statut"
+        items={[
+          { href: '/espace/propositions', label: 'Toutes', active: !status },
+          ...(['en_attente', 'approuve', 'rejete'] as const).map((s) => ({ href: `/espace/propositions?statut=${s}`, label: approvalLabel[s], active: status === s })),
+        ]}
+      />
+      {proposals.length === 0 && (
+        <EmptyState icon={<IconInbox />} title="Aucune proposition">
+          Une idée de projet ou d’activité ? Proposez-la : les administrateurs de l’espace l’examineront.
+        </EmptyState>
+      )}
       <ul className="space-y-3">
         {proposals.map((p) => (
           <li key={p.id} className="card space-y-3 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-heading text-lg font-bold text-navy-900">
-                  {p.title} <span className={`ms-2 rounded-full px-2 py-0.5 align-middle text-xs font-semibold ${style[p.status]}`}>{approvalLabel[p.status]}</span>
+                  {p.title} <StatusTag tone={approvalTone[p.status]} className="ms-2 align-middle">
+                    {approvalLabel[p.status]}
+                  </StatusTag>
                 </p>
                 <p className="text-xs text-ink-600">
                   {p.type}

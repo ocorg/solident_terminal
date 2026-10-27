@@ -10,7 +10,7 @@ import type { ItemDTO, MovementDTO } from '@/lib/inventory/queries'
 import { getItemHistory } from '@/lib/inventory/read-actions'
 import { MovementButton, type MovementContext } from './movement-form'
 import { MovementList } from './movement-list'
-import { ItemThumb, selectClass, Sheet, Tag } from './ui'
+import { ItemThumb, selectClass, Sheet, Tag } from '@/components/ui'
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
@@ -83,7 +83,7 @@ export function StockView({ items, ctx, canUndo }: { items: ItemDTO[]; ctx: Move
             return (
               <li key={i.id} className={i.low ? 'shadow-[inset_4px_0_0_var(--color-danger)]' : ''}>
                 <button type="button" onClick={() => setOpenId(i.id)} className="flex w-full items-start gap-3 px-3 py-3 text-start transition active:bg-navy-100/60">
-                  <ItemThumb url={i.photoUrl} name={i.name} size={40} />
+                  <ItemThumb url={i.photoUrl} name={i.name} category={i.category} size={40} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-2">
                       <span className="font-semibold leading-tight text-navy-900">{i.name}</span>
@@ -131,7 +131,7 @@ export function StockView({ items, ctx, canUndo }: { items: ItemDTO[]; ctx: Move
                 >
                   <th scope="row" className="sticky start-0 bg-white px-3 py-2 text-start font-normal">
                     <button type="button" className="flex items-center gap-3 text-start" onClick={() => setOpenId(i.id)}>
-                      <ItemThumb url={i.photoUrl} name={i.name} size={36} />
+                      <ItemThumb url={i.photoUrl} name={i.name} category={i.category} size={36} />
                       <span className="min-w-0">
                         <span className="block font-semibold text-navy-900">{i.name}</span>
                         <span className="block text-xs text-ink-600">
@@ -166,7 +166,13 @@ export function StockView({ items, ctx, canUndo }: { items: ItemDTO[]; ctx: Move
         </>
       )}
 
-      <Sheet open={!!openItem} onClose={() => setOpenId(null)} title={openItem?.name ?? 'Article'}>
+      <Sheet
+        open={!!openItem}
+        onClose={() => setOpenId(null)}
+        title={openItem?.name ?? 'Article'}
+        subtitle={openItem ? `${categoryLabel[openItem.category]}${openItem.subcategory ? ` · ${openItem.subcategory}` : ''}` : undefined}
+        icon={openItem ? <ItemThumb url={openItem.photoUrl} name={openItem.name} category={openItem.category} size={40} /> : undefined}
+      >
         {openItem && <ItemDetail item={openItem} ctx={ctx} canUndo={canUndo} />}
       </Sheet>
     </div>
@@ -197,35 +203,25 @@ function ItemDetail({ item, ctx, canUndo }: { item: ItemDTO; ctx: MovementContex
   const iHold = balances.some((b) => b.holderId === ctx.me.id)
   return (
     <div className="space-y-5">
-      {item.photoUrl ? (
+      {item.photoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- R2 image
-        <img src={item.photoUrl} alt={`Photo : ${item.name}`} className="aspect-[4/3] w-full rounded-[10px] bg-cream-100 object-cover" />
-      ) : (
-        <p className="rounded-[10px] bg-cream-100 p-4 text-center text-sm text-ink-600">Pas encore de photo (la Logistique peut en ajouter dans le Catalogue).</p>
+        <img src={item.photoUrl} alt={`Photo : ${item.name}`} className="aspect-[4/3] w-full rounded-[12px] bg-cream-100 object-cover" />
       )}
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-ink-600">Catégorie</dt>
-          <dd className="font-semibold">
-            {categoryLabel[item.category]}
-            {item.subcategory && ` · ${item.subcategory}`}
-          </dd>
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`rounded-[12px] border-s-4 bg-white p-3 shadow-card ${item.low ? 'border-danger' : 'border-navy-700'}`}>
+          <p className="text-xs font-semibold text-ink-600">En stock</p>
+          <p className="font-heading text-2xl font-bold text-navy-900">
+            {formatQty(item.total, item.estimate)} <span className="text-sm font-semibold text-ink-600">{item.unit}</span>
+          </p>
+          {item.low && <Tag tone="danger">Stock bas</Tag>}
         </div>
-        <div>
-          <dt className="text-ink-600">Total</dt>
-          <dd className="font-semibold">
-            {formatQty(item.total, item.estimate)} {item.unit} {item.low && <Tag tone="danger">Stock bas</Tag>}
-          </dd>
+        <div className="rounded-[12px] border-s-4 border-navy-100 bg-white p-3 shadow-card">
+          <p className="text-xs font-semibold text-ink-600">Alerte sous</p>
+          <p className="font-heading text-2xl font-bold text-navy-900">
+            {item.minQty ? formatQty(item.minQty) : '—'} {item.minQty && <span className="text-sm font-semibold text-ink-600">{item.unit}</span>}
+          </p>
         </div>
-        {item.minQty && (
-          <div>
-            <dt className="text-ink-600">Seuil d’alerte</dt>
-            <dd className="font-semibold">
-              {formatQty(item.minQty)} {item.unit}
-            </dd>
-          </div>
-        )}
-      </dl>
+      </div>
       {item.notes && <p className="whitespace-pre-wrap text-sm text-ink-600">{item.notes}</p>}
 
       <section>
@@ -249,17 +245,17 @@ function ItemDetail({ item, ctx, canUndo }: { item: ItemDTO; ctx: MovementContex
         )}
       </section>
 
-      <div className="flex flex-wrap gap-2">
-        <MovementButton kind="entree" ctx={ctx} defaults={{ itemId: item.id }} className="btn btn-ghost min-h-11">
-          + Entrée
+      <div className={`grid gap-2 ${(iHold || ctx.canMoveAny) && balances.length > 0 ? 'grid-cols-3' : 'grid-cols-1'}`}>
+        <MovementButton kind="entree" ctx={ctx} defaults={{ itemId: item.id }} className="!min-h-16 flex-col !gap-1 !px-2 !text-xs">
+          Entrée
         </MovementButton>
         {(iHold || ctx.canMoveAny) && balances.length > 0 && (
           <>
-            <MovementButton kind="transfert" ctx={ctx} defaults={{ itemId: item.id }} className="btn btn-ghost min-h-11">
+            <MovementButton kind="transfert" ctx={ctx} defaults={{ itemId: item.id }} className="!min-h-16 flex-col !gap-1 !px-2 !text-xs">
               Transférer
             </MovementButton>
-            <MovementButton kind="sortie" ctx={ctx} defaults={{ itemId: item.id }} className="btn btn-ghost min-h-11">
-              Consommation / perte
+            <MovementButton kind="sortie" ctx={ctx} defaults={{ itemId: item.id }} className="!min-h-16 flex-col !gap-1 !px-2 !text-xs">
+              Sortie
             </MovementButton>
           </>
         )}

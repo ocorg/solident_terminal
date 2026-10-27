@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { saveEvent, type EventInput } from './actions'
 
 const slugify = (s: string) =>
@@ -120,14 +121,11 @@ export function EventForm({ initial, programmes }: { initial?: EventInput; progr
           Inscriptions ouvertes (se ferment seules quand c’est complet)
         </label>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="w-60">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer l’événement'}</SubmitButton>
-        </div>
-        <button type="button" onClick={() => router.push('/admin/evenements')} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer l’événement'}
+        loading={loading}
+        onCancel={() => router.push('/admin/evenements')}
+      />
     </form>
   )
 }

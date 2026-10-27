@@ -3,8 +3,13 @@
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { SheetButton } from '@/components/ui'
+import { IconClose, IconEdit, IconPlus } from '@/components/ui/icons'
+import { askConfirm } from '@/components/ui/confirm-host'
+import { IconTrash } from '@/components/ui/icons'
+import { Btn, FormActions } from '@/components/ui'
 import { shrinkImage } from '@/components/admin/upload'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { Field, inputClass } from '@/components/form-fields'
 import { Spinner } from '@/components/spinner'
 import { Avatar } from '@/components/space/avatar'
 import { isManagementPosition, PROJECT_STATUSES, projectStatusLabel } from '@/lib/space-labels'
@@ -71,10 +76,10 @@ export function MembersManager({ type, contextId, positions, members, people, ca
                         type="button"
                         aria-label={`Retirer ${m.name}`}
                         disabled={busy !== null}
-                        onClick={() => confirm(`Retirer ${m.name} ?`) && act(`r-${m.userId}`, () => removeMember({ type, contextId, userId: m.userId }), 'Membre retiré')}
-                        className="px-1 text-danger"
+                        onClick={async () => (await askConfirm({ title: `Retirer ${m.name} de l’équipe ?`, body: 'Ses tâches restent en place.', confirm: 'Retirer', danger: true })) && act(`r-${m.userId}`, () => removeMember({ type, contextId, userId: m.userId }), 'Membre retiré')}
+                        className="flex size-8 items-center justify-center rounded-[8px] text-ink-600 transition hover:bg-danger/10 hover:text-danger"
                       >
-                        {busy === `r-${m.userId}` ? <Spinner /> : '×'}
+                        {busy === `r-${m.userId}` ? <Spinner /> : <IconClose className="size-4" />}
                       </button>
                     </>
                   )}
@@ -195,7 +200,7 @@ export function ContextEditor({ type, initial, projects = [], onDone, canDelete 
     onDone?.()
   }
   async function onDelete() {
-    if (!v.id || !confirm(`Supprimer « ${v.name} », ses postes, ses membres et TOUTES ses tâches ?`)) return
+    if (!v.id || !(await askConfirm({ title: `Supprimer « ${v.name} » ?`, body: 'Ses postes, ses membres et toutes ses tâches seront supprimés. Action définitive.', confirm: 'Supprimer définitivement', danger: true }))) return
     setLoading(true)
     const res = await deleteContext({ type, id: v.id })
     setLoading(false)
@@ -246,21 +251,12 @@ export function ContextEditor({ type, initial, projects = [], onDone, canDelete 
           </label>
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-48">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer'}</SubmitButton>
-        </div>
-        {onDone && (
-          <button type="button" onClick={onDone} className="text-sm text-ink-600 underline">
-            Annuler
-          </button>
-        )}
-        {canDelete && v.id && (
-          <button type="button" onClick={onDelete} className="ms-auto text-sm text-danger underline">
-            Supprimer
-          </button>
-        )}
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer'}
+        loading={loading}
+        onCancel={onDone}
+        danger={canDelete && v.id ? <Btn variant="dangerQuiet" icon={<IconTrash className="size-4" />} onClick={onDelete}>Supprimer</Btn> : undefined}
+      />
     </form>
   )
 }
@@ -278,16 +274,17 @@ export function EditToggle({ label, children }: { label: string; children: (clos
 
 /** Button that opens the project/cellule editor (serializable props only, usable from server pages). */
 export function ContextEditorToggle({ label, ...props }: { label: string } & Omit<React.ComponentProps<typeof ContextEditor>, 'onDone'>) {
-  const [open, setOpen] = useState(false)
-  if (!open)
-    return (
-      <button type="button" onClick={() => setOpen(true)} className={label.startsWith('+') ? 'btn btn-primary' : 'btn btn-ghost px-3 py-1.5 text-sm'}>
-        {label}
-      </button>
-    )
+  const creating = !props.initial
+  const what = props.type === 'project' ? 'projet' : 'cellule'
   return (
-    <div className="card w-full p-5">
-      <ContextEditor {...props} onDone={() => setOpen(false)} />
-    </div>
+    <SheetButton
+      label={label.replace(/^\+\s*/, '')}
+      icon={creating ? <IconPlus /> : <IconEdit className="size-4" />}
+      variant={creating ? 'primary' : 'secondary'}
+      title={creating ? `Nouveau ${what}` : `Modifier : ${props.initial?.name ?? what}`}
+      subtitle={creating ? 'Nom, dates et statut. Les membres s’ajoutent ensuite.' : undefined}
+    >
+      {(close) => <ContextEditor {...props} onDone={close} />}
+    </SheetButton>
   )
 }

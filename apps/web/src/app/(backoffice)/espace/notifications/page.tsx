@@ -1,4 +1,5 @@
 import { prisma } from '@solident/db'
+import { PageHeader } from '@/components/ui/blocks'
 import { notificationLink } from '@/lib/notification-links'
 import { requireMemberPage } from '@/lib/space'
 import { NotificationList } from './notification-list'
@@ -13,7 +14,7 @@ export default async function NotificationsPage() {
   const items = await prisma.notification.findMany({ where: { recipientId: user.id }, orderBy: { createdAt: 'desc' }, take: 100 })
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Notifications</h1>
+      <PageHeader title="Notifications" description="Tâches, invitations, transferts de matériel : ce qui vous concerne." />
       <NotificationList
         items={items.map((n) => ({
           id: n.id,

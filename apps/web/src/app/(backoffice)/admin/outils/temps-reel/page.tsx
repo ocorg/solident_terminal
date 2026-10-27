@@ -1,5 +1,8 @@
+import type { Metadata } from 'next'
 import { requireRolePage } from '@/lib/guards'
 import { RealtimeTest } from './realtime-test'
+
+export const metadata: Metadata = { title: 'Test temps réel' }
 
 export default async function RealtimeTestPage() {
   await requireRolePage('admin')

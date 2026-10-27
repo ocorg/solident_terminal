@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import { EmptyState, PageHeader, SegmentedLinks } from '@/components/ui/blocks'
+import { IconCalendar } from '@/components/ui/icons'
 import { prisma, type Prisma } from '@solident/db'
 import { AvatarStack } from '@/components/space/avatar'
 import { contextNames, requireMemberPage } from '@/lib/space'
@@ -31,19 +32,19 @@ export default async function AgendaPage({ searchParams }: PageProps<'/espace/ev
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Agenda</h1>
-        <TeamEventFormToggle label="+ Nouvel événement" contexts={contexts} people={people} />
-      </div>
-      <div className="flex gap-2">
-        <Link href="/espace/evenements" className={`rounded-full px-3 py-1 text-sm font-semibold ${!past ? 'bg-navy-700 text-white' : 'bg-white text-navy-700'}`}>
-          À venir
-        </Link>
-        <Link href="/espace/evenements?passes=1" className={`rounded-full px-3 py-1 text-sm font-semibold ${past ? 'bg-navy-700 text-white' : 'bg-white text-navy-700'}`}>
-          Passés
-        </Link>
-      </div>
-      {events.length === 0 && <p className="card p-6 text-ink-600">{past ? 'Aucun événement passé.' : 'Rien de prévu. Créez la prochaine réunion !'}</p>}
+      <PageHeader title="Agenda" description="Réunions, activités et rendez-vous de l’équipe." actions={<TeamEventFormToggle label="+ Nouvel événement" contexts={contexts} people={people} />} />
+      <SegmentedLinks
+        label="Période"
+        items={[
+          { href: '/espace/evenements', label: 'À venir', active: !past },
+          { href: '/espace/evenements?passes=1', label: 'Passés', active: past },
+        ]}
+      />
+      {events.length === 0 && (
+        <EmptyState icon={<IconCalendar />} title={past ? 'Aucun événement passé' : 'Rien de prévu'}>
+          {past ? 'Les événements terminés apparaîtront ici.' : 'Une réunion à caler ? Créez-la avec « Nouvel événement ».'}
+        </EmptyState>
+      )}
       <ul className="space-y-3">
         {events.map((e) => {
           const mine = e.attendees.find((a) => a.userId === user.id)

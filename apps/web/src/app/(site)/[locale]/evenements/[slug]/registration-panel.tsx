@@ -49,7 +49,7 @@ export function RegistrationPanel({ eventId, initial }: { eventId: string; initi
     <div className="card p-6 md:p-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-heading text-2xl font-bold text-navy-700">{te('registerTitle')}</h2>
-        <span className={`rounded-full px-3 py-1 text-sm font-semibold ${state.open ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>{badge}</span>
+        <span className={`rounded-[6px] px-2 py-1 text-xs font-bold uppercase tracking-wide ${state.open ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>{badge}</span>
       </div>
 
       {done ? (

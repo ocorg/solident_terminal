@@ -1,3 +1,5 @@
+import { EmptyState, StatTile } from '@/components/ui/blocks'
+import { IconCalendar, IconHeart, IconInbox, IconMail, IconMoney, IconPhoto, IconUserCheck } from '@/components/ui/icons'
 import Link from 'next/link'
 import { prisma } from '@solident/db'
 import { BrushRing } from '@/components/motion/brush-ring'
@@ -7,7 +9,7 @@ import { requireRolePage, STAFF_ROLES } from '@/lib/guards'
 
 const dh = (n: number) => new Intl.NumberFormat('fr-MA').format(n) + ' DH'
 
-type Tile = { href: string; label: string; value: number; hint: string }
+type Tile = { href: string; label: string; value: number; hint: string; icon: React.ReactNode }
 
 // Each role sees its own work queue first; numbers count up, bars grow in (both off with "reduce motion").
 export default async function AdminHome() {
@@ -27,12 +29,12 @@ export default async function AdminHome() {
   ])
 
   const tiles: Tile[] = [
-    ...(pendingDonations ? [{ href: '/admin/dons', label: 'Dons à vérifier', value: pendingDonations._count, hint: `${dh(pendingDonations._sum.amountDh ?? 0)} déclarés` }] : []),
-    ...(is('admin') ? [{ href: '/admin/utilisateurs', label: 'Comptes en attente', value: pendingUsers, hint: 'à valider ou refuser' }] : []),
-    ...(is('admin') ? [{ href: '/admin/messages', label: 'Nouveaux messages', value: newMessages, hint: 'contact et sponsoring' }] : []),
-    ...(is('admin', 'hr') ? [{ href: '/admin/inscriptions', label: 'Nouvelles inscriptions', value: newRegistrations, hint: 'aux événements' }] : []),
-    ...(is('admin', 'hr') ? [{ href: '/admin/benevoles', label: 'Candidatures bénévoles', value: newVolunteers, hint: 'à contacter' }] : []),
-    ...(is('admin', 'media') ? [{ href: '/admin/contenu', label: 'Actions sans photo', value: actionsNoPhoto, hint: 'ajoutez une photo de couverture' }] : []),
+    ...(pendingDonations ? [{ href: '/admin/dons', label: 'Dons à vérifier', icon: <IconMoney />, value: pendingDonations._count, hint: `${dh(pendingDonations._sum.amountDh ?? 0)} déclarés` }] : []),
+    ...(is('admin') ? [{ href: '/admin/utilisateurs', label: 'Comptes en attente', icon: <IconUserCheck />, value: pendingUsers, hint: 'à valider ou refuser' }] : []),
+    ...(is('admin') ? [{ href: '/admin/messages', label: 'Nouveaux messages', icon: <IconMail />, value: newMessages, hint: 'contact et sponsoring' }] : []),
+    ...(is('admin', 'hr') ? [{ href: '/admin/inscriptions', label: 'Nouvelles inscriptions', icon: <IconCalendar />, value: newRegistrations, hint: 'aux événements' }] : []),
+    ...(is('admin', 'hr') ? [{ href: '/admin/benevoles', label: 'Candidatures bénévoles', icon: <IconHeart />, value: newVolunteers, hint: 'à contacter' }] : []),
+    ...(is('admin', 'media') ? [{ href: '/admin/contenu', label: 'Actions sans photo', icon: <IconPhoto />, value: actionsNoPhoto, hint: 'ajoutez une photo de couverture' }] : []),
   ]
   const todo = tiles.reduce((n, t) => n + t.value, 0)
   const hour = Number(new Date().toLocaleString('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Africa/Casablanca' }))
@@ -62,14 +64,9 @@ export default async function AdminHome() {
       {tiles.length > 0 && (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tiles.map((t) => (
-            <li key={t.href} data-reveal>
-              <Link href={t.href} className={`card card-hover nudge flex h-full flex-col p-5 ${t.value > 0 ? 'border-s-4 border-gold-500' : ''}`}>
-                <span className="text-sm text-ink-600">{t.label}</span>
-                <CountUp value={t.value} className="font-heading text-4xl font-bold text-navy-700" />
-                <span className="mt-auto flex items-center justify-between gap-2 pt-2 text-sm text-ink-600">
-                  {t.hint} <span className="nudge-arrow text-navy-700" aria-hidden>→</span>
-                </span>
-              </Link>
+            <li key={t.href} data-reveal className="[&>*]:h-full">
+              {/* Gold edge and number only when something waits; zero stays quiet. */}
+              <StatTile href={t.href} label={t.label} icon={t.icon} value={<CountUp value={t.value} />} hint={t.hint} tone={t.value > 0 ? 'gold' : 'muted'} />
             </li>
           ))}
         </ul>
@@ -77,7 +74,7 @@ export default async function AdminHome() {
 
       <section className="space-y-3">
         <h2 className="font-heading text-lg font-bold text-navy-700">Campagnes actives</h2>
-        {campaigns.length === 0 && <p className="card p-5 text-ink-600">Aucune campagne active.</p>}
+        {campaigns.length === 0 && <EmptyState icon={<IconInbox />} title="Aucune campagne active" />}
         {campaigns.map((c) => {
           const pct = c.goalDh ? Math.min(100, Math.round((c.raisedDh / c.goalDh) * 100)) : 0
           return (

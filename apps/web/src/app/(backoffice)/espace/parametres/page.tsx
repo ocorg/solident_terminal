@@ -1,4 +1,5 @@
 import { prisma } from '@solident/db'
+import { PageHeader } from '@/components/ui/blocks'
 import { requireMemberPage } from '@/lib/space'
 import { PushSettings } from './push-settings'
 import { AvatarForm, PasswordForm, ProfileForm } from './settings-forms'
@@ -13,7 +14,7 @@ export default async function SettingsPage() {
   ])
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Paramètres</h1>
+      <PageHeader title="Paramètres" description="Votre profil, vos notifications et votre mot de passe." />
       <section className="card space-y-4 p-6">
         <h2 className="font-heading text-lg font-bold text-navy-700">Photo</h2>
         <AvatarForm name={u.name} image={u.image} />

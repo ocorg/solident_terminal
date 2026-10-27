@@ -64,7 +64,12 @@ export function resetBaseline(form: HTMLFormElement) {
 export function hasUnsavedData(): boolean {
   if (sources.size) return true
   if (document.querySelector('[data-guard-dirty="true"]')) return true
-  for (const form of document.querySelectorAll('form')) {
+  return formsDirtyIn(document)
+}
+
+/** True when a guarded form inside `root` has a field that differs from its original value. */
+export function formsDirtyIn(root: ParentNode): boolean {
+  for (const form of root.querySelectorAll('form')) {
     if (form.closest('[data-no-guard]')) continue
     for (const el of form.elements) {
       const f = guardedField(el)

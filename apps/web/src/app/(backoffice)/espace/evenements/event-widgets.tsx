@@ -3,7 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { SheetButton } from '@/components/ui'
+import { IconCalendar, IconEdit, IconPlus, IconTrash } from '@/components/ui/icons'
+import { askConfirm } from '@/components/ui/confirm-host'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { Spinner } from '@/components/spinner'
 import { rsvpLabel, TEAM_EVENT_TYPES, teamEventTypeLabel } from '@/lib/space-labels'
 import type { Rsvp } from '@solident/db'
@@ -103,30 +107,29 @@ export function TeamEventForm({ contexts, people, initial, onDone }: { contexts:
           </div>
         </div>
       </fieldset>
-      <div className="flex items-center gap-3">
-        <div className="w-52">
-          <SubmitButton loading={loading}>{initial ? 'Enregistrer' : 'Créer et inviter'}</SubmitButton>
-        </div>
-        <button type="button" onClick={onDone} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Créer et inviter'}
+        loading={loading}
+        onCancel={onDone}
+      />
     </form>
   )
 }
 
 export function TeamEventFormToggle({ label, ...props }: { label: string } & Omit<React.ComponentProps<typeof TeamEventForm>, 'onDone'>) {
-  const [open, setOpen] = useState(false)
-  if (!open)
-    return (
-      <button type="button" onClick={() => setOpen(true)} className={label.startsWith('+') ? 'btn btn-primary' : 'text-sm text-navy-700 underline'}>
-        {label}
-      </button>
-    )
+  const creating = label.startsWith('+')
   return (
-    <div className="card w-full p-5">
-      <TeamEventForm {...props} onDone={() => setOpen(false)} />
-    </div>
+    <SheetButton
+      label={label.replace(/^\+\s*/, '')}
+      icon={creating ? <IconPlus /> : <IconEdit className="size-4" />}
+      variant={creating ? 'primary' : 'quiet'}
+      size={creating ? 'md' : 'sm'}
+      title={creating ? 'Nouvel événement' : 'Modifier l’événement'}
+      subtitle={creating ? 'Date, lieu et invités. Les invités reçoivent une notification.' : undefined}
+      sheetIcon={<IconCalendar />}
+    >
+      {(close) => <TeamEventForm {...props} onDone={close} />}
+    </SheetButton>
   )
 }
 
@@ -142,20 +145,22 @@ export function RsvpButtons({ eventId, current }: { eventId: string; current: Rs
     router.refresh()
   }
   return (
-    <div className="flex items-center gap-1">
-      <span className="me-1 text-xs text-ink-600">Je viens :</span>
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-ink-600">Je viens :</span>
+      <div className="inline-flex gap-1 rounded-[10px] bg-navy-100/60 p-1">
       {(['oui', 'non'] as const).map((r) => (
         <button
           key={r}
           type="button"
           onClick={() => answer(r)}
           disabled={busy !== null || current === r}
-          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition active:scale-95 ${current === r ? (r === 'oui' ? 'bg-success text-white' : 'bg-danger text-white') : 'bg-white text-navy-700 shadow-card hover:bg-navy-100'}`}
+          className={`inline-flex min-h-9 items-center gap-1 rounded-[8px] px-4 text-sm font-semibold transition active:scale-95 ${current === r ? (r === 'oui' ? 'bg-success text-white' : 'bg-danger text-white') : 'text-navy-700 hover:bg-white'}`}
         >
           {busy === r && <Spinner />}
           {rsvpLabel[r]}
         </button>
       ))}
+      </div>
     </div>
   )
 }
@@ -168,7 +173,7 @@ export function DeleteTeamEvent({ id, title }: { id: string; title: string }) {
       type="button"
       disabled={busy}
       onClick={async () => {
-        if (!confirm(`Supprimer « ${title} » ?`)) return
+        if (!(await askConfirm({ title: `Supprimer « ${title} » ?`, body: 'L’événement et les réponses des invités seront supprimés.', confirm: 'Supprimer', danger: true }))) return
         setBusy(true)
         const res = await deleteTeamEvent({ id })
         setBusy(false)
@@ -176,9 +181,9 @@ export function DeleteTeamEvent({ id, title }: { id: string; title: string }) {
         toast.success('Événement supprimé')
         router.refresh()
       }}
-      className="inline-flex items-center gap-1 text-sm text-danger underline"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-2 text-sm font-semibold text-danger transition hover:bg-danger/10"
     >
-      {busy && <Spinner />} Supprimer
+      {busy ? <Spinner /> : <IconTrash className="size-4" />} Supprimer
     </button>
   )
 }

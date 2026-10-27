@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@solident/db'
@@ -7,6 +8,12 @@ import { taskPriorityLabel } from '@/lib/space-labels'
 import { dateToLocalInput } from '@/lib/tz'
 import { taskFormData } from '../data'
 import { CommentForm, ManageTask, StatusButtons } from '../task-widgets'
+
+export async function generateMetadata({ params }: PageProps<'/espace/taches/[id]'>): Promise<Metadata> {
+  const { id } = await params
+  const row = /^[0-9a-f-]{36}$/i.test(id) ? await prisma.task.findUnique({ where: { id }, select: { title: true } }) : null
+  return { title: row?.title ?? 'Tâche' }
+}
 
 const when = (d: Date) => d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' })
 

@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { PartnerList } from './partner-list'
+
+export const metadata: Metadata = { title: 'Partenaires' }
 
 export default async function PartenairesPage() {
   await requireRolePage('admin', 'media')
@@ -11,7 +14,7 @@ export default async function PartenairesPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-heading text-2xl font-bold text-navy-700">Partenaires</h1>
+      <h1 className="font-heading text-3xl font-bold text-navy-900">Partenaires<span className="brand-dot" aria-hidden /></h1>
       <p className="text-sm text-ink-600">
         Logos : de préférence PNG ou WebP à fond transparent. Ils sont réduits automatiquement. Un partenaire masqué n’apparaît plus sur le site (ni sur
         le mur des sponsors) mais son historique est conservé.

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@solident/db'
@@ -5,6 +6,12 @@ import { ImageField } from '@/components/admin/image-field'
 import { requireRolePage } from '@/lib/guards'
 import { dateToLocalInput } from '@/lib/tz'
 import { EventForm } from '../event-form'
+
+export async function generateMetadata({ params }: PageProps<'/admin/evenements/[id]'>): Promise<Metadata> {
+  const { id } = await params
+  const row = /^[0-9a-f-]{36}$/i.test(id) ? await prisma.event.findUnique({ where: { id }, select: { titleFr: true } }) : null
+  return { title: row?.titleFr ?? 'Événement' }
+}
 
 export default async function EditEventPage({ params }: PageProps<'/admin/evenements/[id]'>) {
   await requireRolePage('admin', 'media')

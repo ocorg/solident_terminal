@@ -1,10 +1,12 @@
 'use client'
 
+import { IconEdit, IconPlus } from '@/components/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { FormActions } from '@/components/ui'
 import { ImageField } from '@/components/admin/image-field'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { Field, inputClass } from '@/components/form-fields'
 import { savePartner, type PartnerInput } from './actions'
 
 export const partnerTypes = [
@@ -29,8 +31,9 @@ export function PartnerList({ partners }: { partners: Partner[] }) {
       <div className="flex flex-wrap items-center gap-3">
         <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Rechercher un partenaire…" className={`${inputClass} max-w-xs`} />
         {editing !== 'new' && (
-          <button type="button" onClick={() => setEditing('new')} className="btn btn-primary">
-            + Ajouter un partenaire
+          <button type="button" onClick={() => setEditing('new')} className="btn btn-primary gap-2">
+          <IconPlus className="size-5" />
+            Ajouter un partenaire
           </button>
         )}
       </div>
@@ -57,8 +60,8 @@ export function PartnerList({ partners }: { partners: Partner[] }) {
                   {p.website && ` · ${p.website.replace(/^https?:\/\//, '')}`}
                 </p>
               </div>
-              <button type="button" onClick={() => setEditing(editing === p.id ? null : p.id)} className="btn btn-ghost px-3 py-1.5 text-sm">
-                {editing === p.id ? 'Fermer' : 'Modifier'}
+              <button type="button" onClick={() => setEditing(editing === p.id ? null : p.id)} className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-3 text-sm font-semibold text-ink-600 transition hover:bg-navy-100/60 hover:text-navy-900">
+                {editing === p.id ? 'Fermer' : <><IconEdit className="size-4" /> Modifier</>}
               </button>
             </div>
             {editing === p.id && (
@@ -124,14 +127,11 @@ function PartnerEditor({ initial, nextOrder, onDone }: { initial?: Partner; next
         <input type="checkbox" checked={v.isVisible} onChange={set('isVisible')} className="size-4 accent-navy-700" />
         Visible sur le site
       </label>
-      <div className="flex items-center gap-3">
-        <div className="w-48">
-          <SubmitButton loading={saving}>{initial ? 'Enregistrer' : 'Ajouter'}</SubmitButton>
-        </div>
-        <button type="button" onClick={onDone} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={initial ? 'Enregistrer' : 'Ajouter'}
+        loading={saving}
+        onCancel={onDone}
+      />
     </form>
   )
 }

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { askConfirm } from '@/components/ui/confirm-host'
 import { uploadToR2 } from '@/components/admin/upload'
 import { Spinner } from '@/components/spinner'
 import { setDossier } from '@/lib/media-actions'
@@ -34,7 +35,7 @@ export function DossierField({ url }: { url: string | null }) {
   }
 
   async function remove() {
-    if (!confirm('Retirer le dossier de la page Sponsoring ?')) return
+    if (!(await askConfirm({ title: 'Retirer le dossier de sponsoring ?', body: 'Le lien de téléchargement disparaît de la page Sponsoring.', confirm: 'Retirer le dossier', danger: true }))) return
     setBusy(true)
     const res = await setDossier({ key: null })
     setBusy(false)

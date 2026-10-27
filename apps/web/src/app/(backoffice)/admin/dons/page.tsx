@@ -1,8 +1,13 @@
+import { EmptyState } from '@/components/ui/blocks'
+import { IconInbox } from '@/components/ui/icons'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma, type DonationStatus } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { DecisionButtons, ProofButton } from './donation-actions'
 import { ManualDonationForm } from './manual-form'
+
+export const metadata: Metadata = { title: 'Dons' }
 
 const tabs: { key: DonationStatus | 'all'; label: string }[] = [
   { key: 'pending', label: 'À vérifier' },
@@ -12,7 +17,7 @@ const tabs: { key: DonationStatus | 'all'; label: string }[] = [
 ]
 const statusStyle: Record<DonationStatus, string> = {
   pending: 'bg-gold-100 text-navy-900',
-  confirmed: 'bg-success/15 text-success',
+  confirmed: 'bg-success/10 text-success',
   rejected: 'bg-danger/15 text-danger',
 }
 const statusLabel: Record<DonationStatus, string> = { pending: 'À vérifier', confirmed: 'Confirmé', rejected: 'Refusé' }
@@ -40,18 +45,18 @@ export default async function DonsPage({ searchParams }: PageProps<'/admin/dons'
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Dons</h1>
+        <h1 className="font-heading text-3xl font-bold text-navy-900">Dons<span className="brand-dot" aria-hidden /></h1>
         {campaigns.length > 0 && (
           <ManualDonationForm campaigns={campaigns.map((c) => ({ id: c.id, label: c.titleFr }))} partners={partners.map((p) => ({ id: p.id, label: p.name }))} />
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="inline-flex max-w-full flex-wrap gap-1 rounded-[12px] bg-navy-100/60 p-1">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/admin/dons?statut=${t.key}`}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${current === t.key ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`}
+            className={`flex min-h-10 items-center gap-1 rounded-[9px] px-3 text-sm font-semibold transition ${current === t.key ? 'bg-white text-navy-900 shadow-sm' : 'text-ink-600 hover:text-navy-900'}`}
           >
             {t.label} <span className="font-normal">({count(t.key)})</span>
           </Link>
@@ -59,7 +64,7 @@ export default async function DonsPage({ searchParams }: PageProps<'/admin/dons'
       </div>
 
       {donations.length === 0 ? (
-        <p className="card p-6 text-ink-600">Aucun don dans cette liste.</p>
+        <EmptyState icon={<IconInbox />} title="Aucun don dans cette liste" />
       ) : (
         <div className="card overflow-x-auto">
           <table className="stack-table w-full min-w-[760px] text-sm">
@@ -90,7 +95,7 @@ export default async function DonsPage({ searchParams }: PageProps<'/admin/dons'
                   <td data-label="Campagne" className="px-4 py-3 text-ink-600">{d.campaign.titleFr}</td>
                   <td data-label="Justificatif" className="px-4 py-3">{d.proofKey ? <ProofButton id={d.id} /> : <span className="text-ink-600">—</span>}</td>
                   <td data-label="Statut" className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyle[d.status]}`}>{statusLabel[d.status]}</span>
+                    <span className={`rounded-[4px] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${statusStyle[d.status]}`}>{statusLabel[d.status]}</span>
                     {d.confirmedBy && d.status !== 'pending' && <div className="mt-1 text-xs text-ink-600">par {d.confirmedBy.name}</div>}
                     {d.adminNote && <div className="mt-1 max-w-48 text-xs text-ink-600">« {d.adminNote} »</div>}
                   </td>

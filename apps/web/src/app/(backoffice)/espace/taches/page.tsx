@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { EmptyState, PageHeader, PriorityMark, SegmentedLinks, StatusTag } from '@/components/ui/blocks'
+import { IconTasks } from '@/components/ui/icons'
 import { prisma, type Prisma, type TaskPriority, type TaskStatus } from '@solident/db'
 import { AvatarStack } from '@/components/space/avatar'
 import { contextNames, requireMemberPage } from '@/lib/space'
-import { priorityRank, TASK_PRIORITIES, TASK_STATUSES, taskPriorityLabel, taskStatusLabel, taskStatusStyle } from '@/lib/space-labels'
+import { priorityRank, TASK_PRIORITIES, TASK_STATUSES, taskPriorityLabel, taskPriorityColor, taskStatusLabel, taskStatusTone } from '@/lib/space-labels'
 import { taskFormData } from './data'
 import { NewTaskButton } from './task-widgets'
 
@@ -38,36 +40,35 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
     const p = new URLSearchParams(Object.entries({ vue: view, statut: status, priorite: priority, contexte: contextId, archives: archived ? '1' : undefined, ...patch }).filter((e): e is [string, string] => !!e[1]))
     return `/espace/taches${p.size ? `?${p}` : ''}`
   }
-  const chip = (active: boolean) => `rounded-full px-3 py-1 text-sm font-semibold transition ${active ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 hover:bg-navy-100'}`
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold text-navy-700">Tâches</h1>
-        {form.contexts.length > 0 && <NewTaskButton contexts={form.contexts} people={form.people} defaultContextId={contextId} />}
-      </div>
+      <PageHeader
+        title="Tâches"
+        description="Ce que l’équipe a à faire, projet par projet."
+        actions={form.contexts.length > 0 ? <NewTaskButton contexts={form.contexts} people={form.people} defaultContextId={contextId} /> : undefined}
+      />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={q({ vue: 'moi' })} className={chip(view === 'moi')}>
-          Mes tâches
-        </Link>
-        <Link href={q({ vue: 'toutes' })} className={chip(view === 'toutes')}>
-          Toutes
-        </Link>
-        <span className="mx-1 h-5 w-px bg-navy-100" />
-        <Link href={q({ statut: undefined })} className={chip(!status)}>
-          Tous statuts
-        </Link>
-        {TASK_STATUSES.map((s) => (
-          <Link key={s} href={q({ statut: s })} className={chip(status === s)}>
-            {taskStatusLabel[s]}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <SegmentedLinks
+          label="Tâches de qui"
+          items={[
+            { href: q({ vue: 'moi' }), label: 'Mes tâches', active: view === 'moi' },
+            { href: q({ vue: 'toutes' }), label: 'Toute l’équipe', active: view === 'toutes' },
+          ]}
+        />
+        <SegmentedLinks
+          label="Statut"
+          items={[
+            { href: q({ statut: undefined }), label: 'Tous', active: !status },
+            ...TASK_STATUSES.map((s) => ({ href: q({ statut: s }), label: taskStatusLabel[s], active: status === s })),
+          ]}
+        />
       </div>
-      <form className="flex flex-wrap items-center gap-2 text-sm" action="/espace/taches" data-no-guard>
+      <form className="card flex flex-wrap items-center gap-2 p-3 text-sm" action="/espace/taches" data-no-guard>
         <input type="hidden" name="vue" value={view} />
         {status && <input type="hidden" name="statut" value={status} />}
-        <select name="contexte" aria-label="Filtrer par projet ou cellule" defaultValue={contextId ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
+        <select name="contexte" aria-label="Filtrer par projet ou cellule" defaultValue={contextId ?? ''} className="min-h-10 rounded-[10px] border border-navy-100 bg-white px-3">
           <option value="">Tous projets et cellules</option>
           {[...names.entries()].sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) => (
             <option key={id} value={id}>
@@ -75,7 +76,7 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
             </option>
           ))}
         </select>
-        <select name="priorite" aria-label="Filtrer par priorité" defaultValue={priority ?? ''} className="rounded-lg border border-navy-100 bg-white px-2 py-1.5">
+        <select name="priorite" aria-label="Filtrer par priorité" defaultValue={priority ?? ''} className="min-h-10 rounded-[10px] border border-navy-100 bg-white px-3">
           <option value="">Toutes priorités</option>
           {TASK_PRIORITIES.map((p: TaskPriority) => (
             <option key={p} value={p}>
@@ -83,33 +84,37 @@ export default async function TasksPage({ searchParams }: PageProps<'/espace/tac
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-1">
+        <label className="flex min-h-10 items-center gap-1.5 px-1 text-ink-600">
           <input type="checkbox" name="archives" value="1" defaultChecked={archived} className="accent-navy-700" /> Archivées
         </label>
-        <button type="submit" className="btn btn-ghost px-3 py-1.5 text-sm">
-          Filtrer
+        <button type="submit" className="btn btn-ghost ms-auto min-h-10 px-4 py-0 text-sm">
+          Appliquer
         </button>
       </form>
 
       {tasks.length === 0 ? (
-        <p className="card p-6 text-ink-600">Aucune tâche ne correspond à ces filtres.</p>
+        <EmptyState icon={<IconTasks />} title="Aucune tâche ici">
+          Aucune tâche ne correspond à ces filtres. Essayez « Toute l’équipe » ou « Tous » les statuts.
+        </EmptyState>
       ) : (
         <ul className="card divide-y divide-navy-100">
           {tasks.map((t) => {
             const late = t.dueDate && t.dueDate < now && t.status !== 'termine'
             return (
               <li key={t.id}>
-                <Link href={`/espace/taches/${t.id}`} className="flex flex-wrap items-center gap-3 p-4 hover:bg-cream-50">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${taskStatusStyle[t.status]}`}>{taskStatusLabel[t.status]}</span>
+                <Link href={`/espace/taches/${t.id}`} className="flex flex-wrap items-center gap-3 p-4 transition hover:bg-cream-50">
+                  <StatusTag tone={taskStatusTone[t.status]} className="w-20 text-center">
+                    {taskStatusLabel[t.status]}
+                  </StatusTag>
                   <span className="min-w-48 flex-1">
                     <span className="font-semibold">{t.title}</span>
                     <span className="block text-xs text-ink-600">
                       {names.get(t.contextId) ?? '—'}
-                      {t._count.comments > 0 && ` · 💬 ${t._count.comments}`}
+                      {t._count.comments > 0 && ` · ${t._count.comments} commentaire${t._count.comments > 1 ? 's' : ''}`}
                     </span>
                   </span>
-                  <span className="text-xs">{taskPriorityLabel[t.priority]}</span>
-                  {t.dueDate && <span className={`text-xs ${late ? 'font-bold text-danger' : 'text-ink-600'}`}>{day(t.dueDate)}</span>}
+                  <PriorityMark color={taskPriorityColor[t.priority]} label={taskPriorityLabel[t.priority]} />
+                  {t.dueDate && <span className={`text-xs ${late ? 'font-bold text-danger' : 'text-ink-600'}`}>{late ? 'En retard · ' : ''}{day(t.dueDate)}</span>}
                   <AvatarStack people={t.assignees.map((a) => a.user)} />
                 </Link>
               </li>

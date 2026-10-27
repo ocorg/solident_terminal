@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Field, inputClass, SubmitButton } from '@/components/form-fields'
+import { FormActions } from '@/components/ui'
+import { Field, inputClass } from '@/components/form-fields'
 import { saveProgramme, type ProgrammeInput } from './actions'
 
 const langs = [
@@ -63,14 +64,11 @@ export function ProgrammeForm({ initial }: { initial: ProgrammeInput }) {
           Visible sur le site (page Programmes et accueil)
         </label>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="w-48">
-          <SubmitButton loading={loading}>Enregistrer</SubmitButton>
-        </div>
-        <button type="button" onClick={() => router.push('/admin/contenu')} className="text-sm text-ink-600 underline">
-          Annuler
-        </button>
-      </div>
+      <FormActions
+        submit={'Enregistrer'}
+        loading={loading}
+        onCancel={() => router.push('/admin/contenu')}
+      />
     </form>
   )
 }

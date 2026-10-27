@@ -1,9 +1,12 @@
 'use client'
 
+import { IconPrint } from '@/components/ui/icons'
+import { Btn } from '@/components/ui'
+
 export function PrintButton() {
   return (
-    <button type="button" onClick={() => window.print()} className="btn btn-ghost min-h-11">
+    <Btn variant="secondary" icon={<IconPrint />} onClick={() => window.print()}>
       Imprimer
-    </button>
+    </Btn>
   )
 }

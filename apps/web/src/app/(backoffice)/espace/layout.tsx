@@ -8,7 +8,7 @@ import { STAFF_ROLES } from '@/lib/guards'
 import { requireMemberPage } from '@/lib/space'
 import { SpaceNav } from './space-nav'
 
-export const metadata: Metadata = { title: { default: 'Espace membres · Solident', template: '%s · Espace membres' } }
+export const metadata: Metadata = { title: { default: 'Espace membres | Solident', template: '%s | Espace membres' } }
 
 export default async function SpaceLayout({ children }: LayoutProps<'/espace'>) {
   const user = await requireMemberPage()

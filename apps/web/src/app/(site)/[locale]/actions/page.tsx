@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { IconCheck, IconHeart, IconPin, IconUsers } from '@/components/ui/icons'
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server'
 import { prisma } from '@solident/db'
 import { ActionsMap } from '@/components/site/actions-map'
@@ -42,6 +43,7 @@ export default async function ActionsPage({ params, searchParams }: PageProps<'/
   const points = caravans
     .filter((a) => a.lat !== null && a.lng !== null)
     .map((a) => ({ slug: a.slug, title: localized(a, 'title', locale), date: dayFmt(a), partner: partnerNames(a) || null, lat: a.lat!, lng: a.lng!, href: `/${locale}/actions/${a.slug}`, cta: t('seeAction') }))
+  const totalIcon: Record<string, React.ReactNode> = { actions: <IconCheck />, caravans: <IconPin />, beneficiaries: <IconUsers />, partners: <IconHeart /> }
   const totals = [
     { key: 'actions', value: actions.length },
     { key: 'caravans', value: caravans.length },
@@ -52,7 +54,7 @@ export default async function ActionsPage({ params, searchParams }: PageProps<'/
   const byYear = new Map<number, typeof shown>()
   for (const a of shown) byYear.set(a.dateStart.getUTCFullYear(), [...(byYear.get(a.dateStart.getUTCFullYear()) ?? []), a])
   const chip = (active: boolean) =>
-    `rounded-full px-4 py-1.5 text-sm font-semibold transition ${active ? 'bg-navy-700 text-white' : 'bg-white text-navy-700 shadow-card hover:bg-navy-100'}`
+    `inline-flex min-h-10 items-center rounded-[10px] px-4 text-sm font-semibold transition ${active ? 'bg-navy-700 text-white shadow-sm' : 'bg-white text-navy-700 shadow-card hover:bg-navy-100'}`
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -60,8 +62,9 @@ export default async function ActionsPage({ params, searchParams }: PageProps<'/
 
       <dl className="mb-12 grid grid-cols-2 gap-4 md:grid-cols-4">
         {totals.map((x) => (
-          <div key={x.key} className="card p-5">
-            <dd className="font-heading text-3xl font-bold text-navy-700">{format.number(x.value)}</dd>
+          <div key={x.key} className={`card flex flex-col gap-2 border-s-4 p-5 ${x.key === 'caravans' ? 'border-gold-500' : 'border-transparent'}`}>
+            <span className={`flex size-10 items-center justify-center rounded-[10px] ${x.key === 'caravans' ? 'bg-gold-100 text-gold-700' : 'bg-navy-100 text-navy-700'}`}>{totalIcon[x.key]}</span>
+            <dd className="font-heading text-3xl font-bold text-navy-900">{format.number(x.value)}</dd>
             <dt className="text-sm text-ink-600">{t(`totals.${x.key}`)}</dt>
           </div>
         ))}

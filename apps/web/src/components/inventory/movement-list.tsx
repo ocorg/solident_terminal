@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Spinner } from '@/components/spinner'
 import { undoMovement } from '@/lib/inventory/actions'
 import { formatQty, movementLabel, movementTone, sourceLabel } from '@/lib/inventory/labels'
 import type { MovementDTO } from '@/lib/inventory/queries'
-import { Tag } from './ui'
+import { IconUndo } from '@/components/ui/icons'
+import { Btn, Tag, useConfirm } from '@/components/ui'
 
 const when = (iso: string) => new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' })
 
@@ -68,31 +68,29 @@ export function MovementList({ rows, canUndo, showItem = true }: { rows: Movemen
 
 function UndoButton({ id }: { id: string }) {
   const router = useRouter()
-  const [confirming, setConfirming] = useState(false)
+  const { ask, dialog } = useConfirm()
   const [busy, setBusy] = useState(false)
   async function undo() {
+    const okToGo = await ask({
+      title: 'Annuler ce mouvement ?',
+      body: 'Un mouvement inverse est enregistré : les quantités reviennent comme avant. Les deux lignes restent visibles dans l’historique.',
+      confirm: 'Annuler le mouvement',
+      danger: true,
+    })
+    if (!okToGo) return
     setBusy(true)
     const res = await undoMovement({ id })
     setBusy(false)
-    setConfirming(false)
     if (res.status === 'error') return void toast.error(res.message)
     toast.success('Mouvement annulé (mouvement inverse enregistré)')
     router.refresh()
   }
-  if (!confirming)
-    return (
-      <button type="button" onClick={() => setConfirming(true)} className="rounded-[8px] px-2 py-1.5 text-sm font-semibold text-navy-700 transition hover:bg-navy-100">
-        Annuler ce mouvement
-      </button>
-    )
   return (
-    <div className="flex items-center gap-1">
-      <button type="button" onClick={undo} disabled={busy} className="inline-flex items-center gap-1 rounded-[8px] bg-danger px-2 py-1.5 text-sm font-semibold text-white transition hover:brightness-90 disabled:opacity-70">
-        {busy && <Spinner />} Confirmer
-      </button>
-      <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="rounded-[8px] px-2 py-1.5 text-sm text-ink-600 hover:bg-navy-100">
-        Non
-      </button>
-    </div>
+    <>
+      <Btn variant="quiet" size="sm" busy={busy} icon={<IconUndo className="size-4" />} onClick={undo} className="shrink-0">
+        Annuler
+      </Btn>
+      {dialog}
+    </>
   )
 }

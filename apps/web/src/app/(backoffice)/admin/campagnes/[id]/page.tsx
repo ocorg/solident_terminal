@@ -1,7 +1,14 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@solident/db'
 import { requireRolePage } from '@/lib/guards'
 import { CampaignForm } from '../campaign-form'
+
+export async function generateMetadata({ params }: PageProps<'/admin/campagnes/[id]'>): Promise<Metadata> {
+  const { id } = await params
+  const row = /^[0-9a-f-]{36}$/i.test(id) ? await prisma.campaign.findUnique({ where: { id }, select: { titleFr: true } }) : null
+  return { title: row?.titleFr ?? 'Campagne' }
+}
 
 const isoDay = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
