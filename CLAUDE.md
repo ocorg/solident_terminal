@@ -120,6 +120,7 @@ Replaces the logistics Google Sheet. **Stock is never stored: it is a ledger** (
 - `icons.tsx`: line icons (24 px grid, currentColor). `tones.ts`: shared status colours
 - Rules: no emoji in UI labels (task statuses/priorities are tags + coloured marks, `lib/space-labels.ts` `*Tone` maps); no `rounded-full` pills for statuses or filters; forms that create/edit open in a `Sheet` (tasks, projects/cellules, team events, proposals, manual donations, all inventory forms); destructive actions go through `askConfirm`/`useConfirm`; every page starts with its key numbers (StatTile row) when it has any
 - Tab titles: separator ` | ` everywhere (`Page | Espace membres`, `Page | Administration`, `Page | Association Solident`); every back-office page exports a title (dynamic pages use the record name)
+- Form controls (28 Oct): brand styles in `globals.css` (`@layer base`): checkboxes/radios drawn with backgrounds (navy + white tick / dot), dropdowns with our own arrow and one-line ellipsis, calendar icon and file button restyled; the open dropdown list is styled with `appearance: base-select` where supported (Chrome/Edge desktop + Android), Safari/Firefox keep their native picker
 - Images: every upload compressed in the browser to **≤ 100 KB** (`components/admin/upload.ts` `shrinkImage`, WebP or JPEG fallback), server refuses larger images (`lib/r2.ts` `IMAGE_MAX_BYTES`); receipts' photos too (PDFs unchanged)
 
 ## Unsaved-data guard (27 Oct 2026) — every form, site + back office

@@ -54,7 +54,8 @@ export function TaskForm({ contexts, people, initial, defaultContextId, onDone }
       <Field id="t-title" label="Titre *">
         <input id="t-title" required minLength={2} maxLength={200} value={v.title} onChange={set('title')} className={inputClass} />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
         <Field id="t-ctx" label="Projet / cellule">
           <select id="t-ctx" value={v.contextId} onChange={set('contextId')} disabled={!!initial} className={inputClass}>
             {(['project', 'cellule'] as const).map((type) => (
@@ -68,6 +69,7 @@ export function TaskForm({ contexts, people, initial, defaultContextId, onDone }
             ))}
           </select>
         </Field>
+        </div>
         <Field id="t-prio" label="Priorité">
           <select id="t-prio" value={v.priority} onChange={set('priority')} className={inputClass}>
             {TASK_PRIORITIES.map((p) => (
@@ -87,7 +89,7 @@ export function TaskForm({ contexts, people, initial, defaultContextId, onDone }
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Assigné·e·s ({v.assigneeIds.length})</legend>
         <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Chercher quelqu’un d’autre…" className={`${inputClass} max-w-xs py-2`} />
-        <div className="grid max-h-48 gap-1 overflow-y-auto rounded-lg border border-navy-100 p-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid max-h-48 gap-1 overflow-y-auto rounded-lg border border-navy-100 p-3 sm:grid-cols-2">
           {shown.length === 0 && <p className="text-sm text-ink-600">Aucun membre dans ce contexte : cherchez un nom.</p>}
           {shown.map((p) => (
             <label key={p.id} className="flex items-center gap-2 text-sm">
