@@ -111,6 +111,14 @@ Replaces the logistics Google Sheet. **Stock is never stored: it is a ledger** (
 - [x] Demo: `pnpm db:inventory-demo seed|clear` (21 items, 4 holders, project "[Démo] Caravane test inventaire" with needs, collecte and a validated bilan). Anything written on a demo item or the demo project is flagged demo too. Admin button "Vider les données de démonstration" in the Catalogue tab. Seeded on dev; **production: run `DB_ENV_FILE=.env.production pnpm db:inventory-demo seed` after the deploy has migrated the DB**
 - E2E checked on dev (21 checks with Playwright: phone collecte with new item + photo, autoclave transfer, over-consumption blocked, offline count survives tab close and syncs, changed-stock warning, read-only bilan, member restrictions, offboarding guard)
 
+## Hibernation mode (30 Oct 2026) — project paused
+
+Owner decision: no answer from the association about the project's future, so the whole platform sleeps to protect the Vercel Hobby quota (shared with his other projects). Nothing is deleted.
+- **On** when Vercel Production has `HIBERNATE=1` (build-time): `next.config.ts` `redirects()` sends every path (except `/veille`, Next assets, `brand/`, `icons/`, favicons, robots, manifest, `sw.js`, `offline.html`) to `/veille` with a 307, in Vercel's routing layer (no proxy, no function, no DB). `src/proxy.ts` matcher also skips `veille`
+- `/veille` = route group `app/(veille)` with its own root layout; static page (`force-static`), FR/AR/EN switch (browser language, then remembered), looping SVG/CSS animation (`.veille-*` in `globals.css`, off with reduce-motion). "Ping le projet" (`veille/actions.ts`): optional name / contact / message + honeypot, rate-limited (3 per hour per IP, 20 per day in total, Postgres `rate_limits`), e-mails `HIBERNATE_NOTIFY_EMAIL` (fallback `GMAIL_USER`), reply-to = the visitor's e-mail if given; then "Demande d'accès envoyée — en attente d'approbation"
+- Owner bypass: `/veille/entrer?cle=<HIBERNATE_KEY>` sets the httpOnly cookie `solident_wake` (90 days) that the redirect lets through; `/veille/entrer?sortir=1` removes it. The full link is in the git-ignored file `ACCES-PRIVE-HIBERNATION.txt` at the repo root (owner only)
+- **Wake up**: Vercel → solident → Settings → Environment Variables → delete `HIBERNATE` (Production) → Deployments → latest → Redeploy. Re-enable cron-job.org if it was paused. **Sleep again**: add `HIBERNATE=1` and redeploy
+
 ## Design system + full UI pass (27 Oct 2026) — `apps/web/src/components/ui/`
 
 **Use these for every new screen; do not hand-build buttons, pills or dialogs.**

@@ -14,6 +14,6 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the API, Next internals and files with an extension.
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  // Everything except the API, Next internals, the hibernation page and files with an extension.
+  matcher: ['/((?!api|_next|_vercel|veille|.*\\..*).*)'],
 }

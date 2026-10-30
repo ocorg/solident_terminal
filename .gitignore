@@ -42,3 +42,5 @@ next-env.d.ts
 
 logo-base64.txt
 .env*.local
+# Owner-only hibernation bypass link (never commit)
+ACCES-PRIVE-HIBERNATION.txt

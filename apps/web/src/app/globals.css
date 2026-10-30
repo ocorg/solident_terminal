@@ -210,6 +210,70 @@ h3 {
   }
 }
 
+/* ───────── Hibernation page (/veille): looping vector animation, off with reduce-motion ───────── */
+.veille {
+  background: radial-gradient(120% 80% at 50% 0%, #1e5470 0%, #123a4f 55%, #0c2938 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .veille-ring {
+    animation: veille-turn 40s linear infinite;
+    transform-origin: 50% 50%;
+  }
+  .veille-breathe {
+    animation: veille-breathe 5s ease-in-out infinite;
+  }
+  .veille-z {
+    animation: veille-z 3.3s ease-out infinite;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .veille-star {
+    animation: veille-twinkle 4s ease-in-out infinite;
+  }
+}
+@keyframes veille-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes veille-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 30px 70px rgba(244, 178, 35, 0.22);
+  }
+}
+@keyframes veille-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px) rotate(-8deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -26px) rotate(8deg);
+  }
+}
+@keyframes veille-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.veille-star {
+  opacity: 0.5;
+}
+
 /* Keyboard focus: always visible, navy on light surfaces, gold on navy ones */
 :focus-visible {
   outline: 3px solid var(--color-navy-700);
