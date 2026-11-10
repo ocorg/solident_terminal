@@ -111,7 +111,7 @@ Replaces the logistics Google Sheet. **Stock is never stored: it is a ledger** (
 - [x] Demo: `pnpm db:inventory-demo seed|clear` (21 items, 4 holders, project "[Démo] Caravane test inventaire" with needs, collecte and a validated bilan). Anything written on a demo item or the demo project is flagged demo too. Admin button "Vider les données de démonstration" in the Catalogue tab. Seeded on dev; **production: run `DB_ENV_FILE=.env.production pnpm db:inventory-demo seed` after the deploy has migrated the DB**
 - E2E checked on dev (21 checks with Playwright: phone collecte with new item + photo, autoclave transfer, over-consumption blocked, offline count survives tab close and syncs, changed-stock warning, read-only bilan, member restrictions, offboarding guard)
 
-## Hibernation mode (30 Oct 2026) — project paused
+## Hibernation mode (30 Oct 2026) — **woken up 10 Nov 2026** (HIBERNATE removed in Vercel, redeployed; the code stays, ready to sleep again)
 
 Owner decision: no answer from the association about the project's future, so the whole platform sleeps to protect the Vercel Hobby quota (shared with his other projects). Nothing is deleted.
 - **On** when Vercel Production has `HIBERNATE=1` (build-time): `next.config.ts` `redirects()` sends every path (except `/veille`, Next assets, `brand/`, `icons/`, favicons, robots, manifest, `sw.js`, `offline.html`) to `/veille` with a 307, in Vercel's routing layer (no proxy, no function, no DB). `src/proxy.ts` matcher also skips `veille`
